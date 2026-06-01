@@ -1,32 +1,34 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Presenza Studio â€” Barre Â· Pilates Â· Yoga | Managua</title>
+<title>Presenza Studio – Barre · Pilates · Yoga | Managua</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 
+/* ── VARIABLES ── */
 :root {
-  --cream:     #F5EDE3;
-  --cream-d:   #EAD9CA;
-  --cream-dd:  #D9C4B0;
-  --wine:      #6B1728;
-  --wine-d:    #4A0F1A;
-  --wine-l:    #8B2035;
-  --blush:     #C9956A;
-  --text:      #2C1810;
-  --gray:      #9A8880;
-  --white:     #FFFBF8;
-  --wa:        #25D366;
-  --nav-h:     72px;
-  --radius:    20px;
-  --shadow:    0 4px 24px rgba(107,23,40,0.10);
-  --shadow-h:  0 16px 48px rgba(107,23,40,0.18);
+  --cream:    #F5EDE3;
+  --cream-d:  #EAD9CA;
+  --cream-dd: #D9C4B0;
+  --wine:     #6B1728;
+  --wine-d:   #4A0F1A;
+  --wine-l:   #8B2035;
+  --blush:    #C9956A;
+  --text:     #2C1810;
+  --gray:     #9A8880;
+  --white:    #FFFBF8;
+  --wa:       #25D366;
+  --nav-h:    72px;
+  --radius:   20px;
+  --sh:       0 4px 24px rgba(107,23,40,.10);
+  --sh-h:     0 20px 56px rgba(107,23,40,.22);
 }
 
+/* ── RESET ── */
 *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
 html { scroll-behavior:smooth; }
 body { font-family:'Poppins',sans-serif; background:var(--white); color:var(--text); overflow-x:hidden; }
@@ -37,88 +39,111 @@ a { text-decoration:none; color:inherit; }
 ::-webkit-scrollbar-track { background:var(--cream); }
 ::-webkit-scrollbar-thumb { background:var(--wine); border-radius:3px; }
 
-/* â”€â”€ NAV â”€â”€ */
+/* ── PROGRESS BAR ── */
+.progress-bar {
+  position:fixed; top:0; left:0; z-index:1100;
+  height:3px; width:0%;
+  background:linear-gradient(90deg, var(--wine), var(--blush), var(--wine-l));
+  transition:width .08s linear;
+  pointer-events:none;
+}
+
+/* ── NAV ── */
 nav {
-  position:fixed; top:0; left:0; right:0; z-index:900;
+  position:fixed; top:3px; left:0; right:0; z-index:900;
   height:var(--nav-h); padding:0 52px;
   display:flex; align-items:center; justify-content:space-between;
-  transition:background 0.4s, box-shadow 0.4s;
+  transition:background .4s, box-shadow .4s;
 }
 nav.scrolled {
-  background:rgba(255,251,248,0.96);
-  backdrop-filter:blur(16px);
-  box-shadow:0 2px 20px rgba(107,23,40,0.08);
+  background:rgba(255,251,248,.96);
+  backdrop-filter:blur(18px);
+  box-shadow:0 2px 24px rgba(107,23,40,.09);
 }
 .nav-logo {
   font-family:'Playfair Display',serif;
   font-size:1.45rem; font-weight:900;
   color:var(--white); letter-spacing:1.5px;
-  transition:color 0.4s;
+  transition:color .4s;
 }
 nav.scrolled .nav-logo { color:var(--wine); }
-
 .nav-links { display:flex; align-items:center; gap:30px; list-style:none; }
 .nav-links a {
-  font-size:0.8rem; font-weight:500; letter-spacing:0.5px;
-  color:rgba(255,251,248,0.82); position:relative; padding-bottom:3px;
-  transition:color 0.3s;
+  font-size:.8rem; font-weight:500; letter-spacing:.5px;
+  color:rgba(255,251,248,.82); position:relative; padding-bottom:3px;
+  transition:color .3s;
 }
 nav.scrolled .nav-links a { color:var(--gray); }
 .nav-links a::after {
   content:''; position:absolute; bottom:0; left:0; right:0;
   height:1.5px; background:var(--wine);
-  transform:scaleX(0); transform-origin:left; transition:transform 0.3s;
+  transform:scaleX(0); transform-origin:left; transition:transform .3s;
 }
-.nav-links a:hover { color:var(--wine) !important; }
-.nav-links a:hover::after { transform:scaleX(1); }
+.nav-links a:hover,
+.nav-links a.active { color:var(--wine) !important; }
+.nav-links a:hover::after,
+.nav-links a.active::after { transform:scaleX(1); }
 .nav-cta {
   background:var(--wine) !important; color:var(--white) !important;
   font-weight:600 !important; padding:9px 24px; border-radius:50px;
-  transition:all 0.3s !important;
-  box-shadow:0 4px 16px rgba(107,23,40,0.28);
+  transition:all .3s !important; box-shadow:0 4px 16px rgba(107,23,40,.28);
 }
 .nav-cta:hover { background:var(--wine-d) !important; transform:translateY(-2px) !important; }
 .nav-cta::after { display:none !important; }
-
 .hamburger { display:none; flex-direction:column; gap:5px; width:26px; cursor:pointer; z-index:910; }
-.hamburger span { display:block; height:2px; background:var(--white); border-radius:2px; transition:all 0.3s; }
+.hamburger span { display:block; height:2px; background:var(--white); border-radius:2px; transition:all .3s; }
 nav.scrolled .hamburger span { background:var(--wine); }
 .hamburger.open span:nth-child(1) { transform:translateY(7px) rotate(45deg); background:var(--wine) !important; }
 .hamburger.open span:nth-child(2) { opacity:0; }
 .hamburger.open span:nth-child(3) { transform:translateY(-7px) rotate(-45deg); background:var(--wine) !important; }
 .mobile-menu {
   display:none; position:fixed; inset:0; z-index:800;
-  background:rgba(255,251,248,0.98); backdrop-filter:blur(20px);
+  background:rgba(255,251,248,.98); backdrop-filter:blur(20px);
   flex-direction:column; align-items:center; justify-content:center; gap:36px;
 }
 .mobile-menu.open { display:flex; }
 .mobile-menu a {
   font-family:'Playfair Display',serif; font-size:2rem; font-weight:900;
-  color:var(--wine-d); transition:color 0.3s;
+  color:var(--wine-d); transition:color .3s;
 }
 .mobile-menu a:hover { color:var(--blush); }
 
-/* â”€â”€ HERO â”€â”€ */
+/* ── HERO ── */
 .hero {
   min-height:100vh; position:relative; overflow:hidden;
   display:flex; align-items:center;
   padding:calc(var(--nav-h) + 48px) 52px 90px;
-  background:linear-gradient(135deg, var(--wine-d) 0%, #7B1A2E 55%, #9B2B42 100%);
 }
 .hero-bg {
-  position:absolute; inset:0;
+  position:absolute; inset:-20%; z-index:0;
+  background:linear-gradient(135deg, var(--wine-d) 0%, #7B1A2E 55%, #9B2B42 100%);
+  will-change:transform;
+}
+.hero-bg::before {
+  content:''; position:absolute; inset:0;
   background:
-    radial-gradient(ellipse at 12% 85%, rgba(255,251,248,0.06) 0%, transparent 45%),
-    radial-gradient(ellipse at 88% 12%, rgba(201,149,106,0.18) 0%, transparent 42%);
+    radial-gradient(ellipse at 12% 85%, rgba(255,251,248,.06) 0%, transparent 45%),
+    radial-gradient(ellipse at 88% 12%, rgba(201,149,106,.18) 0%, transparent 42%);
 }
 .hero-ring {
   position:absolute; border-radius:50%;
-  border:1px solid rgba(255,255,255,0.055);
+  border:1px solid rgba(255,255,255,.055);
   animation:ringSpIn linear infinite;
 }
-.hero-ring:nth-child(1) { width:680px; height:680px; top:-220px; right:-130px; animation-duration:52s; }
-.hero-ring:nth-child(2) { width:420px; height:420px; bottom:-110px; left:-90px; animation-duration:36s; animation-direction:reverse; }
+.hero-ring:nth-child(2) { width:680px; height:680px; top:-220px; right:-130px; animation-duration:52s; }
+.hero-ring:nth-child(3) { width:420px; height:420px; bottom:-110px; left:-90px; animation-duration:36s; animation-direction:reverse; }
 @keyframes ringSpIn { to { transform:rotate(360deg); } }
+
+/* floating particles */
+.particle {
+  position:absolute; border-radius:50%; pointer-events:none;
+  background:rgba(255,251,248,.06);
+  animation:particleFloat ease-in-out infinite;
+}
+@keyframes particleFloat {
+  0%,100% { transform:translateY(0) scale(1); opacity:.4; }
+  50% { transform:translateY(-28px) scale(1.1); opacity:.08; }
+}
 
 .hero-inner {
   position:relative; z-index:1;
@@ -127,60 +152,69 @@ nav.scrolled .hamburger span { background:var(--wine); }
 }
 .hero-tag {
   display:inline-flex; align-items:center; gap:8px;
-  background:rgba(255,251,248,0.1); border:1px solid rgba(255,251,248,0.22);
-  color:rgba(255,251,248,0.88); padding:6px 18px; border-radius:50px;
-  font-size:0.74rem; font-weight:500; letter-spacing:2.5px;
+  background:rgba(255,251,248,.1); border:1px solid rgba(255,251,248,.22);
+  color:rgba(255,251,248,.88); padding:6px 18px; border-radius:50px;
+  font-size:.74rem; font-weight:500; letter-spacing:2.5px;
   text-transform:uppercase; margin-bottom:26px;
+  opacity:0; transform:translateY(18px); animation:heroUp .8s ease forwards .3s;
 }
 .hero-h1 {
   font-family:'Playfair Display',serif;
   font-size:clamp(2.7rem,5.5vw,4.4rem);
   font-weight:900; line-height:1.04;
   color:var(--white); margin-bottom:10px;
+  opacity:0; transform:translateY(30px); animation:heroUp 1s ease forwards .55s;
 }
 .hero-h1 em {
   display:block; font-style:italic;
-  color:rgba(255,251,248,0.6);
-  font-size:0.62em; font-weight:400;
+  color:rgba(255,251,248,.6); font-size:.62em; font-weight:400;
   letter-spacing:3px; margin-bottom:8px;
 }
-.hero-rule { width:56px; height:1px; background:rgba(255,251,248,0.28); margin:22px 0; }
-.hero-sub {
-  font-size:0.97rem; font-weight:300;
-  color:rgba(255,251,248,0.68); line-height:1.85;
-  max-width:430px; margin-bottom:38px;
+.hero-rule {
+  width:56px; height:1px; background:rgba(255,251,248,.28); margin:22px 0;
+  opacity:0; animation:heroFade .8s ease forwards .75s;
 }
-.hero-btns { display:flex; gap:14px; flex-wrap:wrap; }
+.hero-sub {
+  font-size:.97rem; font-weight:300;
+  color:rgba(255,251,248,.68); line-height:1.85;
+  max-width:430px; margin-bottom:38px;
+  opacity:0; transform:translateY(18px); animation:heroUp .8s ease forwards .9s;
+}
+.hero-btns {
+  display:flex; gap:14px; flex-wrap:wrap;
+  opacity:0; transform:translateY(18px); animation:heroUp .8s ease forwards 1.05s;
+}
+@keyframes heroUp { to { opacity:1; transform:translateY(0); } }
+@keyframes heroFade { to { opacity:1; } }
+
 .btn-cream {
   background:var(--cream); color:var(--wine);
-  font-weight:700; font-size:0.88rem;
-  padding:14px 28px; border-radius:50px;
+  font-weight:700; font-size:.88rem; padding:14px 28px; border-radius:50px;
   display:inline-flex; align-items:center; gap:8px;
-  transition:all 0.3s; box-shadow:0 4px 22px rgba(0,0,0,0.22);
+  transition:all .3s; box-shadow:0 4px 22px rgba(0,0,0,.22);
 }
-.btn-cream:hover { background:var(--white); transform:translateY(-2px); box-shadow:0 10px 32px rgba(0,0,0,0.28); }
+.btn-cream:hover { background:var(--white); transform:translateY(-3px); box-shadow:0 12px 36px rgba(0,0,0,.28); }
 .btn-ghost {
-  border:1.5px solid rgba(255,251,248,0.35); color:rgba(255,251,248,0.85);
-  font-weight:500; font-size:0.88rem;
-  padding:13px 26px; border-radius:50px;
-  display:inline-flex; align-items:center; gap:8px;
-  transition:all 0.3s;
+  border:1.5px solid rgba(255,251,248,.35); color:rgba(255,251,248,.85);
+  font-weight:500; font-size:.88rem; padding:13px 26px; border-radius:50px;
+  display:inline-flex; align-items:center; gap:8px; transition:all .3s;
 }
-.btn-ghost:hover { background:rgba(255,251,248,0.1); border-color:rgba(255,251,248,0.65); }
+.btn-ghost:hover { background:rgba(255,251,248,.12); border-color:rgba(255,251,248,.65); transform:translateY(-2px); }
 
-.hero-visual { position:relative; display:flex; justify-content:center; }
+.hero-visual {
+  position:relative; display:flex; justify-content:center;
+  opacity:0; transform:translateY(24px); animation:heroUp 1s ease forwards .7s;
+}
 .hero-photo {
   width:100%; max-width:400px; aspect-ratio:3/4;
   border-radius:26px; overflow:hidden;
-  box-shadow:0 28px 70px rgba(0,0,0,0.38);
-  border:3px solid rgba(255,255,255,0.11);
+  box-shadow:0 28px 70px rgba(0,0,0,.38);
+  border:3px solid rgba(255,255,255,.11);
 }
-.hero-photo img {
-  width:100%; height:100%; object-fit:cover; object-position:center top;
-}
+.hero-photo img { width:100%; height:100%; object-fit:cover; object-position:center top; }
 .hero-photo-ph {
   width:100%; height:100%;
-  background:linear-gradient(145deg, rgba(255,255,255,0.08), rgba(201,149,106,0.22));
+  background:linear-gradient(145deg, rgba(255,255,255,.08), rgba(201,149,106,.22));
   display:flex; align-items:center; justify-content:center; font-size:7rem;
 }
 .hero-badge {
@@ -188,28 +222,41 @@ nav.scrolled .hamburger span { background:var(--wine); }
   background:var(--cream); color:var(--wine);
   padding:14px 20px; border-radius:16px;
   font-weight:700; text-align:center; line-height:1.3;
-  box-shadow:0 10px 32px rgba(0,0,0,0.22);
+  box-shadow:0 10px 32px rgba(0,0,0,.22);
 }
 .hero-badge .big { font-family:'Playfair Display',serif; font-size:1.25rem; display:block; }
-.hero-badge .small { font-size:0.58rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--gray); }
+.hero-badge .small { font-size:.58rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--gray); }
 .hero-float {
   position:absolute; top:22px; right:-12px;
-  background:rgba(255,251,248,0.1); backdrop-filter:blur(18px);
-  border:1px solid rgba(255,255,255,0.18); border-radius:14px;
-  padding:12px 16px;
+  background:rgba(255,251,248,.1); backdrop-filter:blur(18px);
+  border:1px solid rgba(255,255,255,.18); border-radius:14px; padding:12px 16px;
   animation:floatY 4.5s ease-in-out infinite;
 }
 @keyframes floatY { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-.hero-float .fi { font-size:0.74rem; color:rgba(255,251,248,0.88); line-height:1.55; }
-.hero-float .fi strong { display:block; font-family:'Playfair Display',serif; font-size:0.86rem; color:var(--cream); margin-bottom:2px; }
+.hero-float .fi { font-size:.74rem; color:rgba(255,251,248,.88); line-height:1.55; }
+.hero-float .fi strong { display:block; font-family:'Playfair Display',serif; font-size:.86rem; color:var(--cream); margin-bottom:2px; }
 
-/* â”€â”€ SHARED â”€â”€ */
+/* scroll hint */
+.scroll-hint {
+  position:absolute; bottom:32px; left:50%; transform:translateX(-50%);
+  z-index:2; display:flex; flex-direction:column; align-items:center; gap:6px;
+  opacity:0; animation:heroFade 1s ease forwards 1.8s;
+}
+.scroll-hint span { font-size:.58rem; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,.35); }
+.scroll-line {
+  width:1px; height:48px;
+  background:linear-gradient(to bottom, rgba(255,255,255,.45), transparent);
+  animation:scrollPulse 2s ease-in-out infinite;
+}
+@keyframes scrollPulse { 0%,100%{opacity:.35;transform:scaleY(1)} 50%{opacity:1;transform:scaleY(.7)} }
+
+/* ── SHARED ── */
 .section-tag {
   display:inline-flex; align-items:center; gap:8px;
-  color:var(--wine); font-size:0.72rem; font-weight:600;
+  color:var(--wine); font-size:.72rem; font-weight:600;
   letter-spacing:3px; text-transform:uppercase; margin-bottom:14px;
 }
-.section-tag::before { content:'âœ§'; font-size:0.68rem; }
+.section-tag::before { content:'✧'; font-size:.68rem; }
 .section-title {
   font-family:'Playfair Display',serif;
   font-size:clamp(2rem,3.8vw,3rem);
@@ -218,319 +265,323 @@ nav.scrolled .hamburger span { background:var(--wine); }
 .section-title em { font-style:italic; color:var(--blush); }
 .section-body {
   color:var(--gray); line-height:1.9;
-  font-size:0.91rem; font-weight:300; margin-bottom:24px;
+  font-size:.91rem; font-weight:300; margin-bottom:24px;
 }
 .sep {
   height:1px; max-width:1100px; margin:0 auto;
-  background:linear-gradient(90deg, transparent, rgba(107,23,40,0.1), transparent);
+  background:linear-gradient(90deg, transparent, rgba(107,23,40,.1), transparent);
 }
 
-/* â”€â”€ DEFINICIÃ“N â”€â”€ */
+/* ── SCROLL REVEAL ── */
+.r  { opacity:0; transform:translateY(44px); transition:opacity .72s ease, transform .72s ease; }
+.r.on  { opacity:1; transform:none; }
+.rl { opacity:0; transform:translateX(-52px); transition:opacity .75s ease, transform .75s ease; }
+.rl.on { opacity:1; transform:none; }
+.rr { opacity:0; transform:translateX(52px); transition:opacity .75s ease, transform .75s ease; }
+.rr.on { opacity:1; transform:none; }
+.d1{transition-delay:.1s} .d2{transition-delay:.2s} .d3{transition-delay:.3s} .d4{transition-delay:.4s} .d5{transition-delay:.5s}
+@media(prefers-reduced-motion:reduce){ .r,.rl,.rr{opacity:1!important;transform:none!important} }
+
+/* ── IMAGEN FADE CONTINUO ── */
+/* Cuando una imagen se revela, recibe .img-alive y arranca la animación de desvanecimiento */
+@keyframes imgBreathe {
+  0%,100% { opacity:1; filter:brightness(1) saturate(1); transform:scale(1); }
+  40%      { opacity:.82; filter:brightness(1.06) saturate(1.08); transform:scale(1.012); }
+  70%      { opacity:.94; filter:brightness(.97) saturate(.96); transform:scale(1.005); }
+}
+.img-alive {
+  animation: imgBreathe 5s ease-in-out infinite !important;
+}
+
+/* ── MARQUEE BAND ── */
+.marquee-band {
+  background:var(--wine-d); padding:14px 0; overflow:hidden;
+  border-top:1px solid rgba(255,255,255,.06);
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.marquee-track {
+  display:flex; gap:0; white-space:nowrap;
+  animation:marqueeScroll 28s linear infinite;
+}
+.marquee-track:hover { animation-play-state:paused; }
+.marquee-item {
+  display:inline-flex; align-items:center; gap:14px; padding:0 36px;
+  font-size:.72rem; font-weight:500; letter-spacing:3px;
+  text-transform:uppercase; color:rgba(245,237,227,.45);
+}
+.marquee-item .dot { color:var(--blush); font-size:.6rem; }
+@keyframes marqueeScroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+/* ── DEFINICIÓN ── */
 .definicion { padding:108px 52px; background:var(--cream); }
 .def-inner { max-width:840px; margin:0 auto; text-align:center; }
-.def-lang {
-  font-size:0.72rem; font-weight:500; letter-spacing:3.5px;
-  text-transform:uppercase; color:var(--gray); margin-bottom:14px;
-}
-.def-word {
-  font-family:'Playfair Display',serif;
-  font-size:clamp(3rem,8vw,6rem);
-  font-weight:900; color:var(--wine);
-  line-height:1; margin-bottom:6px;
-}
-.def-phonetic {
-  font-family:'Playfair Display',serif;
-  font-size:1.05rem; font-style:italic;
-  color:var(--gray); margin-bottom:36px;
-}
+.def-lang { font-size:.72rem; font-weight:500; letter-spacing:3.5px; text-transform:uppercase; color:var(--gray); margin-bottom:14px; }
+.def-word { font-family:'Playfair Display',serif; font-size:clamp(3rem,8vw,6rem); font-weight:900; color:var(--wine); line-height:1; margin-bottom:6px; }
+.def-phonetic { font-family:'Playfair Display',serif; font-size:1.05rem; font-style:italic; color:var(--gray); margin-bottom:36px; }
 .def-phonetic span { color:var(--wine); font-style:normal; font-weight:600; }
-.def-rule {
-  width:72px; height:1.5px; margin:0 auto 36px;
-  background:linear-gradient(90deg, transparent, var(--wine), transparent);
-}
-.def-text {
-  font-size:1.05rem; color:var(--text); line-height:1.95;
-  font-weight:300; max-width:600px; margin:0 auto 14px;
-}
+.def-rule { width:72px; height:1.5px; margin:0 auto 36px; background:linear-gradient(90deg, transparent, var(--wine), transparent); }
+.def-text { font-size:1.05rem; color:var(--text); line-height:1.95; font-weight:300; max-width:600px; margin:0 auto 14px; }
 .def-text strong { color:var(--wine); font-weight:600; }
-.def-text-2 {
-  font-size:0.9rem; color:var(--gray); line-height:1.95;
-  font-weight:300; max-width:560px; margin:0 auto; font-style:italic;
-}
+.def-text-2 { font-size:.9rem; color:var(--gray); line-height:1.95; font-weight:300; max-width:560px; margin:0 auto; font-style:italic; }
 
-/* â”€â”€ CLASES â”€â”€ */
+/* ── CLASES ── */
 .clases { padding:112px 52px; background:var(--white); }
 .clases-inner { max-width:1200px; margin:0 auto; }
 .clases-header { text-align:center; margin-bottom:64px; }
 .clases-header .section-tag { justify-content:center; }
 .clases-header .section-body { max-width:500px; margin:0 auto; }
-
 .clases-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:28px; }
+
 .clase-card {
   border-radius:var(--radius); overflow:hidden;
-  box-shadow:var(--shadow); transition:all 0.4s;
-  background:var(--white);
+  box-shadow:var(--sh); background:var(--white);
+  transition:box-shadow .4s, transform .4s;
+  transform-style:preserve-3d;
+  cursor:pointer;
 }
-.clase-card:hover { transform:translateY(-8px); box-shadow:var(--shadow-h); }
+.clase-card:hover { box-shadow:var(--sh-h); }
 .clase-img { position:relative; aspect-ratio:3/4; overflow:hidden; }
-.clase-img img {
-  width:100%; height:100%; object-fit:cover; object-position:center top;
-  transition:transform 0.65s ease;
-}
+.clase-img img { width:100%; height:100%; object-fit:cover; object-position:center top; transition:transform .65s ease; }
 .clase-card:hover .clase-img img { transform:scale(1.06); }
-.clase-img-ph {
-  width:100%; height:100%;
-  display:flex; align-items:center; justify-content:center; font-size:5rem;
-}
+.clase-img-ph { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:5rem; }
 .ph-barre   { background:linear-gradient(155deg, var(--wine-d), #A03050); }
 .ph-pilates { background:linear-gradient(155deg, var(--blush), #D4A891); }
 .ph-yoga    { background:linear-gradient(155deg, #8B9E7A, #C5D4B8); }
-.clase-overlay {
-  position:absolute; inset:0;
-  background:linear-gradient(to top, rgba(74,15,26,0.82) 0%, transparent 55%);
-}
+.clase-overlay { position:absolute; inset:0; background:linear-gradient(to top, rgba(74,15,26,.82) 0%, transparent 55%); }
 .clase-chip {
   position:absolute; top:16px; left:16px;
-  background:rgba(255,251,248,0.14); backdrop-filter:blur(8px);
-  border:1px solid rgba(255,255,255,0.22);
-  color:white; font-size:0.66rem; font-weight:600;
-  padding:4px 13px; border-radius:50px;
-  letter-spacing:1.5px; text-transform:uppercase;
+  background:rgba(255,251,248,.14); backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.22);
+  color:white; font-size:.66rem; font-weight:600;
+  padding:4px 13px; border-radius:50px; letter-spacing:1.5px; text-transform:uppercase;
 }
-.clase-body { padding:22px 22px 20px; border:1px solid rgba(107,23,40,0.06); border-top:none; }
-.clase-name {
-  font-family:'Playfair Display',serif;
-  font-size:1.35rem; font-weight:900; color:var(--wine-d); margin-bottom:10px;
-}
-.clase-desc {
-  font-size:0.82rem; color:var(--gray); line-height:1.82; margin-bottom:18px;
-}
+.clase-body { padding:22px 22px 20px; border:1px solid rgba(107,23,40,.06); border-top:none; }
+.clase-name { font-family:'Playfair Display',serif; font-size:1.35rem; font-weight:900; color:var(--wine-d); margin-bottom:10px; }
+.clase-desc { font-size:.82rem; color:var(--gray); line-height:1.82; margin-bottom:18px; }
 .clase-footer { display:flex; align-items:center; justify-content:space-between; }
-.clase-nivel {
-  font-size:0.7rem; font-weight:600; padding:4px 13px;
-  border-radius:50px; background:var(--cream); color:var(--wine); letter-spacing:1px;
-}
-.clase-arrow {
-  width:34px; height:34px; border-radius:50%;
-  background:var(--wine); color:white;
-  display:flex; align-items:center; justify-content:center;
-  font-size:0.85rem; transition:all 0.3s;
-}
+.clase-nivel { font-size:.7rem; font-weight:600; padding:4px 13px; border-radius:50px; background:var(--cream); color:var(--wine); letter-spacing:1px; }
+.clase-arrow { width:34px; height:34px; border-radius:50%; background:var(--wine); color:white; display:flex; align-items:center; justify-content:center; font-size:.85rem; transition:all .3s; }
 .clase-card:hover .clase-arrow { background:var(--blush); transform:scale(1.12); }
 
-/* â”€â”€ FILOSOFÃA â”€â”€ */
-.filosofia { padding:112px 52px; background:var(--cream); }
-.filo-inner {
-  max-width:1200px; margin:0 auto;
-  display:grid; grid-template-columns:1fr 1fr; gap:84px; align-items:center;
+/* ── SALONES ── */
+.salones { padding:112px 52px; background:var(--cream); }
+.salones-inner { max-width:1200px; margin:0 auto; }
+.salones-header { text-align:center; margin-bottom:64px; }
+.salones-header .section-tag { justify-content:center; }
+.salones-header .section-body { max-width:520px; margin:0 auto; }
+.salones-grid { display:grid; grid-template-columns:1fr 1fr; gap:36px; }
+
+.salon-card {
+  background:var(--white); border-radius:var(--radius);
+  overflow:hidden; box-shadow:var(--sh);
+  transition:box-shadow .4s, transform .4s;
+  transform-style:preserve-3d; cursor:pointer;
 }
-.filo-imgs {
-  display:grid;
-  grid-template-columns:1.2fr 1fr;
-  grid-template-rows:auto auto;
-  gap:14px;
+.salon-card:hover { box-shadow:var(--sh-h); }
+.salon-img { position:relative; aspect-ratio:16/9; overflow:hidden; }
+.salon-img img { width:100%; height:100%; object-fit:cover; object-position:center; transition:transform .65s ease; }
+.salon-card:hover .salon-img img { transform:scale(1.05); }
+.salon-img-ph { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:5rem; }
+.sph-1 { background:linear-gradient(155deg, var(--wine-d), #7B1A2E); }
+.sph-2 { background:linear-gradient(155deg, #8B9E7A, #C5D4B8); }
+.salon-badge {
+  position:absolute; top:16px; right:16px;
+  background:var(--wine); color:white;
+  font-size:.7rem; font-weight:700; padding:6px 14px; border-radius:50px; letter-spacing:1px;
 }
+.salon-body { padding:26px 28px; }
+.salon-name { font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:900; color:var(--wine-d); margin-bottom:6px; }
+.salon-sub { font-size:.74rem; font-weight:600; color:var(--blush); letter-spacing:2px; text-transform:uppercase; margin-bottom:14px; }
+.salon-desc { font-size:.84rem; color:var(--gray); line-height:1.85; margin-bottom:22px; }
+.salon-features { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:24px; }
+.salon-feat { display:flex; align-items:center; gap:8px; font-size:.78rem; color:var(--text); font-weight:500; }
+.salon-feat span { font-size:1rem; }
+.salon-footer { display:flex; align-items:center; justify-content:space-between; padding-top:18px; border-top:1px solid rgba(107,23,40,.07); }
+.salon-price { font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:900; color:var(--wine); }
+.salon-price small { font-family:'Poppins',sans-serif; font-size:.72rem; font-weight:400; color:var(--gray); display:block; letter-spacing:.5px; }
+.btn-salon {
+  background:var(--wine); color:white; font-size:.82rem; font-weight:600;
+  padding:10px 22px; border-radius:50px;
+  display:inline-flex; align-items:center; gap:7px; transition:all .3s;
+}
+.btn-salon:hover { background:var(--blush); transform:translateY(-2px); }
+
+/* ── FILOSOFÍA ── */
+.filosofia { padding:112px 52px; background:var(--white); }
+.filo-inner { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:84px; align-items:center; }
+.filo-imgs { display:grid; grid-template-columns:1.2fr 1fr; grid-template-rows:auto auto; gap:14px; }
 .filo-img { border-radius:16px; overflow:hidden; }
 .filo-img:first-child { grid-row:span 2; aspect-ratio:2/3; }
 .filo-img:not(:first-child) { aspect-ratio:1; }
-.filo-img img {
-  width:100%; height:100%; object-fit:cover; object-position:center top;
-  transition:transform 0.55s ease;
-}
+.filo-img img { width:100%; height:100%; object-fit:cover; object-position:center top; transition:transform .55s ease; }
 .filo-img:hover img { transform:scale(1.05); }
-.filo-img-ph {
-  width:100%; height:100%; min-height:140px;
-  display:flex; align-items:center; justify-content:center; font-size:3.5rem;
-}
+.filo-img-ph { width:100%; height:100%; min-height:140px; display:flex; align-items:center; justify-content:center; font-size:3.5rem; }
 .fip-1 { background:linear-gradient(145deg, var(--wine), #A03050); }
 .fip-2 { background:linear-gradient(145deg, var(--cream-d), var(--cream-dd)); }
 .fip-3 { background:linear-gradient(145deg, var(--blush), #B8785A); }
-
 .pillars { display:flex; flex-direction:column; gap:14px; margin-top:32px; }
 .pillar {
   display:flex; align-items:flex-start; gap:14px;
-  background:var(--white); border:1px solid rgba(107,23,40,0.07);
-  border-radius:14px; padding:16px 18px;
-  transition:all 0.3s;
+  background:var(--cream); border:1px solid rgba(107,23,40,.07);
+  border-radius:14px; padding:16px 18px; transition:all .3s;
 }
-.pillar:hover { border-color:rgba(107,23,40,0.22); transform:translateX(5px); }
-.pillar-icon {
-  width:42px; height:42px; flex-shrink:0;
-  background:var(--cream); border-radius:12px;
-  display:flex; align-items:center; justify-content:center; font-size:1.1rem;
-}
-.pillar h4 { font-weight:600; color:var(--wine-d); font-size:0.88rem; margin-bottom:3px; }
-.pillar p { font-size:0.79rem; color:var(--gray); line-height:1.65; }
+.pillar:hover { border-color:rgba(107,23,40,.22); transform:translateX(6px); }
+.pillar-icon { width:42px; height:42px; flex-shrink:0; background:var(--white); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; }
+.pillar h4 { font-weight:600; color:var(--wine-d); font-size:.88rem; margin-bottom:3px; }
+.pillar p { font-size:.79rem; color:var(--gray); line-height:1.65; }
 
-/* â”€â”€ GALERÃA â”€â”€ */
-.galeria { padding:112px 52px; background:var(--white); }
+/* ── GALERÍA ── */
+.galeria { padding:112px 52px; background:var(--cream); }
 .galeria-inner { max-width:1200px; margin:0 auto; }
 .galeria-header { text-align:center; margin-bottom:52px; }
 .galeria-header .section-tag { justify-content:center; }
-
-.gallery-grid {
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:14px;
-}
+.gallery-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
 .g-item { border-radius:16px; overflow:hidden; position:relative; cursor:pointer; }
 .g-item:nth-child(1) { grid-column:span 2; grid-row:span 2; aspect-ratio:1; }
 .g-item:not(:nth-child(1)) { aspect-ratio:1; }
-.g-item img {
-  width:100%; height:100%; object-fit:cover; object-position:center top;
-  transition:transform 0.6s ease; display:block;
-}
+.g-item img { width:100%; height:100%; object-fit:cover; object-position:center top; transition:transform .6s ease; display:block; }
 .g-item:hover img { transform:scale(1.07); }
 .g-overlay {
   position:absolute; inset:0;
-  background:linear-gradient(to top, rgba(74,15,26,0.62) 0%, transparent 60%);
-  opacity:0; transition:opacity 0.4s;
+  background:linear-gradient(to top, rgba(74,15,26,.62) 0%, transparent 60%);
+  opacity:0; transition:opacity .4s;
   display:flex; align-items:flex-end; justify-content:center; padding:18px;
 }
 .g-item:hover .g-overlay { opacity:1; }
-.g-overlay span { color:white; font-size:0.8rem; font-weight:500; letter-spacing:1px; }
-.g-ph {
-  width:100%; height:100%; min-height:160px;
-  display:flex; align-items:center; justify-content:center; font-size:3.5rem;
-}
+.g-overlay span { color:white; font-size:.8rem; font-weight:500; letter-spacing:1px; }
+.g-ph { width:100%; height:100%; min-height:160px; display:flex; align-items:center; justify-content:center; font-size:3.5rem; }
 .gph-1 { background:linear-gradient(145deg, #7B1A2E, var(--wine)); }
 .gph-2 { background:linear-gradient(145deg, var(--cream-d), var(--cream)); }
 .gph-3 { background:linear-gradient(145deg, var(--blush), #B8785A); }
 .gph-4 { background:linear-gradient(145deg, #C5D4B8, #8B9E7A); }
 .gph-5 { background:linear-gradient(145deg, var(--cream-dd), var(--cream-d)); }
-.galeria-ig {
-  text-align:center; margin-top:28px;
-  font-size:0.82rem; color:var(--gray);
-}
+.galeria-ig { text-align:center; margin-top:28px; font-size:.82rem; color:var(--gray); }
 .galeria-ig a { color:var(--wine); font-weight:700; }
 .galeria-ig a:hover { color:var(--blush); }
 
-/* â”€â”€ RESERVA CTA â”€â”€ */
+/* ── RESERVA Y PAGO ── */
 .reserva {
   padding:112px 52px;
   background:linear-gradient(140deg, var(--wine-d) 0%, var(--wine) 60%, #8B2035 100%);
   position:relative; overflow:hidden;
 }
 .reserva::before {
-  content:'âœ§'; position:absolute; right:-60px; top:50%;
+  content:'✧'; position:absolute; right:-60px; top:50%;
   transform:translateY(-50%) rotate(12deg);
-  font-size:32rem; opacity:0.025; pointer-events:none;
-  line-height:1; color:white;
+  font-size:32rem; opacity:.025; pointer-events:none; line-height:1; color:white;
 }
-.reserva-inner { max-width:820px; margin:0 auto; text-align:center; position:relative; z-index:1; }
-.reserva-inner .section-tag { justify-content:center; color:rgba(255,251,248,0.55); }
+.reserva-inner { max-width:900px; margin:0 auto; text-align:center; position:relative; z-index:1; }
+.reserva-inner .section-tag { justify-content:center; color:rgba(255,251,248,.55); }
 .reserva-inner .section-title { color:var(--white); }
-.reserva-inner .section-body { color:rgba(255,251,248,0.62); max-width:480px; margin:0 auto 40px; }
+.reserva-inner .section-body { color:rgba(255,251,248,.62); max-width:480px; margin:0 auto 40px; }
+.reserva-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-bottom:44px; }
+.reserva-step {
+  background:rgba(255,251,248,.08); border:1px solid rgba(255,251,248,.14);
+  border-radius:16px; padding:24px 18px; text-align:center; transition:all .3s;
+}
+.reserva-step:hover { background:rgba(255,251,248,.14); transform:translateY(-4px); }
+.step-num {
+  width:36px; height:36px; border-radius:50%; background:var(--blush); color:white;
+  font-family:'Playfair Display',serif; font-size:1rem; font-weight:900;
+  display:flex; align-items:center; justify-content:center; margin:0 auto 12px;
+}
+.step-title { font-family:'Playfair Display',serif; font-size:.95rem; font-weight:700; color:var(--cream); margin-bottom:6px; }
+.step-desc { font-size:.78rem; color:rgba(255,251,248,.55); line-height:1.6; }
+.pago-box {
+  background:rgba(255,251,248,.07); border:1px solid rgba(255,251,248,.18);
+  border-radius:20px; padding:28px 32px; margin-bottom:36px; text-align:left;
+  display:grid; grid-template-columns:1fr auto; gap:20px; align-items:center;
+  transition:all .3s;
+}
+.pago-box:hover { background:rgba(255,251,248,.11); }
+.pago-info h4 { font-family:'Playfair Display',serif; font-size:1.1rem; font-weight:700; color:var(--cream); margin-bottom:6px; }
+.pago-info p { font-size:.82rem; color:rgba(255,251,248,.55); line-height:1.65; }
+.pago-num {
+  font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:900;
+  color:var(--white); letter-spacing:2px; white-space:nowrap;
+  background:rgba(255,255,255,.1); padding:12px 22px; border-radius:12px;
+  border:1px solid rgba(255,255,255,.2); text-align:center;
+  animation:numPulse 3s ease-in-out infinite;
+}
+@keyframes numPulse {
+  0%,100% { box-shadow:0 0 0 0 rgba(201,149,106,0); }
+  50% { box-shadow:0 0 0 8px rgba(201,149,106,.18); }
+}
+.pago-num small { display:block; font-family:'Poppins',sans-serif; font-size:.65rem; font-weight:400; color:rgba(255,251,248,.45); letter-spacing:1px; margin-bottom:2px; }
+.metodos { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:36px; }
+.metodo-chip {
+  background:rgba(255,251,248,.08); border:1px solid rgba(255,251,248,.16);
+  color:rgba(255,251,248,.7); font-size:.74rem; font-weight:500;
+  padding:6px 16px; border-radius:50px; display:flex; align-items:center; gap:6px;
+  transition:all .25s;
+}
+.metodo-chip:hover { background:rgba(255,251,248,.16); color:var(--cream); }
 .reserva-btns { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
-
 .btn-wa {
-  background:var(--wa); color:white;
-  font-weight:700; font-size:0.9rem;
+  background:var(--wa); color:white; font-weight:700; font-size:.9rem;
   padding:14px 30px; border-radius:50px;
   display:inline-flex; align-items:center; gap:10px;
-  transition:all 0.3s; box-shadow:0 4px 24px rgba(37,211,102,0.4);
+  transition:all .3s; box-shadow:0 4px 24px rgba(37,211,102,.4);
 }
-.btn-wa:hover { opacity:0.9; transform:translateY(-3px); box-shadow:0 10px 36px rgba(37,211,102,0.5); }
+.btn-wa:hover { opacity:.9; transform:translateY(-3px); box-shadow:0 10px 36px rgba(37,211,102,.5); }
 .btn-ig {
-  background:rgba(255,251,248,0.1);
-  border:1.5px solid rgba(255,251,248,0.28);
-  color:rgba(255,251,248,0.88); font-weight:500; font-size:0.9rem;
+  background:rgba(255,251,248,.1); border:1.5px solid rgba(255,251,248,.28);
+  color:rgba(255,251,248,.88); font-weight:500; font-size:.9rem;
   padding:13px 28px; border-radius:50px;
-  display:inline-flex; align-items:center; gap:10px;
-  transition:all 0.3s;
+  display:inline-flex; align-items:center; gap:10px; transition:all .3s;
 }
-.btn-ig:hover { background:rgba(255,251,248,0.16); border-color:rgba(255,251,248,0.55); transform:translateY(-3px); }
+.btn-ig:hover { background:rgba(255,251,248,.16); border-color:rgba(255,251,248,.55); transform:translateY(-3px); }
 
-/* â”€â”€ UBICACIÃ“N â”€â”€ */
-.ubicacion { padding:112px 52px; background:var(--cream); }
-.ubi-inner {
-  max-width:1200px; margin:0 auto;
-  display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:start;
-}
+/* ── UBICACIÓN ── */
+.ubicacion { padding:112px 52px; background:var(--white); }
+.ubi-inner { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:start; }
 .loc-cards { display:flex; flex-direction:column; gap:14px; margin-top:28px; }
 .loc-card {
   display:flex; align-items:flex-start; gap:14px;
-  background:var(--white); border:1.5px solid rgba(107,23,40,0.07);
+  background:var(--cream); border:1.5px solid rgba(107,23,40,.07);
   border-radius:14px; padding:18px;
-  box-shadow:0 2px 14px rgba(107,23,40,0.05);
-  transition:all 0.3s;
+  box-shadow:0 2px 14px rgba(107,23,40,.05); transition:all .3s;
 }
-.loc-card:hover { border-color:rgba(107,23,40,0.22); transform:translateX(5px); }
-.loc-icon {
-  width:42px; height:42px; flex-shrink:0;
-  background:var(--cream); border-radius:12px;
-  display:flex; align-items:center; justify-content:center; font-size:1.1rem;
-}
-.loc-card h4 { font-weight:600; color:var(--wine-d); font-size:0.87rem; margin-bottom:3px; }
-.loc-card p, .loc-card a { font-size:0.81rem; color:var(--gray); line-height:1.65; }
+.loc-card:hover { border-color:rgba(107,23,40,.22); transform:translateX(5px); }
+.loc-icon { width:42px; height:42px; flex-shrink:0; background:var(--white); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; }
+.loc-card h4 { font-weight:600; color:var(--wine-d); font-size:.87rem; margin-bottom:3px; }
+.loc-card p, .loc-card a { font-size:.81rem; color:var(--gray); line-height:1.65; }
 .loc-card a:hover { color:var(--wine); }
-
 .map-box {
-  width:100%; aspect-ratio:4/3; background:var(--white);
-  border:1.5px solid rgba(107,23,40,0.08);
-  border-radius:22px; padding:36px;
+  width:100%; aspect-ratio:4/3; background:var(--cream);
+  border:1.5px solid rgba(107,23,40,.08); border-radius:22px; padding:36px;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  text-align:center; box-shadow:var(--shadow);
+  text-align:center; box-shadow:var(--sh);
 }
 .map-box .m-icon { font-size:3rem; margin-bottom:10px; }
-.map-box h3 {
-  font-family:'Playfair Display',serif;
-  font-size:1.35rem; font-weight:700; color:var(--wine-d); margin-bottom:8px;
-}
-.map-box p { font-size:0.82rem; color:var(--gray); line-height:1.7; max-width:200px; }
+.map-box h3 { font-family:'Playfair Display',serif; font-size:1.35rem; font-weight:700; color:var(--wine-d); margin-bottom:8px; }
+.map-box p { font-size:.82rem; color:var(--gray); line-height:1.7; max-width:200px; }
 .map-box a {
   margin-top:20px; display:inline-flex; align-items:center; gap:8px;
-  background:var(--wine); color:white; font-weight:600; font-size:0.84rem;
-  padding:12px 28px; border-radius:50px; transition:all 0.3s;
+  background:var(--wine); color:white; font-weight:600; font-size:.84rem;
+  padding:12px 28px; border-radius:50px; transition:all .3s;
 }
 .map-box a:hover { background:var(--wine-l); transform:translateY(-2px); }
 
-/* â”€â”€ FOOTER â”€â”€ */
+/* ── FOOTER ── */
 footer { background:var(--wine-d); padding:60px 52px 28px; }
-.footer-top {
-  max-width:1200px; margin:0 auto;
-  display:grid; grid-template-columns:2fr 1fr 1fr; gap:52px; margin-bottom:52px;
-}
-.footer-logo {
-  font-family:'Playfair Display',serif;
-  font-size:1.55rem; font-weight:900;
-  color:var(--cream); letter-spacing:1.5px; margin-bottom:16px;
-}
-.footer-brand p {
-  font-size:0.84rem; color:rgba(245,237,227,0.48);
-  line-height:1.9; max-width:270px;
-}
-.footer-sub {
-  font-size:0.7rem; color:rgba(245,237,227,0.28);
-  letter-spacing:2.5px; text-transform:uppercase; margin-top:10px;
-}
-.footer-col h4 {
-  font-size:0.7rem; text-transform:uppercase;
-  letter-spacing:3px; color:rgba(245,237,227,0.38); margin-bottom:20px;
-}
+.footer-top { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:2fr 1fr 1fr; gap:52px; margin-bottom:52px; }
+.footer-logo { font-family:'Playfair Display',serif; font-size:1.55rem; font-weight:900; color:var(--cream); letter-spacing:1.5px; margin-bottom:16px; }
+.footer-brand p { font-size:.84rem; color:rgba(245,237,227,.48); line-height:1.9; max-width:270px; }
+.footer-sub { font-size:.7rem; color:rgba(245,237,227,.28); letter-spacing:2.5px; text-transform:uppercase; margin-top:10px; }
+.footer-col h4 { font-size:.7rem; text-transform:uppercase; letter-spacing:3px; color:rgba(245,237,227,.38); margin-bottom:20px; }
 .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:11px; }
-.footer-col ul a { font-size:0.86rem; color:rgba(245,237,227,0.55); transition:color 0.3s; }
+.footer-col ul a { font-size:.86rem; color:rgba(245,237,227,.55); transition:color .3s; }
 .footer-col ul a:hover { color:var(--cream); }
-
 .footer-bottom {
   max-width:1200px; margin:0 auto;
-  border-top:1px solid rgba(245,237,227,0.07);
-  padding-top:24px;
+  border-top:1px solid rgba(245,237,227,.07); padding-top:24px;
   display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;
 }
-.footer-bottom p { font-size:0.76rem; color:rgba(245,237,227,0.28); }
-.footer-bottom span { font-size:0.73rem; color:rgba(245,237,227,0.18); font-style:italic; }
+.footer-bottom p { font-size:.76rem; color:rgba(245,237,227,.28); }
+.footer-bottom span { font-size:.73rem; color:rgba(245,237,227,.18); font-style:italic; }
 
-/* â”€â”€ SCROLL REVEAL â”€â”€ */
-.reveal { opacity:0; transform:translateY(32px); transition:opacity 0.72s ease, transform 0.72s ease; }
-.reveal.visible { opacity:1; transform:none; }
-.reveal-l { opacity:0; transform:translateX(-40px); transition:opacity 0.72s ease, transform 0.72s ease; }
-.reveal-l.visible { opacity:1; transform:none; }
-.reveal-r { opacity:0; transform:translateX(40px); transition:opacity 0.72s ease, transform 0.72s ease; }
-.reveal-r.visible { opacity:1; transform:none; }
-.d1{transition-delay:.1s} .d2{transition-delay:.2s} .d3{transition-delay:.3s} .d4{transition-delay:.4s}
-
-/* â”€â”€ RESPONSIVE â”€â”€ */
+/* ── RESPONSIVE ── */
 @media(max-width:960px){
   nav { padding:0 24px; }
   .hero { padding:calc(var(--nav-h)+24px) 24px 64px; }
@@ -540,10 +591,13 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   .hero-float { right:0; top:10px; }
   .filo-inner, .ubi-inner { grid-template-columns:1fr; gap:44px; }
   .clases-grid { grid-template-columns:1fr 1fr; }
+  .salones-grid { grid-template-columns:1fr; max-width:560px; margin:0 auto; }
   .gallery-grid { grid-template-columns:repeat(2,1fr); }
   .g-item:nth-child(1) { grid-column:span 2; }
   .footer-top { grid-template-columns:1fr 1fr; gap:36px; }
-  .definicion,.clases,.filosofia,.galeria,.reserva,.ubicacion { padding:76px 28px; }
+  .reserva-steps { grid-template-columns:1fr; max-width:400px; margin:0 auto 44px; }
+  .pago-box { grid-template-columns:1fr; text-align:center; }
+  .definicion,.clases,.salones,.filosofia,.galeria,.reserva,.ubicacion { padding:76px 28px; }
   footer { padding:48px 28px 24px; }
 }
 @media(max-width:620px){
@@ -560,14 +614,18 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 </head>
 <body>
 
+<!-- BARRA DE PROGRESO -->
+<div class="progress-bar" id="progressBar"></div>
+
 <!-- NAV -->
 <nav id="navbar">
   <div class="nav-logo">Presenza</div>
-  <ul class="nav-links">
+  <ul class="nav-links" id="navLinks">
     <li><a href="#clases">Clases</a></li>
-    <li><a href="#filosofia">FilosofÃ­a</a></li>
-    <li><a href="#galeria">GalerÃ­a</a></li>
-    <li><a href="#ubicacion">UbicaciÃ³n</a></li>
+    <li><a href="#salones">Salones</a></li>
+    <li><a href="#filosofia">Filosofía</a></li>
+    <li><a href="#galeria">Galería</a></li>
+    <li><a href="#ubicacion">Ubicación</a></li>
     <li><a href="#reserva" class="nav-cta">Reservar</a></li>
   </ul>
   <div class="hamburger" id="hamburger" onclick="toggleMenu()">
@@ -576,209 +634,315 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 </nav>
 <div class="mobile-menu" id="mobileMenu">
   <a href="#clases"    onclick="toggleMenu()">Clases</a>
-  <a href="#filosofia" onclick="toggleMenu()">FilosofÃ­a</a>
-  <a href="#galeria"   onclick="toggleMenu()">GalerÃ­a</a>
-  <a href="#ubicacion" onclick="toggleMenu()">UbicaciÃ³n</a>
+  <a href="#salones"   onclick="toggleMenu()">Salones</a>
+  <a href="#filosofia" onclick="toggleMenu()">Filosofía</a>
+  <a href="#galeria"   onclick="toggleMenu()">Galería</a>
+  <a href="#ubicacion" onclick="toggleMenu()">Ubicación</a>
   <a href="#reserva"   onclick="toggleMenu()">Reservar</a>
 </div>
 
-<!-- â•â•â• HERO â•â•â• -->
+<!-- ═══ HERO ═══ -->
 <section class="hero">
-  <div class="hero-bg"></div>
+  <div class="hero-bg" id="heroBg"></div>
   <div class="hero-ring"></div>
   <div class="hero-ring"></div>
-  <div class="hero-inner">
 
+  <!-- Partículas flotantes -->
+  <div class="particle" style="width:180px;height:180px;top:15%;left:8%;animation-duration:8s;animation-delay:0s"></div>
+  <div class="particle" style="width:90px;height:90px;top:65%;right:12%;animation-duration:6s;animation-delay:1.5s"></div>
+  <div class="particle" style="width:60px;height:60px;top:40%;left:50%;animation-duration:10s;animation-delay:3s"></div>
+  <div class="particle" style="width:130px;height:130px;bottom:20%;left:30%;animation-duration:7s;animation-delay:2s"></div>
+
+  <div class="hero-inner">
     <div class="hero-left">
-      <div class="hero-tag">âœ§ Barre Â· Pilates Â· Yoga</div>
+      <div class="hero-tag">✧ Barre · Pilates · Yoga</div>
       <h1 class="hero-h1">
         <em>Movimiento con</em>
-        intenciÃ³n
+        intención
       </h1>
       <div class="hero-rule"></div>
       <p class="hero-sub">
-        Un espacio para volver a ti. Para moverte con propÃ³sito,
+        Un espacio para volver a ti. Para moverte con propósito,
         conectar con tu cuerpo y vivir cada momento con plena presencia.
       </p>
       <div class="hero-btns">
-        <a href="#reserva" class="btn-cream">âœ§ Reservar clase</a>
-        <a href="#clases"  class="btn-ghost">Ver clases â†’</a>
+        <a href="#reserva" class="btn-cream">✧ Reservar clase</a>
+        <a href="#clases"  class="btn-ghost">Ver clases →</a>
       </div>
     </div>
 
     <div class="hero-visual">
       <div class="hero-photo">
-        <img
+        <img id="heroImg"
           src="assets/Screenshot 2026-05-30 220517.png"
           alt="Presenza Studio"
-          onerror="this.outerHTML='<div class=hero-photo-ph>ðŸ§˜</div>'"
+          onerror="this.outerHTML='<div class=hero-photo-ph>🧘</div>'"
         >
       </div>
       <div class="hero-badge">
         <span class="big">Presenza</span>
-        <span class="small">studio Â· managua</span>
+        <span class="small">studio · managua</span>
       </div>
       <div class="hero-float">
         <div class="fi">
           <strong>Presencia total</strong>
-          cuerpo Â· mente Â· espÃ­ritu
+          cuerpo · mente · espíritu
         </div>
       </div>
     </div>
+  </div>
 
+  <div class="scroll-hint">
+    <span>scroll</span>
+    <div class="scroll-line"></div>
   </div>
 </section>
 
-<!-- â•â•â• DEFINICIÃ“N â•â•â• -->
+<!-- ═══ MARQUEE ═══ -->
+<div class="marquee-band">
+  <div class="marquee-track" id="marqueeTrack">
+    <!-- duplicado para loop continuo -->
+    <span class="marquee-item">Barre Burn <span class="dot">✧</span></span>
+    <span class="marquee-item">Pilates <span class="dot">✧</span></span>
+    <span class="marquee-item">Unwind Yoga <span class="dot">✧</span></span>
+    <span class="marquee-item">Salón Principal <span class="dot">✧</span></span>
+    <span class="marquee-item">Salón Zen <span class="dot">✧</span></span>
+    <span class="marquee-item">TerraPlaza · Managua <span class="dot">✧</span></span>
+    <span class="marquee-item">Movimiento con intención <span class="dot">✧</span></span>
+    <span class="marquee-item">Barre Burn <span class="dot">✧</span></span>
+    <span class="marquee-item">Pilates <span class="dot">✧</span></span>
+    <span class="marquee-item">Unwind Yoga <span class="dot">✧</span></span>
+    <span class="marquee-item">Salón Principal <span class="dot">✧</span></span>
+    <span class="marquee-item">Salón Zen <span class="dot">✧</span></span>
+    <span class="marquee-item">TerraPlaza · Managua <span class="dot">✧</span></span>
+    <span class="marquee-item">Movimiento con intención <span class="dot">✧</span></span>
+  </div>
+</div>
+
+<!-- ═══ DEFINICIÓN ═══ -->
 <section class="definicion">
   <div class="def-inner">
-    <p class="def-lang reveal">âœ§ Italiano Â· (sustantivo)</p>
-    <h2 class="def-word reveal">Presenza</h2>
-    <p class="def-phonetic reveal d1">[<span>pre-sÃ¨n-za</span>] Â· presencia</p>
-    <div class="def-rule reveal d2"></div>
-    <p class="def-text reveal d2">
+    <p class="def-lang r">✧ Italiano · (sustantivo)</p>
+    <h2 class="def-word r">Presenza</h2>
+    <p class="def-phonetic r d1">[<span>pre-sèn-za</span>] · presencia</p>
+    <div class="def-rule r d2"></div>
+    <p class="def-text r d2">
       Se refiere al hecho de <strong>estar presente en un lugar o momento</strong>.
       Para nosotros, significa estar presente en su totalidad.
     </p>
-    <p class="def-text-2 reveal d3">
-      Es la prÃ¡ctica de llevar tu atenciÃ³n plena al momento que estÃ¡s viviendo,
-      integrando cuerpo, mente y espÃ­ritu.
+    <p class="def-text-2 r d3">
+      Es la práctica de llevar tu atención plena al momento que estás viviendo,
+      integrando cuerpo, mente y espíritu.
     </p>
   </div>
 </section>
 
 <div class="sep"></div>
 
-<!-- â•â•â• CLASES â•â•â• -->
+<!-- ═══ CLASES ═══ -->
 <section class="clases" id="clases">
   <div class="clases-inner">
     <div class="clases-header">
-      <p class="section-tag reveal">nuestras clases</p>
-      <h2 class="section-title reveal">Tus nuevas clases<br/><em>favoritas</em></h2>
-      <p class="section-body reveal d1">
+      <p class="section-tag r">nuestras clases</p>
+      <h2 class="section-title r">Tus nuevas clases<br/><em>favoritas</em></h2>
+      <p class="section-body r d1">
         Cada disciplina es un camino distinto hacia el mismo destino:
         sentirte en casa en tu propio cuerpo.
       </p>
     </div>
 
     <div class="clases-grid">
-
-      <!-- Barre Burn -->
-      <div class="clase-card reveal d1">
+      <div class="clase-card r d1">
         <div class="clase-img">
           <img src="assets/Screenshot 2026-05-30 221346.png" alt="Barre Burn"
-            onerror="this.outerHTML='<div class=clase-img-ph ph-barre>ðŸ©°</div>'">
+            onerror="this.outerHTML='<div class=clase-img-ph ph-barre>🩰</div>'">
           <div class="clase-overlay"></div>
-          <div class="clase-chip">Alta energÃ­a</div>
+          <div class="clase-chip">Alta energía</div>
         </div>
         <div class="clase-body">
           <h3 class="clase-name">Barre Burn</h3>
           <p class="clase-desc">
-            Clase dinÃ¡mica que combina fuerza, resistencia y control
-            a travÃ©s de movimientos pequeÃ±os e intensos. Pulsos y secuencias
+            Clase dinámica que combina fuerza, resistencia y control
+            a través de movimientos pequeños e intensos. Pulsos y secuencias
             continuas que esculpen y tonifican todo el cuerpo.
           </p>
           <div class="clase-footer">
             <span class="clase-nivel">Todos los niveles</span>
-            <div class="clase-arrow">â†’</div>
+            <div class="clase-arrow">→</div>
           </div>
         </div>
       </div>
 
-      <!-- Pilates -->
-      <div class="clase-card reveal d2">
+      <div class="clase-card r d2">
         <div class="clase-img">
           <img src="assets/Screenshot 2026-05-30 221630.png" alt="Pilates"
-            onerror="this.outerHTML='<div class=clase-img-ph ph-pilates>ðŸŒ¿</div>'">
+            onerror="this.outerHTML='<div class=clase-img-ph ph-pilates>🌿</div>'">
           <div class="clase-overlay"></div>
-          <div class="clase-chip">Control & fuerza</div>
+          <div class="clase-chip">Control &amp; fuerza</div>
         </div>
         <div class="clase-body">
           <h3 class="clase-name">Pilates</h3>
           <p class="clase-desc">
             Trabaja desde el centro hacia afuera. Fortalece tu core,
-            mejora tu postura y crea una conexiÃ³n profunda entre el
-            movimiento y la respiraciÃ³n consciente.
+            mejora tu postura y crea una conexión profunda entre el
+            movimiento y la respiración consciente.
           </p>
           <div class="clase-footer">
             <span class="clase-nivel">Principiante a avanzado</span>
-            <div class="clase-arrow">â†’</div>
+            <div class="clase-arrow">→</div>
           </div>
         </div>
       </div>
 
-      <!-- Unwind Yoga -->
-      <div class="clase-card reveal d3">
+      <div class="clase-card r d3">
         <div class="clase-img">
           <img src="assets/Screenshot 2026-05-30 220341.png" alt="Unwind Yoga"
-            onerror="this.outerHTML='<div class=clase-img-ph ph-yoga>ðŸ§˜</div>'">
+            onerror="this.outerHTML='<div class=clase-img-ph ph-yoga>🧘</div>'">
           <div class="clase-overlay"></div>
           <div class="clase-chip">Restaurativo</div>
         </div>
         <div class="clase-body">
           <h3 class="clase-name">Unwind Yoga</h3>
           <p class="clase-desc">
-            Una prÃ¡ctica para soltar tensiones, liberar la mente y
+            Una práctica para soltar tensiones, liberar la mente y
             encontrar calma profunda. Fluye a tu ritmo, respira y
             vuelve a ti misma.
           </p>
           <div class="clase-footer">
             <span class="clase-nivel">Todos los niveles</span>
-            <div class="clase-arrow">â†’</div>
+            <div class="clase-arrow">→</div>
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </section>
 
 <div class="sep"></div>
 
-<!-- â•â•â• FILOSOFÃA â•â•â• -->
+<!-- ═══ SALONES ═══ -->
+<section class="salones" id="salones">
+  <div class="salones-inner">
+    <div class="salones-header">
+      <p class="section-tag r">nuestros espacios</p>
+      <h2 class="section-title r">Dos salones <em>diseñados</em><br/>para ti</h2>
+      <p class="section-body r d1">
+        Cada espacio fue creado con intención: la energía perfecta
+        para cada tipo de práctica y cada momento del día.
+      </p>
+    </div>
+
+    <div class="salones-grid">
+      <div class="salon-card rl">
+        <div class="salon-img">
+          <div class="salon-img-ph sph-1">🩰</div>
+          <div class="salon-badge">Barre · Pilates</div>
+        </div>
+        <div class="salon-body">
+          <h3 class="salon-name">Salón Principal</h3>
+          <p class="salon-sub">El gran escenario</p>
+          <p class="salon-desc">
+            Nuestro salón insignia para Barre y Pilates. Barra de ballet perimetral,
+            espejos de piso a techo y sonido envolvente. Cada clase se convierte
+            en una experiencia completa.
+          </p>
+          <div class="salon-features">
+            <div class="salon-feat"><span>📐</span> <span data-count="120" data-suffix=" m²">120 m²</span></div>
+            <div class="salon-feat"><span>👥</span> Capacidad: <span data-count="20" data-suffix=" pers.">20 pers.</span></div>
+            <div class="salon-feat"><span>🪞</span> Espejos 360°</div>
+            <div class="salon-feat"><span>🎵</span> Sonido premium</div>
+            <div class="salon-feat"><span>❄️</span> A/C central</div>
+            <div class="salon-feat"><span>🔆</span> Luz regulable</div>
+          </div>
+          <div class="salon-footer">
+            <div class="salon-price">
+              <small>Desde</small>
+              $15 / clase
+            </div>
+            <a href="#reserva" class="btn-salon">Reservar →</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="salon-card rr">
+        <div class="salon-img">
+          <div class="salon-img-ph sph-2">🧘</div>
+          <div class="salon-badge">Yoga · Meditación</div>
+        </div>
+        <div class="salon-body">
+          <h3 class="salon-name">Salón Zen</h3>
+          <p class="salon-sub">El espacio del silencio</p>
+          <p class="salon-desc">
+            Refugio íntimo para yoga y meditación. Decoración minimalista,
+            luz natural filtrada por bambú y suelo de madera. El ambiente
+            ideal para conectar contigo misma.
+          </p>
+          <div class="salon-features">
+            <div class="salon-feat"><span>📐</span> <span data-count="80" data-suffix=" m²">80 m²</span></div>
+            <div class="salon-feat"><span>👥</span> Capacidad: <span data-count="12" data-suffix=" pers.">12 pers.</span></div>
+            <div class="salon-feat"><span>🌿</span> Plantas naturales</div>
+            <div class="salon-feat"><span>☀️</span> Luz natural</div>
+            <div class="salon-feat"><span>🎋</span> Suelo de bambú</div>
+            <div class="salon-feat"><span>🕯️</span> Ambiente zen</div>
+          </div>
+          <div class="salon-footer">
+            <div class="salon-price">
+              <small>Desde</small>
+              $12 / clase
+            </div>
+            <a href="#reserva" class="btn-salon">Reservar →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="sep"></div>
+
+<!-- ═══ FILOSOFÍA ═══ -->
 <section class="filosofia" id="filosofia">
   <div class="filo-inner">
-
-    <div class="filo-imgs reveal-l">
+    <div class="filo-imgs rl">
       <div class="filo-img">
-        <img src="assets/Screenshot 2026-05-30 221705.png" alt="Barre Burn filosofÃ­a"
-          onerror="this.outerHTML='<div class=filo-img-ph fip-1>âœ§</div>'">
+        <img src="assets/Screenshot 2026-05-30 221705.png" alt="Barre Burn filosofía"
+          onerror="this.outerHTML='<div class=filo-img-ph fip-1>✧</div>'">
       </div>
       <div class="filo-img">
         <img src="assets/Screenshot 2026-05-30 221306.png" alt="Presenza studio entrada"
-          onerror="this.outerHTML='<div class=filo-img-ph fip-2>ðŸ </div>'">
+          onerror="this.outerHTML='<div class=filo-img-ph fip-2>🏠</div>'">
       </div>
       <div class="filo-img">
-        <img src="assets/Screenshot 2026-05-30 221409.png" alt="Presenza definiciÃ³n"
-          onerror="this.outerHTML='<div class=filo-img-ph fip-3>ðŸ“–</div>'">
+        <img src="assets/Screenshot 2026-05-30 221409.png" alt="Presenza definición"
+          onerror="this.outerHTML='<div class=filo-img-ph fip-3>📖</div>'">
       </div>
     </div>
 
-    <div class="filo-text reveal-r">
-      <p class="section-tag">nuestra filosofÃ­a</p>
+    <div class="filo-text rr">
+      <p class="section-tag">nuestra filosofía</p>
       <h2 class="section-title">Un espacio para<br/><em>volver a ti</em></h2>
       <p class="section-body">
-        Creemos que el movimiento es una forma de meditaciÃ³n. Cada clase
-        es una invitaciÃ³n a dejar el ruido afuera y estar completamente
+        Creemos que el movimiento es una forma de meditación. Cada clase
+        es una invitación a dejar el ruido afuera y estar completamente
         presente en tu cuerpo y en tu momento.
       </p>
       <div class="pillars">
-        <div class="pillar reveal d1">
-          <div class="pillar-icon">ðŸ§ </div>
+        <div class="pillar r d1">
+          <div class="pillar-icon">🧠</div>
           <div>
             <h4>Presencia plena</h4>
-            <p>Llevar la atenciÃ³n al momento que estÃ¡s viviendo, integrando cuerpo, mente y espÃ­ritu.</p>
+            <p>Llevar la atención al momento que estás viviendo, integrando cuerpo, mente y espíritu.</p>
           </div>
         </div>
-        <div class="pillar reveal d2">
-          <div class="pillar-icon">ðŸ’ª</div>
+        <div class="pillar r d2">
+          <div class="pillar-icon">💪</div>
           <div>
-            <h4>Movimiento con intenciÃ³n</h4>
-            <p>Cada ejercicio tiene un propÃ³sito. No se trata de cuÃ¡nto haces, sino de cÃ³mo lo haces.</p>
+            <h4>Movimiento con intención</h4>
+            <p>Cada ejercicio tiene un propósito. No se trata de cuánto haces, sino de cómo lo haces.</p>
           </div>
         </div>
-        <div class="pillar reveal d3">
-          <div class="pillar-icon">ðŸŒ¸</div>
+        <div class="pillar r d3">
+          <div class="pillar-icon">🌸</div>
           <div>
             <h4>Comunidad que eleva</h4>
             <p>Un espacio seguro y amoroso donde todas son bienvenidas, sin importar su nivel.</p>
@@ -786,68 +950,105 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
         </div>
       </div>
     </div>
-
   </div>
 </section>
 
 <div class="sep"></div>
 
-<!-- â•â•â• GALERÃA â•â•â• -->
+<!-- ═══ GALERÍA ═══ -->
 <section class="galeria" id="galeria">
   <div class="galeria-inner">
     <div class="galeria-header">
-      <p class="section-tag reveal">galerÃ­a</p>
-      <h2 class="section-title reveal">El espacio que<br/><em>te esperaba</em></h2>
+      <p class="section-tag r">galería</p>
+      <h2 class="section-title r">El espacio que<br/><em>te esperaba</em></h2>
     </div>
     <div class="gallery-grid">
-      <div class="g-item reveal">
+      <div class="g-item r">
         <img src="assets/Screenshot 2026-05-30 220517.png" alt="Presenza for two"
-          onerror="this.outerHTML='<div class=g-ph gph-1>ðŸ’ƒ</div>'">
-        <div class="g-overlay"><span>Presenza for two âœ§</span></div>
+          onerror="this.outerHTML='<div class=g-ph gph-1>💃</div>'">
+        <div class="g-overlay"><span>Presenza for two ✧</span></div>
       </div>
-      <div class="g-item reveal d1">
+      <div class="g-item r d1">
         <img src="assets/Screenshot 2026-05-30 221346.png" alt="Barre"
-          onerror="this.outerHTML='<div class=g-ph gph-2>ðŸ©°</div>'">
+          onerror="this.outerHTML='<div class=g-ph gph-2>🩰</div>'">
         <div class="g-overlay"><span>Barre Burn</span></div>
       </div>
-      <div class="g-item reveal d2">
+      <div class="g-item r d2">
         <img src="assets/Screenshot 2026-05-30 221306.png" alt="Studio"
-          onerror="this.outerHTML='<div class=g-ph gph-3>ðŸ </div>'">
+          onerror="this.outerHTML='<div class=g-ph gph-3>🏠</div>'">
         <div class="g-overlay"><span>Nuestro estudio</span></div>
       </div>
-      <div class="g-item reveal d3">
+      <div class="g-item r d3">
         <img src="assets/Screenshot 2026-05-30 220341.png" alt="Unwind Yoga"
-          onerror="this.outerHTML='<div class=g-ph gph-4>ðŸ§˜</div>'">
+          onerror="this.outerHTML='<div class=g-ph gph-4>🧘</div>'">
         <div class="g-overlay"><span>Unwind Yoga</span></div>
       </div>
-      <div class="g-item reveal d4">
+      <div class="g-item r d4">
         <img src="assets/Screenshot 2026-05-30 221705.png" alt="Barre Burn desc"
-          onerror="this.outerHTML='<div class=g-ph gph-5>âœ§</div>'">
+          onerror="this.outerHTML='<div class=g-ph gph-5>✧</div>'">
         <div class="g-overlay"><span>Barre Burn</span></div>
       </div>
     </div>
-    <p class="galeria-ig reveal d1">
-      SÃ­guenos para mÃ¡s contenido â†’
+    <p class="galeria-ig r d1">
+      Síguenos para más contenido →
       <a href="#" target="_blank">@presenzastudio</a>
     </p>
   </div>
 </section>
 
-<!-- â•â•â• RESERVA CTA â•â•â• -->
+<!-- ═══ RESERVA Y PAGO ═══ -->
 <section class="reserva" id="reserva">
   <div class="reserva-inner">
-    <p class="section-tag reveal">reserva tu lugar</p>
-    <h2 class="section-title reveal">Â¿Lista para tu<br/><em>primera clase?</em></h2>
-    <p class="section-body reveal d1">
-      EscrÃ­benos por WhatsApp o Instagram y te ayudamos a encontrar
-      la clase perfecta para ti.
+    <p class="section-tag r">reserva tu lugar</p>
+    <h2 class="section-title r">¿Lista para reservar<br/><em>y confirmar?</em></h2>
+    <p class="section-body r d1">
+      Elige tu clase, escríbenos y paga al momento. En 3 sencillos pasos
+      tu lugar queda confirmado.
     </p>
-    <div class="reserva-btns reveal d2">
-      <a href="https://wa.me/505" class="btn-wa" target="_blank">
+
+    <div class="reserva-steps">
+      <div class="reserva-step r d1">
+        <div class="step-num">1</div>
+        <div class="step-title">Elige tu clase</div>
+        <p class="step-desc">Selecciona la disciplina, el salón y el horario que más te convenga.</p>
+      </div>
+      <div class="reserva-step r d2">
+        <div class="step-num">2</div>
+        <div class="step-title">Escríbenos</div>
+        <p class="step-desc">Contáctanos por WhatsApp con tu nombre, clase elegida y sesiones.</p>
+      </div>
+      <div class="reserva-step r d3">
+        <div class="step-num">3</div>
+        <div class="step-title">Paga y confirma</div>
+        <p class="step-desc">Realiza tu pago al número de abajo y tu reserva queda confirmada.</p>
+      </div>
+    </div>
+
+    <div class="pago-box r d2">
+      <div class="pago-info">
+        <h4>Paga por transferencia o en efectivo</h4>
+        <p>Transfiere al número de abajo o páganos en el estudio.<br/>
+        También aceptamos tarjeta en nuestras instalaciones.</p>
+      </div>
+      <div class="pago-num">
+        <small>Número de pago</small>
+        7835 9079
+      </div>
+    </div>
+
+    <div class="metodos r d3">
+      <div class="metodo-chip">💳 Tarjeta</div>
+      <div class="metodo-chip">📱 Transferencia</div>
+      <div class="metodo-chip">💵 Efectivo</div>
+      <div class="metodo-chip">📲 WhatsApp Pay</div>
+    </div>
+
+    <div class="reserva-btns r d3">
+      <a href="https://wa.me/50578359079" class="btn-wa" target="_blank">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
           <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
         </svg>
-        WhatsApp
+        WhatsApp · 7835 9079
       </a>
       <a href="#" class="btn-ig" target="_blank">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -859,40 +1060,40 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   </div>
 </section>
 
-<!-- â•â•â• UBICACIÃ“N â•â•â• -->
+<!-- ═══ UBICACIÓN ═══ -->
 <section class="ubicacion" id="ubicacion">
   <div class="ubi-inner">
-    <div class="reveal-l">
-      <p class="section-tag">dÃ³nde estamos</p>
-      <h2 class="section-title">EncuÃ©ntranos<br/>en <em>TerraPlaza</em></h2>
+    <div class="rl">
+      <p class="section-tag">dónde estamos</p>
+      <h2 class="section-title">Encuéntranos<br/>en <em>TerraPlaza</em></h2>
       <p class="section-body">
         Te esperamos con los brazos abiertos en nuestro estudio en Managua.
-        EscrÃ­benos para conocer horarios y disponibilidad.
+        Escríbenos para conocer horarios y disponibilidad.
       </p>
       <div class="loc-cards">
         <div class="loc-card">
-          <div class="loc-icon">ðŸ“</div>
+          <div class="loc-icon">📍</div>
           <div>
-            <h4>DirecciÃ³n</h4>
+            <h4>Dirección</h4>
             <p>Km 9.8 Carretera a Masaya, TerraPlaza, Managua</p>
           </div>
         </div>
         <div class="loc-card">
-          <div class="loc-icon">ðŸ“±</div>
+          <div class="loc-icon">📱</div>
           <div>
             <h4>WhatsApp</h4>
-            <p><a href="https://wa.me/505" target="_blank">EscrÃ­benos para reservas e info</a></p>
+            <p><a href="https://wa.me/50578359079" target="_blank">7835 9079 — Reservas e info</a></p>
           </div>
         </div>
         <div class="loc-card">
-          <div class="loc-icon">ðŸ“¸</div>
+          <div class="loc-icon">📸</div>
           <div>
             <h4>Instagram</h4>
             <p><a href="#" target="_blank">@presenzastudio</a></p>
           </div>
         </div>
         <div class="loc-card">
-          <div class="loc-icon">â°</div>
+          <div class="loc-icon">⏰</div>
           <div>
             <h4>Horarios</h4>
             <p>Consulta disponibilidad por WhatsApp o Instagram</p>
@@ -900,26 +1101,26 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
         </div>
       </div>
     </div>
-    <div class="reveal-r">
+    <div class="rr">
       <div class="map-box">
-        <div class="m-icon">ðŸ“</div>
+        <div class="m-icon">📍</div>
         <h3>Presenza Studio</h3>
         <p>Km 9.8 Carretera a Masaya<br/>TerraPlaza, Managua</p>
         <a href="https://maps.google.com/?q=TerraPlaza+Km+9.8+Carretera+a+Masaya+Managua" target="_blank">
-          CÃ³mo llegar â†’
+          Cómo llegar →
         </a>
       </div>
     </div>
   </div>
 </section>
 
-<!-- â•â•â• FOOTER â•â•â• -->
+<!-- ═══ FOOTER ═══ -->
 <footer>
   <div class="footer-top">
     <div class="footer-brand">
       <div class="footer-logo">Presenza</div>
-      <p>Un espacio para volver a ti. Barre Â· Pilates Â· Yoga en el corazÃ³n de Managua.</p>
-      <p class="footer-sub">Movimiento con intenciÃ³n âœ§</p>
+      <p>Un espacio para volver a ti. Barre · Pilates · Yoga en el corazón de Managua.</p>
+      <p class="footer-sub">Movimiento con intención ✧</p>
     </div>
     <div class="footer-col">
       <h4>Clases</h4>
@@ -932,38 +1133,125 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
     <div class="footer-col">
       <h4>Estudio</h4>
       <ul>
-        <li><a href="#filosofia">Nuestra filosofÃ­a</a></li>
-        <li><a href="#galeria">GalerÃ­a</a></li>
-        <li><a href="#ubicacion">UbicaciÃ³n</a></li>
+        <li><a href="#salones">Nuestros salones</a></li>
+        <li><a href="#filosofia">Nuestra filosofía</a></li>
+        <li><a href="#galeria">Galería</a></li>
+        <li><a href="#ubicacion">Ubicación</a></li>
         <li><a href="#reserva">Reservar clase</a></li>
       </ul>
     </div>
   </div>
   <div class="footer-bottom">
-    <p>Â© 2026 Presenza Studio Â· Managua, Nicaragua</p>
-    <span>Movimiento con intenciÃ³n âœ§</span>
+    <p>© 2026 Presenza Studio · Managua, Nicaragua</p>
+    <span>Movimiento con intención ✧</span>
   </div>
 </footer>
 
 <script>
-/* â”€â”€ NAV scroll effect â”€â”€ */
+/* ── BARRA DE PROGRESO ── */
+const progressBar = document.getElementById('progressBar');
+window.addEventListener('scroll', () => {
+  const pct = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+  progressBar.style.width = pct + '%';
+}, { passive: true });
+
+/* ── NAV scrolled ── */
 window.addEventListener('scroll', () => {
   document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 60);
+}, { passive: true });
+
+/* ── PARALLAX HERO ── */
+const heroBg = document.getElementById('heroBg');
+const heroImg = document.getElementById('heroImg');
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  window.addEventListener('scroll', () => {
+    const s = window.scrollY;
+    if (s < window.innerHeight * 1.4) {
+      heroBg.style.transform = 'translateY(' + (s * 0.28) + 'px)';
+      if (heroImg) heroImg.style.transform = 'translateY(' + (s * 0.08) + 'px)';
+    }
+  }, { passive: true });
+}
+
+/* ── SCROLL REVEAL (kit style) ── */
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('on'); });
+}, { threshold: 0.12 });
+document.querySelectorAll('.r,.rl,.rr').forEach(el => obs.observe(el));
+
+/* ── FADE CONTINUO EN IMÁGENES (desvanecimiento vivo) ── */
+const imgObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const img = e.target.querySelector('img');
+      if (img) {
+        /* pequeño delay para que primero termine el reveal */
+        setTimeout(() => img.classList.add('img-alive'), 800);
+      }
+      imgObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.25 });
+document.querySelectorAll('.clase-img, .salon-img, .filo-img, .g-item, .hero-photo').forEach(el => imgObs.observe(el));
+
+/* ── ACTIVE NAV SECTION ── */
+const sections = document.querySelectorAll('section[id]');
+const navAnchors = document.querySelectorAll('.nav-links a[href^="#"]');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 140) current = s.id;
+  });
+  navAnchors.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+}, { passive: true });
+
+/* ── CARD TILT 3D ── */
+document.querySelectorAll('.clase-card, .salon-card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const r = card.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width  - 0.5;
+    const y = (e.clientY - r.top)  / r.height - 0.5;
+    card.style.transform = `perspective(900px) rotateX(${-y * 7}deg) rotateY(${x * 7}deg) translateY(-8px) scale(1.02)`;
+    card.style.transition = 'box-shadow .4s';
+  });
+  card.addEventListener('mouseleave', () => {
+    card.style.transform = '';
+    card.style.transition = 'transform .5s ease, box-shadow .4s';
+  });
 });
 
-/* â”€â”€ Hamburger â”€â”€ */
+/* ── COUNTER ANIMATION ── */
+function animCount(el) {
+  const target = parseInt(el.dataset.count);
+  const suffix = el.dataset.suffix || '';
+  const dur = 1400;
+  const t0 = Date.now();
+  (function tick() {
+    const p = Math.min((Date.now() - t0) / dur, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(ease * target) + suffix;
+    if (p < 1) requestAnimationFrame(tick);
+  })();
+}
+const countObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.querySelectorAll('[data-count]').forEach(animCount);
+      countObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.4 });
+document.querySelectorAll('.salon-card').forEach(c => countObs.observe(c));
+
+/* ── HAMBURGER ── */
 function toggleMenu() {
   document.getElementById('hamburger').classList.toggle('open');
   document.getElementById('mobileMenu').classList.toggle('open');
 }
 
-/* â”€â”€ Scroll reveal â”€â”€ */
-const io = new IntersectionObserver((entries) => {
-  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
-}, { threshold: 0.13 });
-document.querySelectorAll('.reveal, .reveal-l, .reveal-r').forEach(el => io.observe(el));
-
-/* â”€â”€ Smooth anchors â”€â”€ */
+/* ── SMOOTH ANCHORS ── */
 document.querySelectorAll('a[href^="#"]').forEach(a => {
   a.addEventListener('click', e => {
     const t = document.querySelector(a.getAttribute('href'));
@@ -973,4 +1261,3 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 </script>
 </body>
 </html>
-
