@@ -611,254 +611,301 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   .filo-img:first-child { grid-row:span 1; aspect-ratio:4/3; }
 }
 
-/* ══════════════════════════════════════
-   MODAL DE RESERVAS
-══════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════
+   HORARIO EN PÁGINA
+═══════════════════════════════════════════ */
+.reserva {
+  padding:112px 52px;
+  background:var(--cream);
+  position:relative; overflow:hidden;
+}
+.reserva::after {
+  content:'✧'; position:absolute; right:-30px; bottom:0;
+  font-size:22rem; opacity:.04; pointer-events:none;
+  color:var(--wine); line-height:1;
+}
+.reserva-inner { max-width:1100px; margin:0 auto; }
+.reserva-header { text-align:center; margin-bottom:40px; }
+.reserva-header .section-body { max-width:480px; margin:0 auto; }
+
+/* navegador de semana */
+.sched-nav {
+  display:flex; align-items:center; justify-content:center; gap:14px;
+  margin-bottom:24px;
+}
+.sched-nav-btn {
+  width:36px; height:36px; border-radius:50%;
+  background:var(--white); border:1.5px solid rgba(107,23,40,0.15);
+  color:var(--wine); display:flex; align-items:center; justify-content:center;
+  font-size:1.1rem; cursor:pointer; transition:all .2s; flex-shrink:0;
+}
+.sched-nav-btn:hover { background:var(--wine); color:#fff; border-color:var(--wine); }
+#schedWeekLabel {
+  font-size:.88rem; font-weight:600; color:var(--wine-d);
+  min-width:200px; text-align:center;
+}
+
+/* tabs de día */
+.sched-day-tabs {
+  display:flex; gap:8px; justify-content:center; flex-wrap:wrap;
+  margin-bottom:32px;
+}
+.sched-day-tab {
+  padding:10px 18px; border-radius:50px;
+  border:1.5px solid rgba(107,23,40,0.12);
+  background:var(--white); cursor:pointer; transition:all .25s; text-align:center;
+}
+.sched-day-tab:hover:not(.past) { border-color:var(--wine); }
+.sched-day-tab.active { background:var(--wine); border-color:var(--wine); color:#fff; }
+.sched-day-tab.today:not(.active) { border-color:var(--blush); }
+.sched-day-tab.past { opacity:.4; cursor:not-allowed; }
+.sdt-name { font-size:.78rem; font-weight:700; display:block; }
+.sdt-num  { font-size:.7rem; opacity:.65; }
+
+/* grid de clases */
+.sched-classes {
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr));
+  gap:14px; min-height:180px;
+}
+.sched-empty {
+  grid-column:1/-1; text-align:center; padding:52px 20px;
+  color:var(--gray); font-size:.9rem;
+}
+.sched-card {
+  background:var(--white); border-radius:16px;
+  border:1.5px solid rgba(107,23,40,0.07);
+  padding:18px 18px 16px; cursor:pointer;
+  transition:all .3s; position:relative; overflow:hidden;
+}
+.sched-card::before {
+  content:''; position:absolute; left:0; top:0; bottom:0;
+  width:4px; border-radius:4px 0 0 4px;
+}
+.sched-card.c-barre::before   { background:var(--wine); }
+.sched-card.c-pilates::before { background:var(--blush); }
+.sched-card.c-yoga::before    { background:#8B9E7A; }
+.sched-card:hover:not(.sc-full) {
+  transform:translateY(-4px);
+  box-shadow:0 14px 36px rgba(107,23,40,0.12);
+  border-color:rgba(107,23,40,0.18);
+}
+.sched-card.sc-full { cursor:not-allowed; }
+
+.sc-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; }
+.sc-hora { font-size:1.3rem; font-weight:800; color:var(--wine-d); line-height:1; }
+.sc-hora small { display:block; font-size:.62rem; font-weight:500; color:var(--gray); margin-top:2px; }
+.sc-chip {
+  font-size:.62rem; font-weight:700; padding:3px 9px;
+  border-radius:50px; letter-spacing:.5px; flex-shrink:0;
+}
+.c-barre   .sc-chip { background:rgba(107,23,40,0.1);   color:var(--wine); }
+.c-pilates .sc-chip { background:rgba(201,149,106,0.14); color:#8B5A30; }
+.c-yoga    .sc-chip { background:rgba(139,158,122,0.14); color:#3D5C2E; }
+
+.sc-clase { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+.sc-emoji { font-size:1.2rem; }
+.sc-name  { font-size:.88rem; font-weight:600; color:var(--text); }
+
+/* dots de cupos */
+.sc-cupos-row {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:12px;
+}
+.sc-cupos-txt { font-size:.7rem; color:var(--gray); }
+.sc-cupos-txt strong { color:var(--wine-d); }
+.sc-dots { display:flex; gap:3px; flex-wrap:wrap; max-width:160px; }
+.sc-dot {
+  width:7px; height:7px; border-radius:50%; transition:background .2s;
+}
+.sc-dot.libre  { background:var(--wine); opacity:.75; }
+.sc-dot.tomado { background:rgba(107,23,40,0.12); }
+.c-pilates .sc-dot.libre { background:var(--blush); }
+.c-yoga    .sc-dot.libre { background:#8B9E7A; }
+
+/* botón reservar de la card */
+.sc-btn {
+  width:100%; color:#fff; font-family:'Poppins',sans-serif;
+  font-weight:600; font-size:.78rem; padding:9px;
+  border-radius:10px; cursor:pointer; transition:all .25s; border:none;
+}
+.c-barre   .sc-btn { background:var(--wine); }
+.c-barre   .sc-btn:hover { background:var(--wine-l); }
+.c-pilates .sc-btn { background:var(--blush); }
+.c-pilates .sc-btn:hover { background:#B8785A; }
+.c-yoga    .sc-btn { background:#8B9E7A; }
+.c-yoga    .sc-btn:hover { background:#6B7E5A; }
+.sc-btn.sc-lleno {
+  background:rgba(107,23,40,0.1); color:var(--gray); cursor:not-allowed;
+}
+
+/* leyenda */
+.sched-legend {
+  display:flex; gap:20px; justify-content:center; flex-wrap:wrap;
+  margin-top:30px;
+}
+.legend-item { display:flex; align-items:center; gap:7px; font-size:.78rem; color:var(--gray); }
+.leg-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+.leg-dot.barre   { background:var(--wine); }
+.leg-dot.pilates { background:var(--blush); }
+.leg-dot.yoga    { background:#8B9E7A; }
+
+/* ═══════════════════════════════════════════
+   MODAL DE RESERVA (2 pasos)
+═══════════════════════════════════════════ */
 .modal-backdrop {
   position:fixed; inset:0; z-index:2000;
-  background:rgba(74,15,26,0.55);
-  backdrop-filter:blur(6px);
+  background:rgba(74,15,26,0.58);
+  backdrop-filter:blur(8px);
   display:flex; align-items:center; justify-content:center;
-  padding:16px;
-  opacity:0; pointer-events:none;
+  padding:16px; opacity:0; pointer-events:none;
   transition:opacity .3s ease;
 }
 .modal-backdrop.open { opacity:1; pointer-events:all; }
 
 .modal {
   background:var(--white); border-radius:24px;
-  width:100%; max-width:560px; max-height:92vh;
+  width:100%; max-width:480px; max-height:92vh;
   overflow-y:auto; position:relative;
-  box-shadow:0 32px 80px rgba(74,15,26,0.3);
-  transform:translateY(24px) scale(.97);
-  transition:transform .35s ease;
+  box-shadow:0 32px 80px rgba(74,15,26,0.35);
+  transform:translateY(22px) scale(.97);
+  transition:transform .38s cubic-bezier(.34,1.56,.64,1);
 }
 .modal-backdrop.open .modal { transform:none; }
 
 .modal-header {
-  padding:24px 28px 0;
+  padding:22px 26px 16px;
   display:flex; align-items:center; justify-content:space-between;
   position:sticky; top:0; background:var(--white); z-index:1;
-  border-bottom:1px solid rgba(107,23,40,0.07); padding-bottom:16px;
+  border-bottom:1px solid rgba(107,23,40,0.07);
 }
-.modal-header h2 {
+.mh-title p  { font-size:.68rem; color:var(--gray); letter-spacing:1.5px; text-transform:uppercase; }
+.mh-title h2 {
   font-family:'Playfair Display',serif;
-  font-size:1.25rem; font-weight:900; color:var(--wine-d);
+  font-size:1.2rem; font-weight:900; color:var(--wine-d); margin-top:2px;
 }
 .modal-close {
-  width:34px; height:34px; border-radius:50%;
+  width:32px; height:32px; border-radius:50%;
   background:var(--cream); color:var(--wine);
   display:flex; align-items:center; justify-content:center;
-  font-size:1.1rem; cursor:pointer; flex-shrink:0;
-  transition:background .2s;
+  font-size:1rem; cursor:pointer; flex-shrink:0; transition:background .2s;
 }
 .modal-close:hover { background:var(--cream-d); }
 
-/* Steps indicator */
-.steps-bar {
-  display:flex; align-items:center; gap:0;
-  padding:16px 28px;
-}
-.step-dot {
-  width:28px; height:28px; border-radius:50%;
-  border:2px solid rgba(107,23,40,0.2);
-  display:flex; align-items:center; justify-content:center;
-  font-size:.72rem; font-weight:700; color:var(--gray);
-  transition:all .3s; flex-shrink:0;
-}
-.step-dot.active { background:var(--wine); border-color:var(--wine); color:#fff; }
-.step-dot.done { background:var(--cream); border-color:var(--wine); color:var(--wine); }
-.step-line { flex:1; height:2px; background:rgba(107,23,40,0.12); transition:background .3s; }
-.step-line.done { background:var(--wine); }
-.step-label {
-  font-size:.65rem; text-align:center; color:var(--gray);
-  margin-top:4px; letter-spacing:.5px;
-}
-.steps-labels {
-  display:flex; justify-content:space-between;
-  padding:0 28px 4px; gap:0;
-}
-.steps-labels span { font-size:.63rem; color:var(--gray); text-align:center; flex:1; }
-.steps-labels span:first-child { text-align:left; }
-.steps-labels span:last-child { text-align:right; }
-
-/* Modal body */
-.modal-body { padding:20px 28px 28px; }
-
-/* Step panels */
-.step-panel { display:none; }
-.step-panel.active { display:block; }
-
-/* Step 1 — Clase */
-.clase-opts { display:flex; flex-direction:column; gap:12px; }
-.clase-opt {
-  display:flex; align-items:center; gap:14px;
-  padding:16px 18px; border-radius:14px;
-  border:1.5px solid rgba(107,23,40,0.1);
-  cursor:pointer; transition:all .25s;
-}
-.clase-opt:hover { border-color:rgba(107,23,40,0.3); background:rgba(107,23,40,0.03); }
-.clase-opt.selected { border-color:var(--wine); background:rgba(107,23,40,0.05); }
-.clase-opt-icon {
-  width:46px; height:46px; border-radius:12px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:1.4rem; flex-shrink:0;
-}
-.ci-barre   { background:linear-gradient(135deg,var(--wine-d),var(--wine-l)); }
-.ci-pilates { background:linear-gradient(135deg,var(--blush),#D4A891); }
-.ci-yoga    { background:linear-gradient(135deg,#8B9E7A,#C5D4B8); }
-.clase-opt-info { flex:1; }
-.clase-opt-info strong { display:block; font-size:.92rem; font-weight:600; color:var(--wine-d); margin-bottom:2px; }
-.clase-opt-info span { font-size:.76rem; color:var(--gray); }
-.clase-opt-check {
-  width:22px; height:22px; border-radius:50%;
-  border:2px solid rgba(107,23,40,0.2);
-  display:flex; align-items:center; justify-content:center;
-  flex-shrink:0; transition:all .25s;
-}
-.clase-opt.selected .clase-opt-check { background:var(--wine); border-color:var(--wine); color:#fff; font-size:.75rem; }
-.clase-opt.selected .clase-opt-check::after { content:'✓'; }
-
-/* Step 2 — Horario */
-.week-nav {
-  display:flex; align-items:center; justify-content:space-between;
-  margin-bottom:14px;
-}
-.week-nav span { font-size:.82rem; font-weight:600; color:var(--wine-d); }
-.week-btn {
-  width:30px; height:30px; border-radius:50%; background:var(--cream);
-  color:var(--wine); display:flex; align-items:center; justify-content:center;
-  cursor:pointer; font-size:.9rem; transition:background .2s;
-}
-.week-btn:hover { background:var(--cream-d); }
-
-.day-pills { display:flex; gap:6px; margin-bottom:18px; flex-wrap:wrap; }
-.day-pill {
-  padding:7px 14px; border-radius:50px;
+/* chip de clase seleccionada */
+.modal-sel {
+  margin:16px 26px 0; padding:14px 16px; border-radius:14px;
+  display:flex; align-items:center; gap:12px;
   border:1.5px solid rgba(107,23,40,0.12);
-  font-size:.76rem; font-weight:600; cursor:pointer;
-  color:var(--gray); transition:all .25s; flex-shrink:0;
 }
-.day-pill:hover:not(.disabled) { border-color:var(--wine); color:var(--wine); }
-.day-pill.selected { background:var(--wine); border-color:var(--wine); color:#fff; }
-.day-pill.disabled { opacity:.35; cursor:not-allowed; }
-
-.slot-label { font-size:.75rem; font-weight:600; color:var(--gray); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px; }
-.slots-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.slot-btn {
-  padding:12px 14px; border-radius:12px;
-  border:1.5px solid rgba(107,23,40,0.1);
-  cursor:pointer; text-align:left; transition:all .25s;
-  background:var(--white);
-}
-.slot-btn:hover:not(.full) { border-color:var(--wine); }
-.slot-btn.selected { border-color:var(--wine); background:rgba(107,23,40,0.05); }
-.slot-btn.full { opacity:.45; cursor:not-allowed; background:rgba(0,0,0,.03); }
-.slot-time { font-size:.92rem; font-weight:700; color:var(--wine-d); display:block; margin-bottom:3px; }
-.slot-spots {
-  font-size:.7rem; color:var(--gray);
-  display:flex; align-items:center; gap:5px;
-}
-.spot-bar {
-  flex:1; height:4px; background:rgba(107,23,40,0.1);
-  border-radius:2px; overflow:hidden;
-}
-.spot-fill { height:100%; border-radius:2px; background:var(--wine); transition:width .3s; }
-.slot-btn.full .spot-fill { background:#ccc; }
-.slot-no-day {
-  text-align:center; padding:24px; color:var(--gray);
-  font-size:.88rem; grid-column:span 2;
+.modal-sel.ms-barre   { background:rgba(107,23,40,0.04);  border-color:rgba(107,23,40,0.2); }
+.modal-sel.ms-pilates { background:rgba(201,149,106,0.07); border-color:rgba(201,149,106,0.3); }
+.modal-sel.ms-yoga    { background:rgba(139,158,122,0.07); border-color:rgba(139,158,122,0.3); }
+.ms-icon { font-size:1.7rem; }
+.ms-info strong { display:block; font-size:.9rem; font-weight:700; color:var(--wine-d); }
+.ms-info span   { font-size:.76rem; color:var(--gray); }
+.ms-time {
+  margin-left:auto; font-family:'Playfair Display',serif;
+  font-size:1.15rem; font-weight:900; color:var(--wine); flex-shrink:0;
 }
 
-/* Step 3 — Datos */
-.form-group { margin-bottom:14px; }
-.form-group label {
-  display:block; font-size:.72rem; font-weight:600;
+/* steps bar */
+.modal-steps { display:flex; align-items:center; padding:16px 26px 0; }
+.ms-dot {
+  width:24px; height:24px; border-radius:50%; flex-shrink:0;
+  border:2px solid rgba(107,23,40,0.18);
+  display:flex; align-items:center; justify-content:center;
+  font-size:.68rem; font-weight:700; color:var(--gray); transition:all .3s;
+}
+.ms-dot.active { background:var(--wine); border-color:var(--wine); color:#fff; }
+.ms-dot.done   { background:var(--cream); border-color:var(--wine); color:var(--wine); }
+.ms-line { flex:1; height:2px; background:rgba(107,23,40,0.1); transition:background .3s; }
+.ms-line.done { background:var(--wine); }
+.modal-steps-lbl {
+  display:flex; justify-content:space-between; padding:4px 26px 0;
+}
+.modal-steps-lbl span { font-size:.62rem; color:var(--gray); }
+
+/* body */
+.modal-body { padding:20px 26px 26px; }
+.mpanel { display:none; }
+.mpanel.active { display:block; }
+
+/* formulario */
+.mfg { margin-bottom:14px; }
+.mfg label {
+  display:block; font-size:.68rem; font-weight:600;
   color:var(--gray); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px;
 }
-.form-group input {
+.mfg input {
   width:100%; background:var(--cream);
   border:1.5px solid rgba(107,23,40,0.1);
   color:var(--text); padding:11px 14px;
   border-radius:10px; font-family:'Poppins',sans-serif; font-size:.9rem;
   outline:none; transition:border-color .25s;
 }
-.form-group input:focus { border-color:var(--wine); background:rgba(107,23,40,0.03); }
-.form-group input::placeholder { color:rgba(107,23,40,0.3); }
+.mfg input:focus { border-color:var(--wine); background:rgba(107,23,40,0.02); }
+.mfg input::placeholder { color:rgba(107,23,40,0.28); }
 
-.booking-summary {
-  background:var(--cream); border-radius:14px;
-  padding:16px 18px; margin-bottom:18px;
+.pago-note {
+  border:1.5px dashed rgba(107,23,40,0.2); border-radius:12px;
+  padding:13px 16px; text-align:center; margin-bottom:16px;
 }
-.booking-summary h4 { font-size:.75rem; font-weight:600; color:var(--gray); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px; }
-.bs-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; }
-.bs-row:not(:last-child) { border-bottom:1px solid rgba(107,23,40,0.07); }
-.bs-row span:first-child { font-size:.8rem; color:var(--gray); }
-.bs-row span:last-child { font-size:.85rem; font-weight:600; color:var(--wine-d); }
+.pago-note strong { font-size:.82rem; color:var(--wine); display:block; margin-bottom:3px; }
+.pago-note p { font-size:.75rem; color:var(--gray); line-height:1.65; }
 
-.pago-placeholder {
-  border:1.5px dashed rgba(107,23,40,0.25);
-  border-radius:14px; padding:16px 18px;
-  text-align:center; margin-bottom:18px;
-}
-.pago-placeholder p { font-size:.78rem; color:var(--gray); line-height:1.7; }
-.pago-placeholder strong { color:var(--wine); display:block; margin-bottom:4px; font-size:.85rem; }
-
-/* Buttons */
-.btn-modal-next {
+.btn-confirmar {
   width:100%; background:var(--wine); color:#fff;
-  font-family:'Poppins',sans-serif; font-weight:700; font-size:.92rem;
-  padding:14px; border-radius:12px; cursor:pointer;
-  transition:all .25s; letter-spacing:.3px;
-  box-shadow:0 4px 16px rgba(107,23,40,0.28);
+  font-family:'Poppins',sans-serif; font-weight:700; font-size:.9rem;
+  padding:13px; border-radius:12px; cursor:pointer; border:none;
+  transition:all .25s; box-shadow:0 4px 18px rgba(107,23,40,0.28);
 }
-.btn-modal-next:hover { background:var(--wine-l); transform:translateY(-2px); box-shadow:0 10px 28px rgba(107,23,40,0.35); }
-.btn-modal-next:disabled { opacity:.45; cursor:not-allowed; transform:none; }
-.btn-modal-back {
-  background:none; color:var(--gray); font-size:.82rem;
-  font-family:'Poppins',sans-serif; padding:8px 0;
-  cursor:pointer; margin-bottom:10px; display:flex; align-items:center; gap:5px;
-}
-.btn-modal-back:hover { color:var(--wine); }
+.btn-confirmar:hover { background:var(--wine-l); transform:translateY(-2px); }
+.btn-confirmar:disabled { opacity:.4; cursor:not-allowed; transform:none; box-shadow:none; }
 
-/* Step 4 — Confirmación */
-.confirm-screen { text-align:center; padding:8px 0; }
-.confirm-icon { font-size:3.5rem; margin-bottom:12px; }
-.confirm-screen h3 {
+/* confirmación */
+.confirm-scr { text-align:center; padding:10px 0; }
+.confirm-ani { font-size:3.8rem; margin-bottom:14px; display:block;
+  animation:popIn .5s cubic-bezier(.34,1.56,.64,1); }
+@keyframes popIn { from{transform:scale(0)} to{transform:scale(1)} }
+.confirm-scr h3 {
   font-family:'Playfair Display',serif;
   font-size:1.5rem; font-weight:900; color:var(--wine-d); margin-bottom:8px;
 }
-.confirm-screen p { font-size:.88rem; color:var(--gray); line-height:1.75; margin-bottom:20px; }
-.confirm-detail {
-  background:var(--cream); border-radius:14px;
-  padding:16px 18px; text-align:left; margin-bottom:20px;
+.confirm-scr > p { font-size:.86rem; color:var(--gray); line-height:1.75; margin-bottom:20px; }
+.confirm-card {
+  background:var(--cream); border-radius:16px;
+  padding:16px 18px; text-align:left; margin-bottom:18px;
 }
-.confirm-detail .cd-row {
+.cr-row {
   display:flex; gap:10px; align-items:center;
-  padding:6px 0; border-bottom:1px solid rgba(107,23,40,0.07);
+  padding:7px 0; border-bottom:1px solid rgba(107,23,40,0.07);
 }
-.confirm-detail .cd-row:last-child { border-bottom:none; }
-.confirm-detail .cd-icon { font-size:1rem; flex-shrink:0; }
-.confirm-detail .cd-text { font-size:.82rem; color:var(--text); }
-.confirm-detail .cd-text strong { color:var(--wine-d); }
-.btn-wa-confirm {
-  display:inline-flex; align-items:center; gap:8px;
+.cr-row:last-child { border-bottom:none; }
+.cr-icon { font-size:.9rem; flex-shrink:0; width:18px; text-align:center; }
+.cr-text { font-size:.82rem; color:var(--text); }
+.cr-text strong { color:var(--wine-d); }
+
+.btn-wa-big {
+  display:flex; align-items:center; justify-content:center; gap:10px;
   background:var(--wa); color:#fff; font-weight:700; font-size:.9rem;
-  padding:13px 26px; border-radius:50px;
+  padding:13px; border-radius:12px; width:100%;
   transition:all .25s; box-shadow:0 4px 18px rgba(37,211,102,0.35);
-  width:100%; justify-content:center; margin-bottom:10px;
+  margin-bottom:10px; text-decoration:none;
 }
-.btn-wa-confirm:hover { opacity:.9; transform:translateY(-2px); }
-.btn-cerrar-modal {
+.btn-wa-big:hover { opacity:.92; transform:translateY(-2px); }
+.btn-close-m {
   display:block; width:100%; text-align:center;
-  font-size:.82rem; color:var(--gray); cursor:pointer;
+  font-size:.8rem; color:var(--gray); cursor:pointer;
   padding:8px; transition:color .2s;
 }
-.btn-cerrar-modal:hover { color:var(--wine); }
+.btn-close-m:hover { color:var(--wine); }
 
-@media(max-width:500px){
-  .modal-header, .modal-body, .steps-bar, .steps-labels { padding-left:18px; padding-right:18px; }
-  .slots-grid { grid-template-columns:1fr; }
+@media(max-width:520px){
+  .reserva { padding:70px 18px; }
+  .sched-classes { grid-template-columns:1fr; }
+  .modal-header,.modal-body,.modal-steps,.modal-steps-lbl { padding-left:18px; padding-right:18px; }
+  .modal-sel { margin-left:18px; margin-right:18px; }
 }
 </style>
 </head>
@@ -1246,67 +1293,39 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   </div>
 </section>
 
-<!-- ═══ RESERVA Y PAGO ═══ -->
+<!-- ═══ RESERVA — HORARIO SEMANAL ═══ -->
 <section class="reserva" id="reserva">
   <div class="reserva-inner">
-    <p class="section-tag r">reserva tu lugar</p>
-    <h2 class="section-title r">¿Lista para reservar<br/><em>y confirmar?</em></h2>
-    <p class="section-body r d1">
-      Elige tu clase, escríbenos y paga al momento. En 3 sencillos pasos
-      tu lugar queda confirmado.
-    </p>
 
-    <div class="reserva-steps">
-      <div class="reserva-step r d1">
-        <div class="step-num">1</div>
-        <div class="step-title">Elige tu clase</div>
-        <p class="step-desc">Selecciona la disciplina, el salón y el horario que más te convenga.</p>
-      </div>
-      <div class="reserva-step r d2">
-        <div class="step-num">2</div>
-        <div class="step-title">Escríbenos</div>
-        <p class="step-desc">Contáctanos por WhatsApp con tu nombre, clase elegida y sesiones.</p>
-      </div>
-      <div class="reserva-step r d3">
-        <div class="step-num">3</div>
-        <div class="step-title">Paga y confirma</div>
-        <p class="step-desc">Realiza tu pago al número de abajo y tu reserva queda confirmada.</p>
-      </div>
+    <div class="reserva-header">
+      <p class="section-tag r">horario & reservas</p>
+      <h2 class="section-title r">Elige tu clase,<br/><em>elige tu momento</em></h2>
+      <p class="section-body r d1">
+        Selecciona el día y la clase que quieras. Los cupos disponibles
+        se muestran en tiempo real.
+      </p>
     </div>
 
-    <div class="pago-box r d2">
-      <div class="pago-info">
-        <h4>Paga por transferencia o en efectivo</h4>
-        <p>Transfiere al número de abajo o páganos en el estudio.<br/>
-        También aceptamos tarjeta en nuestras instalaciones.</p>
-      </div>
-      <div class="pago-num">
-        <small>Número de pago</small>
-        7835 9079
-      </div>
+    <!-- navegador de semana -->
+    <div class="sched-nav r">
+      <div class="sched-nav-btn" onclick="schedWeek(-1)">‹</div>
+      <span id="schedWeekLabel"></span>
+      <div class="sched-nav-btn" onclick="schedWeek(1)">›</div>
     </div>
 
-    <div class="metodos r d3">
-      <div class="metodo-chip">💳 Tarjeta</div>
-      <div class="metodo-chip">📱 Transferencia</div>
-      <div class="metodo-chip">💵 Efectivo</div>
-      <div class="metodo-chip">📲 WhatsApp Pay</div>
+    <!-- tabs de día -->
+    <div class="sched-day-tabs r" id="schedDayTabs"></div>
+
+    <!-- cards de clases -->
+    <div class="sched-classes" id="schedClasses"></div>
+
+    <!-- leyenda -->
+    <div class="sched-legend r d2">
+      <div class="legend-item"><span class="leg-dot barre"></span>Barre Burn</div>
+      <div class="legend-item"><span class="leg-dot pilates"></span>Pilates</div>
+      <div class="legend-item"><span class="leg-dot yoga"></span>Unwind Yoga</div>
     </div>
 
-    <div class="reserva-btns r d3">
-      <a href="https://wa.me/50578359079" class="btn-wa" target="_blank">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-        </svg>
-        WhatsApp · 7835 9079
-      </a>
-      <a href="#" class="btn-ig" target="_blank">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.98-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-        </svg>
-        Instagram
-      </a>
-    </div>
   </div>
 </section>
 
@@ -1508,433 +1527,365 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   });
 });
-/* ── ABRIR MODAL desde cualquier botón "Reservar" ── */
-document.querySelectorAll('[data-open-modal]').forEach(btn => {
-  btn.addEventListener('click', e => { e.preventDefault(); openModal(); });
-});
-
 </script>
 
 <!-- ═══════════════════════════════════════
-     MODAL DE RESERVAS
+     MODAL DE RESERVA (2 pasos)
 ════════════════════════════════════════ -->
-<div class="modal-backdrop" id="modalBackdrop" onclick="handleBackdropClick(event)">
-  <div class="modal" id="modalBox">
+<div class="modal-backdrop" id="modalBackdrop" onclick="bdClick(event)">
+  <div class="modal">
 
-    <!-- Header -->
     <div class="modal-header">
-      <h2>✧ Reservar clase</h2>
+      <div class="mh-title">
+        <p>✧ Presenza Studio</p>
+        <h2>Confirmar reserva</h2>
+      </div>
       <div class="modal-close" onclick="closeModal()">✕</div>
     </div>
 
-    <!-- Steps bar -->
-    <div class="steps-bar">
-      <div class="step-dot active" id="sdot1">1</div>
-      <div class="step-line" id="sline1"></div>
-      <div class="step-dot" id="sdot2">2</div>
-      <div class="step-line" id="sline2"></div>
-      <div class="step-dot" id="sdot3">3</div>
+    <!-- chip de clase seleccionada -->
+    <div class="modal-sel" id="modalSel">
+      <span class="ms-icon" id="mSelEmoji"></span>
+      <div class="ms-info">
+        <strong id="mSelNombre"></strong>
+        <span id="mSelDia"></span>
+      </div>
+      <span class="ms-time" id="mSelHora"></span>
     </div>
-    <div class="steps-labels">
-      <span>Clase</span><span>Horario</span><span>Mis datos</span>
+
+    <!-- steps bar -->
+    <div class="modal-steps">
+      <div class="ms-dot active" id="msd1">1</div>
+      <div class="ms-line" id="msl1"></div>
+      <div class="ms-dot" id="msd2">2</div>
+    </div>
+    <div class="modal-steps-lbl">
+      <span>Mis datos</span><span>Confirmación</span>
     </div>
 
     <div class="modal-body">
 
-      <!-- ── PASO 1: elegir clase ── -->
-      <div class="step-panel active" id="panel1">
-        <div class="clase-opts">
-          <div class="clase-opt" data-clase="barre" onclick="selectClase(this)">
-            <div class="clase-opt-icon ci-barre">🩰</div>
-            <div class="clase-opt-info">
-              <strong>Barre Burn</strong>
-              <span>Fuerza · Resistencia · Cardio</span>
-            </div>
-            <div class="clase-opt-check"></div>
-          </div>
-          <div class="clase-opt" data-clase="pilates" onclick="selectClase(this)">
-            <div class="clase-opt-icon ci-pilates">🌿</div>
-            <div class="clase-opt-info">
-              <strong>Pilates</strong>
-              <span>Core · Postura · Respiración</span>
-            </div>
-            <div class="clase-opt-check"></div>
-          </div>
-          <div class="clase-opt" data-clase="yoga" onclick="selectClase(this)">
-            <div class="clase-opt-icon ci-yoga">🧘</div>
-            <div class="clase-opt-info">
-              <strong>Unwind Yoga</strong>
-              <span>Calma · Flexibilidad · Presencia</span>
-            </div>
-            <div class="clase-opt-check"></div>
-          </div>
-        </div>
-        <br/>
-        <button class="btn-modal-next" id="btn1" onclick="goStep(2)" disabled>
-          Elegir horario →
-        </button>
-      </div>
-
-      <!-- ── PASO 2: horario ── -->
-      <div class="step-panel" id="panel2">
-        <button class="btn-modal-back" onclick="goStep(1)">← Cambiar clase</button>
-
-        <div class="week-nav">
-          <div class="week-btn" onclick="changeWeek(-1)">‹</div>
-          <span id="weekLabel"></span>
-          <div class="week-btn" onclick="changeWeek(1)">›</div>
-        </div>
-
-        <div class="day-pills" id="dayPills"></div>
-
-        <p class="slot-label">Horarios disponibles</p>
-        <div class="slots-grid" id="slotsGrid"></div>
-        <br/>
-        <button class="btn-modal-next" id="btn2" onclick="goStep(3)" disabled>
-          Confirmar horario →
-        </button>
-      </div>
-
-      <!-- ── PASO 3: datos personales ── -->
-      <div class="step-panel" id="panel3">
-        <button class="btn-modal-back" onclick="goStep(2)">← Cambiar horario</button>
-
-        <!-- Resumen de la reserva -->
-        <div class="booking-summary">
-          <h4>Tu reserva</h4>
-          <div class="bs-row">
-            <span>Clase</span><span id="bs-clase">—</span>
-          </div>
-          <div class="bs-row">
-            <span>Día</span><span id="bs-dia">—</span>
-          </div>
-          <div class="bs-row">
-            <span>Hora</span><span id="bs-hora">—</span>
-          </div>
-        </div>
-
-        <div class="form-group">
+      <!-- PASO 1: formulario -->
+      <div class="mpanel active" id="mp1">
+        <div class="mfg">
           <label>Nombre completo</label>
-          <input type="text" id="inp-nombre" placeholder="Tu nombre" oninput="checkForm3()" />
+          <input type="text" id="mNombre" placeholder="Tu nombre" oninput="checkMForm()"/>
         </div>
-        <div class="form-group">
+        <div class="mfg">
           <label>Email</label>
-          <input type="email" id="inp-email" placeholder="tu@email.com" oninput="checkForm3()" />
+          <input type="email" id="mEmail" placeholder="tu@email.com" oninput="checkMForm()"/>
         </div>
-        <div class="form-group">
+        <div class="mfg">
           <label>WhatsApp / Teléfono</label>
-          <input type="tel" id="inp-tel" placeholder="+505 0000 0000" oninput="checkForm3()" />
+          <input type="tel" id="mTel" placeholder="+505 0000 0000" oninput="checkMForm()"/>
         </div>
-
-        <!-- Placeholder de pago -->
-        <div class="pago-placeholder">
+        <div class="pago-note">
           <strong>💳 Pago</strong>
-          <p>El pago se realizará directamente en el estudio.<br/>
+          <p>El pago se realizará en el estudio al llegar.<br/>
           <em>Próximamente: link de pago BAC Nicaragua</em></p>
         </div>
-
-        <button class="btn-modal-next" id="btn3" onclick="submitReserva()" disabled>
-          Confirmar reserva ✓
+        <button class="btn-confirmar" id="btnConfirmar" onclick="submitR()" disabled>
+          Reservar mi cupo ✓
         </button>
       </div>
 
-      <!-- ── PASO 4: confirmación ── -->
-      <div class="step-panel" id="panel4">
-        <div class="confirm-screen">
-          <div class="confirm-icon">🎉</div>
+      <!-- PASO 2: confirmación -->
+      <div class="mpanel" id="mp2">
+        <div class="confirm-scr">
+          <span class="confirm-ani">🎉</span>
           <h3>¡Reserva confirmada!</h3>
-          <p>Tu lugar está asegurado. Te esperamos con energía.<br/>
-          Envíanos un mensaje si necesitas cancelar.</p>
-          <div class="confirm-detail" id="confirmDetail"></div>
-          <a class="btn-wa-confirm" id="waConfirmLink" href="#" target="_blank">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          <p>Tu cupo está asegurado. Te esperamos con energía.<br/>
+          Escríbenos si necesitas cancelar.</p>
+          <div class="confirm-card" id="confirmCard"></div>
+          <a class="btn-wa-big" id="waLink" href="#" target="_blank">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
             Enviar confirmación por WhatsApp
           </a>
-          <span class="btn-cerrar-modal" onclick="closeModal()">Cerrar</span>
+          <span class="btn-close-m" onclick="closeModal()">Cerrar</span>
         </div>
       </div>
 
-    </div><!-- /modal-body -->
-  </div><!-- /modal -->
-</div><!-- /backdrop -->
+    </div>
+  </div>
+</div>
 
 <script>
-/* ══════════════════════════════════════
-   SISTEMA DE RESERVAS — PRESENZA STUDIO
-══════════════════════════════════════ */
+/* ════════════════════════════════════════
+   HORARIO + RESERVAS — PRESENZA STUDIO
+════════════════════════════════════════ */
 
-/* ── Horarios por clase ── */
-const CLASES = {
-  barre: {
-    nombre: 'Barre Burn',
-    emoji:  '🩰',
-    dias:   [1, 3, 5],        /* Lun, Mié, Vie  (0=Dom) */
-    horas:  ['07:00', '09:00', '18:00'],
-    cupos:  15
-  },
-  pilates: {
-    nombre: 'Pilates',
-    emoji:  '🌿',
-    dias:   [2, 4, 6],        /* Mar, Jue, Sáb */
-    horas:  ['08:00', '10:00', '17:30'],
-    cupos:  12
-  },
-  yoga: {
-    nombre: 'Unwind Yoga',
-    emoji:  '🧘',
-    dias:   [1, 2, 3, 4, 5, 6], /* Lun–Sáb */
-    horas:  ['07:30', '19:30'],
-    cupos:  12
-  }
+const WA = '50578359079';
+const DIAS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const MESES_ES  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+/* ── Definición de clases ── */
+const INFO = {
+  barre:   { nombre:'Barre Burn',    emoji:'🩰', tag:'Alta energía',  cupos:15 },
+  pilates: { nombre:'Pilates',       emoji:'🌿', tag:'Core & fuerza', cupos:12 },
+  yoga:    { nombre:'Unwind Yoga',   emoji:'🧘', tag:'Restaurativo',  cupos:12 },
 };
 
-const DIAS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-const MESES_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-const WA_NUM = '50578359079'; /* número del estudio */
+/* ── Horario semanal (jsDay: 1=Lun … 6=Sáb) ── */
+const HORARIO = {
+  1: [
+    { clase:'barre',   hora:'07:00' },
+    { clase:'yoga',    hora:'07:30' },
+    { clase:'barre',   hora:'09:00' },
+    { clase:'barre',   hora:'18:00' },
+    { clase:'yoga',    hora:'19:30' },
+  ],
+  2: [
+    { clase:'pilates', hora:'08:00' },
+    { clase:'pilates', hora:'10:00' },
+    { clase:'pilates', hora:'17:30' },
+    { clase:'yoga',    hora:'19:30' },
+  ],
+  3: [
+    { clase:'barre',   hora:'07:00' },
+    { clase:'yoga',    hora:'07:30' },
+    { clase:'barre',   hora:'09:00' },
+    { clase:'barre',   hora:'18:00' },
+    { clase:'yoga',    hora:'19:30' },
+  ],
+  4: [
+    { clase:'pilates', hora:'08:00' },
+    { clase:'pilates', hora:'10:00' },
+    { clase:'pilates', hora:'17:30' },
+    { clase:'yoga',    hora:'19:30' },
+  ],
+  5: [
+    { clase:'barre',   hora:'07:00' },
+    { clase:'yoga',    hora:'07:30' },
+    { clase:'barre',   hora:'09:00' },
+    { clase:'barre',   hora:'18:00' },
+    { clase:'yoga',    hora:'19:30' },
+  ],
+  6: [
+    { clase:'barre',   hora:'08:00' },
+    { clase:'yoga',    hora:'09:30' },
+    { clase:'pilates', hora:'10:00' },
+    { clase:'yoga',    hora:'19:30' },
+  ],
+};
 
-/* ── Estado de la sesión ── */
-let sel = { clase: null, diaDate: null, hora: null };
-let weekOffset = 0; /* semanas desde hoy */
-
-/* ── Clave única para localStorage ── */
+/* ── localStorage ── */
 function slotKey(clase, dateStr, hora) {
   return `presenza_${clase}_${dateStr}_${hora.replace(':','')}`;
 }
-
-/* ── Leer/guardar reservas en localStorage ── */
-function getReservados(clase, dateStr, hora) {
-  const data = localStorage.getItem(slotKey(clase, dateStr, hora));
-  return data ? JSON.parse(data) : [];
+function getOcupados(clase, dateStr, hora) {
+  const d = localStorage.getItem(slotKey(clase,dateStr,hora));
+  return d ? JSON.parse(d).length : 0;
 }
-function saveReserva(clase, dateStr, hora, nombre, email) {
-  const key = slotKey(clase, dateStr, hora);
-  const lista = getReservados(clase, dateStr, hora);
-  lista.push({ nombre, email, ts: Date.now() });
-  localStorage.setItem(key, JSON.stringify(lista));
-}
-function cuposOcupados(clase, dateStr, hora) {
-  return getReservados(clase, dateStr, hora).length;
+function saveSlot(clase, dateStr, hora, nombre, email) {
+  const key = slotKey(clase,dateStr,hora);
+  const arr = JSON.parse(localStorage.getItem(key)||'[]');
+  arr.push({ nombre, email, ts:Date.now() });
+  localStorage.setItem(key, JSON.stringify(arr));
 }
 
-/* ── Abrir / cerrar modal ── */
-function openModal() {
-  resetModal();
+/* ── Semana ── */
+let schedWeekOff = 0;
+let schedSelDay  = null; /* dateStr YYYY-MM-DD */
+
+function getMonday(off=0) {
+  const d = new Date(); d.setHours(0,0,0,0);
+  const day = d.getDay();
+  d.setDate(d.getDate() + (day===0 ? -6 : 1-day) + off*7);
+  return d;
+}
+
+function schedWeek(dir) {
+  schedWeekOff += dir;
+  if (schedWeekOff < 0) schedWeekOff = 0;
+  schedSelDay = null;
+  renderSched();
+}
+
+/* ── Render completo del horario ── */
+function renderSched() {
+  const mon = getMonday(schedWeekOff);
+  const sun = new Date(mon); sun.setDate(sun.getDate()+6);
+
+  /* label semana */
+  document.getElementById('schedWeekLabel').textContent =
+    `${mon.getDate()} ${MESES_ES[mon.getMonth()]} — ${sun.getDate()} ${MESES_ES[sun.getMonth()]}`;
+
+  /* tabs de día */
+  const tabsEl = document.getElementById('schedDayTabs');
+  tabsEl.innerHTML = '';
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  for (let i=0; i<6; i++) {
+    const d = new Date(mon); d.setDate(d.getDate()+i);
+    const jsDay = d.getDay();
+    const dateStr = d.toISOString().split('T')[0];
+    const isPast  = d < today;
+    const isToday = d.getTime()===today.getTime();
+    const isSel   = schedSelDay===dateStr;
+
+    const tab = document.createElement('div');
+    tab.className = 'sched-day-tab' +
+      (isSel   ? ' active' : '') +
+      (isToday ? ' today'  : '') +
+      (isPast  ? ' past'   : '');
+    tab.innerHTML = `<span class="sdt-name">${DIAS_ES[jsDay]}</span><span class="sdt-num">${d.getDate()}</span>`;
+    if (!isPast) tab.onclick = () => { schedSelDay=dateStr; renderSched(); };
+    tabsEl.appendChild(tab);
+  }
+
+  /* auto-seleccionar hoy si está en semana actual */
+  if (!schedSelDay && schedWeekOff===0) {
+    const todayStr = today.toISOString().split('T')[0];
+    if (today.getDay()!==0 && today.getDay()!==0) schedSelDay = todayStr;
+  }
+
+  renderCards();
+}
+
+/* ── Cards de clases ── */
+function renderCards() {
+  const grid = document.getElementById('schedClasses');
+  grid.innerHTML = '';
+
+  if (!schedSelDay) {
+    grid.innerHTML = '<div class="sched-empty">Selecciona un día para ver las clases disponibles</div>';
+    return;
+  }
+
+  const d = new Date(schedSelDay+'T12:00:00');
+  const jsDay = d.getDay();
+  const sesiones = HORARIO[jsDay];
+
+  if (!sesiones || sesiones.length===0) {
+    grid.innerHTML = '<div class="sched-empty">Sin clases este día · descansa y recarga ✧</div>';
+    return;
+  }
+
+  sesiones.forEach(({ clase, hora }) => {
+    const info   = INFO[clase];
+    const ocup   = getOcupados(clase, schedSelDay, hora);
+    const libres = info.cupos - ocup;
+    const full   = libres <= 0;
+
+    const card = document.createElement('div');
+    card.className = `sched-card c-${clase}` + (full ? ' sc-full' : '');
+
+    /* dots */
+    let dots = '';
+    for (let i=0; i<info.cupos; i++) {
+      dots += `<span class="sc-dot ${i<ocup?'tomado':'libre'}"></span>`;
+    }
+
+    card.innerHTML = `
+      <div class="sc-top">
+        <div class="sc-hora">${hora}<small>hrs</small></div>
+        <span class="sc-chip">${info.tag}</span>
+      </div>
+      <div class="sc-clase">
+        <span class="sc-emoji">${info.emoji}</span>
+        <span class="sc-name">${info.nombre}</span>
+      </div>
+      <div class="sc-cupos">
+        <div class="sc-cupos-row">
+          <span class="sc-cupos-txt">
+            <strong>${libres}</strong> / ${info.cupos} cupos libres
+          </span>
+        </div>
+        <div class="sc-dots">${dots}</div>
+      </div>
+      <button class="sc-btn${full?' sc-lleno':''}"
+        onclick="${full?'':'openBooking(\''+clase+'\',\''+schedSelDay+'\',\''+hora+'\')'}"
+      >${full ? 'Clase completa' : 'Reservar cupo →'}</button>`;
+    grid.appendChild(card);
+  });
+}
+
+/* ── Modal de reserva ── */
+let booking = {};
+
+function openBooking(clase, dateStr, hora) {
+  booking = { clase, dateStr, hora };
+  const info = INFO[clase];
+  const d = new Date(dateStr+'T12:00:00');
+  const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
+
+  /* chip */
+  const ms = document.getElementById('modalSel');
+  ms.className = `modal-sel ms-${clase}`;
+  document.getElementById('mSelEmoji').textContent  = info.emoji;
+  document.getElementById('mSelNombre').textContent = info.nombre;
+  document.getElementById('mSelDia').textContent    = diaStr;
+  document.getElementById('mSelHora').textContent   = hora;
+
+  /* reset form */
+  ['mNombre','mEmail','mTel'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('btnConfirmar').disabled = true;
+  mGoStep(1);
+
   document.getElementById('modalBackdrop').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+
 function closeModal() {
   document.getElementById('modalBackdrop').classList.remove('open');
   document.body.style.overflow = '';
 }
-function handleBackdropClick(e) {
-  if (e.target === document.getElementById('modalBackdrop')) closeModal();
-}
-function resetModal() {
-  sel = { clase: null, diaDate: null, hora: null };
-  weekOffset = 0;
-  goStep(1);
-  document.querySelectorAll('.clase-opt').forEach(o => o.classList.remove('selected'));
-  document.getElementById('btn1').disabled = true;
-  ['inp-nombre','inp-email','inp-tel'].forEach(id => document.getElementById(id).value = '');
+function bdClick(e) { if(e.target===document.getElementById('modalBackdrop')) closeModal(); }
+
+function mGoStep(n) {
+  document.getElementById('mp1').classList.toggle('active', n===1);
+  document.getElementById('mp2').classList.toggle('active', n===2);
+  document.getElementById('msd1').className = 'ms-dot' + (n===1?' active':' done');
+  document.getElementById('msd2').className = 'ms-dot' + (n===2?' active':'');
+  document.getElementById('msl1').className = 'ms-line' + (n===2?' done':'');
 }
 
-/* ── Navegación entre pasos ── */
-function goStep(n) {
-  [1,2,3,4].forEach(i => {
-    document.getElementById('panel' + i).classList.toggle('active', i === n);
-  });
-  /* dots */
-  [1,2,3].forEach(i => {
-    const dot = document.getElementById('sdot' + i);
-    dot.classList.toggle('active', i === n);
-    dot.classList.toggle('done', i < n);
-  });
-  [1,2].forEach(i => {
-    document.getElementById('sline' + i).classList.toggle('done', i < n);
-  });
-  if (n === 2) renderHorario();
-  if (n === 3) renderResumen();
+function checkMForm() {
+  const ok = document.getElementById('mNombre').value.trim() &&
+             document.getElementById('mEmail').value.trim()  &&
+             document.getElementById('mTel').value.trim();
+  document.getElementById('btnConfirmar').disabled = !ok;
 }
 
-/* ── Paso 1: selección de clase ── */
-function selectClase(el) {
-  document.querySelectorAll('.clase-opt').forEach(o => o.classList.remove('selected'));
-  el.classList.add('selected');
-  sel.clase = el.dataset.clase;
-  sel.diaDate = null;
-  sel.hora = null;
-  document.getElementById('btn1').disabled = false;
-}
-
-/* ── Paso 2: horario ── */
-function getWeekStart() {
-  const d = new Date();
-  d.setHours(0,0,0,0);
-  /* empezar en lunes */
-  const day = d.getDay();
-  const diff = (day === 0 ? -6 : 1 - day);
-  d.setDate(d.getDate() + diff + weekOffset * 7);
-  return d;
-}
-
-function changeWeek(dir) {
-  weekOffset += dir;
-  if (weekOffset < 0) weekOffset = 0;
-  sel.diaDate = null;
-  sel.hora = null;
-  document.getElementById('btn2').disabled = true;
-  renderHorario();
-}
-
-function renderHorario() {
-  const c = CLASES[sel.clase];
-  const weekStart = getWeekStart();
-
-  /* label de semana */
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  document.getElementById('weekLabel').textContent =
-    `${weekStart.getDate()} ${MESES_ES[weekStart.getMonth()]} – ${weekEnd.getDate()} ${MESES_ES[weekEnd.getMonth()]}`;
-
-  /* día pills (lun–sáb) */
-  const pillsEl = document.getElementById('dayPills');
-  pillsEl.innerHTML = '';
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(weekStart);
-    d.setDate(d.getDate() + i);
-    const jsDay = d.getDay(); /* 0=Dom */
-    if (jsDay === 0) continue; /* omitir domingo */
-    const available = c.dias.includes(jsDay);
-    const isPast = d < new Date() && d.toDateString() !== new Date().toDateString();
-    const dateStr = d.toISOString().split('T')[0];
-    const isSelected = sel.diaDate === dateStr;
-
-    const pill = document.createElement('div');
-    pill.className = 'day-pill' +
-      (isSelected ? ' selected' : '') +
-      (!available || isPast ? ' disabled' : '');
-    pill.textContent = `${DIAS_ES[jsDay]} ${d.getDate()}`;
-    if (available && !isPast) {
-      pill.onclick = () => selectDia(dateStr);
-    }
-    pillsEl.appendChild(pill);
-  }
-
-  /* slots */
-  renderSlots();
-}
-
-function selectDia(dateStr) {
-  sel.diaDate = dateStr;
-  sel.hora = null;
-  document.getElementById('btn2').disabled = true;
-  renderHorario();
-}
-
-function renderSlots() {
-  const grid = document.getElementById('slotsGrid');
-  grid.innerHTML = '';
-  if (!sel.diaDate) {
-    grid.innerHTML = '<p class="slot-no-day">Selecciona un día para ver los horarios</p>';
-    return;
-  }
-  const c = CLASES[sel.clase];
-  c.horas.forEach(hora => {
-    const ocupados = cuposOcupados(sel.clase, sel.diaDate, hora);
-    const libres = c.cupos - ocupados;
-    const full = libres <= 0;
-    const selected = sel.hora === hora;
-
-    const btn = document.createElement('div');
-    btn.className = 'slot-btn' + (full ? ' full' : '') + (selected ? ' selected' : '');
-    const pct = Math.round((ocupados / c.cupos) * 100);
-    btn.innerHTML = `
-      <span class="slot-time">${hora}</span>
-      <div class="slot-spots">
-        <div class="spot-bar"><div class="spot-fill" style="width:${pct}%"></div></div>
-        <span>${full ? 'Lleno' : libres + ' cupo' + (libres === 1 ? '' : 's')}</span>
-      </div>`;
-    if (!full) {
-      btn.onclick = () => {
-        sel.hora = hora;
-        document.getElementById('btn2').disabled = false;
-        renderSlots();
-      };
-    }
-    grid.appendChild(btn);
-  });
-}
-
-/* ── Paso 3: resumen ── */
-function renderResumen() {
-  const c = CLASES[sel.clase];
-  const d = new Date(sel.diaDate + 'T12:00:00');
-  document.getElementById('bs-clase').textContent = c.emoji + ' ' + c.nombre;
-  document.getElementById('bs-dia').textContent =
-    `${DIAS_ES[d.getDay()]}, ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
-  document.getElementById('bs-hora').textContent = sel.hora + ' hrs';
-  checkForm3();
-}
-
-function checkForm3() {
-  const n = document.getElementById('inp-nombre').value.trim();
-  const e = document.getElementById('inp-email').value.trim();
-  const t = document.getElementById('inp-tel').value.trim();
-  const btn = document.getElementById('btn3');
-  if (btn) btn.disabled = !(n && e && t);
-}
-
-/* ── Enviar reserva ── */
-function submitReserva() {
-  const nombre = document.getElementById('inp-nombre').value.trim();
-  const email  = document.getElementById('inp-email').value.trim();
-  const tel    = document.getElementById('inp-tel').value.trim();
-  const c      = CLASES[sel.clase];
-  const d      = new Date(sel.diaDate + 'T12:00:00');
+function submitR() {
+  const nombre = document.getElementById('mNombre').value.trim();
+  const email  = document.getElementById('mEmail').value.trim();
+  const tel    = document.getElementById('mTel').value.trim();
+  const { clase, dateStr, hora } = booking;
+  const info   = INFO[clase];
+  const d      = new Date(dateStr+'T12:00:00');
   const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
 
-  /* Guardar en localStorage (bloquea el cupo en este navegador) */
-  saveReserva(sel.clase, sel.diaDate, sel.hora, nombre, email);
+  saveSlot(clase, dateStr, hora, nombre, email);
 
-  /* Detalle de confirmación */
-  document.getElementById('confirmDetail').innerHTML = `
-    <div class="cd-row"><span class="cd-icon">${c.emoji}</span>
-      <span class="cd-text"><strong>${c.nombre}</strong></span></div>
-    <div class="cd-row"><span class="cd-icon">📅</span>
-      <span class="cd-text">${diaStr}</span></div>
-    <div class="cd-row"><span class="cd-icon">⏰</span>
-      <span class="cd-text">${sel.hora} hrs</span></div>
-    <div class="cd-row"><span class="cd-icon">👤</span>
-      <span class="cd-text">${nombre}</span></div>
-    <div class="cd-row"><span class="cd-icon">📱</span>
-      <span class="cd-text">${tel}</span></div>`;
+  document.getElementById('confirmCard').innerHTML = `
+    <div class="cr-row"><span class="cr-icon">${info.emoji}</span><span class="cr-text"><strong>${info.nombre}</strong></span></div>
+    <div class="cr-row"><span class="cr-icon">📅</span><span class="cr-text">${diaStr}</span></div>
+    <div class="cr-row"><span class="cr-icon">⏰</span><span class="cr-text">${hora} hrs</span></div>
+    <div class="cr-row"><span class="cr-icon">👤</span><span class="cr-text">${nombre}</span></div>
+    <div class="cr-row"><span class="cr-icon">📱</span><span class="cr-text">${tel}</span></div>`;
 
-  /* Link de WhatsApp con todos los detalles */
   const msg = encodeURIComponent(
-    `Hola Presenza Studio! 🌸\n\nQuiero confirmar mi reserva:\n` +
-    `📚 Clase: ${c.nombre}\n` +
-    `📅 Día: ${diaStr}\n` +
-    `⏰ Hora: ${sel.hora} hrs\n` +
-    `👤 Nombre: ${nombre}\n` +
-    `📧 Email: ${email}\n` +
-    `📱 Teléfono: ${tel}\n\n` +
-    `¡Gracias! ✧`
+    `Hola Presenza Studio! 🌸\n\nReserva confirmada:\n` +
+    `${info.emoji} ${info.nombre} · ${diaStr} · ${hora} hrs\n` +
+    `👤 ${nombre} | 📱 ${tel} | 📧 ${email}\n\n¡Gracias! ✧`
   );
-  document.getElementById('waConfirmLink').href =
-    `https://wa.me/${WA_NUM}?text=${msg}`;
+  document.getElementById('waLink').href = `https://wa.me/${WA}?text=${msg}`;
 
-  goStep(4);
+  mGoStep(2);
+  renderCards(); /* actualiza los dots en la página */
 }
 
-/* ── Exponer openModal globalmente ── */
-window.openModal = openModal;
-
-/* ── Conectar todos los botones "Reservar" al modal ── */
+/* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('a[href="#reserva"], .nav-cta').forEach(btn => {
-    btn.addEventListener('click', e => {
+  renderSched();
+  /* "Reservar" del nav → scroll a sección */
+  document.querySelectorAll('.nav-cta, a[href="#reserva"]').forEach(a => {
+    a.addEventListener('click', e => {
       e.preventDefault();
-      openModal();
+      document.getElementById('reserva').scrollIntoView({ behavior:'smooth', block:'start' });
     });
   });
 });
