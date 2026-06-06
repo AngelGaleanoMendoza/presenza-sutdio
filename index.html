@@ -815,6 +815,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 /* banda de color superior */
 .sc-band { height:6px; flex-shrink:0; }
 .c-barre   .sc-band { background:linear-gradient(90deg,var(--wine),var(--wine-l)); }
+.c-burn    .sc-band { background:linear-gradient(90deg,var(--wine),var(--wine-l)); }
+.c-essenza .sc-band { background:linear-gradient(90deg,#9B2C45,#C4587A); }
 .c-pilates .sc-band { background:linear-gradient(90deg,var(--blush),#D4A891); }
 .c-yoga    .sc-band { background:linear-gradient(90deg,#8B9E7A,#A8C49A); }
 
@@ -828,12 +830,15 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   border-radius:50px; letter-spacing:.5px; flex-shrink:0; text-transform:uppercase;
 }
 .c-barre   .sc-chip { background:rgba(107,23,40,.08);   color:var(--wine); }
+.c-burn    .sc-chip { background:rgba(107,23,40,.08);   color:var(--wine); }
+.c-essenza .sc-chip { background:rgba(155,44,69,.08);   color:#9B2C45; }
 .c-pilates .sc-chip { background:rgba(201,149,106,.12); color:#8B5A30; }
 .c-yoga    .sc-chip { background:rgba(139,158,122,.12); color:#3D5C2E; }
 
-.sc-clase { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.sc-clase { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
 .sc-emoji { font-size:1.2rem; }
 .sc-name  { font-size:.9rem; font-weight:700; color:var(--text); }
+.sc-instructor { font-size:.72rem; color:var(--gray); margin-bottom:10px; padding-left:2px; }
 
 /* barra de cupos */
 .sc-cupos-row { margin-bottom:12px; }
@@ -845,6 +850,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 }
 .sc-progress-fill { height:100%; border-radius:5px; transition:width .6s ease; }
 .c-barre   .sc-progress-fill { background:var(--wine); }
+.c-burn    .sc-progress-fill { background:var(--wine); }
+.c-essenza .sc-progress-fill { background:#9B2C45; }
 .c-pilates .sc-progress-fill { background:var(--blush); }
 .c-yoga    .sc-progress-fill { background:#8B9E7A; }
 
@@ -857,6 +864,10 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 }
 .c-barre   .sc-btn { background:var(--wine); }
 .c-barre   .sc-btn:hover { background:var(--wine-l); }
+.c-burn    .sc-btn { background:var(--wine); }
+.c-burn    .sc-btn:hover { background:var(--wine-l); }
+.c-essenza .sc-btn { background:#9B2C45; }
+.c-essenza .sc-btn:hover { background:#C4587A; }
 .c-pilates .sc-btn { background:var(--blush); }
 .c-pilates .sc-btn:hover { background:#B8785A; }
 .c-yoga    .sc-btn { background:#8B9E7A; }
@@ -873,8 +884,22 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .legend-item { display:flex; align-items:center; gap:7px; font-size:.78rem; color:var(--gray); }
 .leg-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
 .leg-dot.barre   { background:var(--wine); }
+.leg-dot.burn    { background:var(--wine); }
+.leg-dot.essenza { background:#9B2C45; }
 .leg-dot.pilates { background:var(--blush); }
 .leg-dot.yoga    { background:#8B9E7A; }
+
+/* separador de descanso */
+.sched-descanso {
+  grid-column:1/-1; display:flex; align-items:center; gap:16px;
+  padding:12px 0; color:var(--gray);
+}
+.sched-descanso::before, .sched-descanso::after {
+  content:''; flex:1; height:1px; background:rgba(107,23,40,.1);
+}
+.sched-descanso span {
+  font-size:.7rem; font-weight:700; letter-spacing:3px; text-transform:uppercase;
+}
 
 /* ═══════════════════════════════════════════
    MODAL DE RESERVA (2 pasos)
@@ -925,6 +950,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   border:1.5px solid rgba(107,23,40,0.12);
 }
 .modal-sel.ms-barre   { background:rgba(107,23,40,0.04);  border-color:rgba(107,23,40,0.2); }
+.modal-sel.ms-burn    { background:rgba(107,23,40,0.04);  border-color:rgba(107,23,40,0.2); }
+.modal-sel.ms-essenza { background:rgba(155,44,69,0.04);  border-color:rgba(155,44,69,0.2); }
 .modal-sel.ms-pilates { background:rgba(201,149,106,0.07); border-color:rgba(201,149,106,0.3); }
 .modal-sel.ms-yoga    { background:rgba(139,158,122,0.07); border-color:rgba(139,158,122,0.3); }
 .ms-icon { font-size:1.7rem; }
@@ -1688,8 +1715,9 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 
     <!-- leyenda -->
     <div class="sched-legend r d2">
-      <div class="legend-item"><span class="leg-dot barre"></span>Barre Burn</div>
-      <div class="legend-item"><span class="leg-dot pilates"></span>Pilates</div>
+      <div class="legend-item"><span class="leg-dot burn"></span>Barre Burn</div>
+      <div class="legend-item"><span class="leg-dot essenza"></span>Barre Essenza</div>
+      <div class="legend-item"><span class="leg-dot pilates"></span>Presence Pilates</div>
       <div class="legend-item"><span class="leg-dot yoga"></span>Unwind Yoga</div>
     </div>
 
@@ -2071,51 +2099,52 @@ const MESES_ES  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','
 
 /* ── Definición de clases ── */
 const INFO = {
-  barre:   { nombre:'Barre Burn',  emoji:'🩰', tag:'Alta energía',  cupos:15, precio:15 },
-  pilates: { nombre:'Pilates',     emoji:'🌿', tag:'Core & fuerza', cupos:12, precio:15 },
-  yoga:    { nombre:'Unwind Yoga', emoji:'🧘', tag:'Restaurativo',  cupos:12, precio:12 },
+  burn:    { nombre:'Barre Burn',       emoji:'🔥', tag:'Alta energía',  cupos:15, precio:15 },
+  essenza: { nombre:'Barre Essenza',    emoji:'🩰', tag:'Barre clásico', cupos:15, precio:15 },
+  pilates: { nombre:'Presence Pilates', emoji:'🌿', tag:'Core & fuerza', cupos:12, precio:15 },
+  yoga:    { nombre:'Unwind Yoga',      emoji:'🧘', tag:'Restaurativo',  cupos:12, precio:12 },
 };
 
-/* ── Horario semanal (jsDay: 1=Lun … 6=Sáb) ── */
+/* ── Horario semanal (jsDay: 1=Lun … 5=Vie) ── */
 const HORARIO = {
-  1: [
-    { clase:'barre',   hora:'07:00' },
-    { clase:'yoga',    hora:'07:30' },
-    { clase:'barre',   hora:'09:00' },
-    { clase:'barre',   hora:'18:00' },
-    { clase:'yoga',    hora:'19:30' },
+  1: [ // Lunes
+    { clase:'burn',    hora:'06:30', instructor:'Alejandra' },
+    { clase:'burn',    hora:'07:30', instructor:'Alejandra' },
+    { clase:'essenza', hora:'08:30', instructor:'M. Carmen' },
+    { clase:'essenza', hora:'17:30', instructor:'Milena'    },
+    { clase:'burn',    hora:'18:30', instructor:'Jimena'    },
+    { clase:'burn',    hora:'19:30', instructor:'Jimena'    },
   ],
-  2: [
-    { clase:'pilates', hora:'08:00' },
-    { clase:'pilates', hora:'10:00' },
-    { clase:'pilates', hora:'17:30' },
-    { clase:'yoga',    hora:'19:30' },
+  2: [ // Martes
+    { clase:'essenza', hora:'06:30', instructor:'Jimena'    },
+    { clase:'burn',    hora:'07:30', instructor:'Milena'    },
+    { clase:'essenza', hora:'08:30', instructor:'M. Carmen' },
+    { clase:'essenza', hora:'17:30', instructor:'M. Carmen' },
+    { clase:'pilates', hora:'18:30', instructor:'Jimena'    },
+    { clase:'burn',    hora:'19:30', instructor:'Alejandra' },
   ],
-  3: [
-    { clase:'barre',   hora:'07:00' },
-    { clase:'yoga',    hora:'07:30' },
-    { clase:'barre',   hora:'09:00' },
-    { clase:'barre',   hora:'18:00' },
-    { clase:'yoga',    hora:'19:30' },
+  3: [ // Miércoles
+    { clase:'burn',    hora:'06:30', instructor:'Jimena'    },
+    { clase:'essenza', hora:'07:30', instructor:'M. Carmen' },
+    { clase:'essenza', hora:'08:30', instructor:'M. Carmen' },
+    { clase:'burn',    hora:'09:30', instructor:'Milena'    },
+    { clase:'burn',    hora:'17:30', instructor:'Milena'    },
+    { clase:'yoga',    hora:'18:30', instructor:'Yeni'      },
+    { clase:'burn',    hora:'19:30', instructor:'Alejandra' },
   ],
-  4: [
-    { clase:'pilates', hora:'08:00' },
-    { clase:'pilates', hora:'10:00' },
-    { clase:'pilates', hora:'17:30' },
-    { clase:'yoga',    hora:'19:30' },
+  4: [ // Jueves
+    { clase:'burn',    hora:'06:30', instructor:'Jimena'    },
+    { clase:'essenza', hora:'07:30', instructor:'M. Carmen' },
+    { clase:'essenza', hora:'08:30', instructor:'M. Carmen' },
+    { clase:'yoga',    hora:'17:00', instructor:'Yeni'      },
+    { clase:'pilates', hora:'18:30', instructor:'Jimena'    },
+    { clase:'burn',    hora:'19:30', instructor:'Jimena'    },
   ],
-  5: [
-    { clase:'barre',   hora:'07:00' },
-    { clase:'yoga',    hora:'07:30' },
-    { clase:'barre',   hora:'09:00' },
-    { clase:'barre',   hora:'18:00' },
-    { clase:'yoga',    hora:'19:30' },
-  ],
-  6: [
-    { clase:'barre',   hora:'08:00' },
-    { clase:'yoga',    hora:'09:30' },
-    { clase:'pilates', hora:'10:00' },
-    { clase:'yoga',    hora:'19:30' },
+  5: [ // Viernes
+    { clase:'burn',    hora:'06:30', instructor:'Alejandra' },
+    { clase:'burn',    hora:'07:30', instructor:'Alejandra' },
+    { clase:'essenza', hora:'08:30', instructor:'M. Carmen' },
+    { clase:'burn',    hora:'09:30', instructor:'Milena'    },
   ],
 };
 
@@ -2212,12 +2241,23 @@ function renderCards() {
     return;
   }
 
-  sesiones.forEach(({ clase, hora }) => {
+  let descansoInserted = false;
+
+  sesiones.forEach(({ clase, hora, instructor }) => {
     const info    = INFO[clase];
     const ocup    = getOcupados(clase, schedSelDay, hora);
     const libres  = info.cupos - ocup;
     const full    = libres <= 0;
     const fillPct = Math.round((ocup / info.cupos) * 100);
+    const horaNum = parseInt(hora.replace(':',''), 10);
+
+    if (!descansoInserted && horaNum >= 1200) {
+      descansoInserted = true;
+      const des = document.createElement('div');
+      des.className = 'sched-descanso';
+      des.innerHTML = '<span>Descanso</span>';
+      grid.appendChild(des);
+    }
 
     const card = document.createElement('div');
     card.className = `sched-card c-${clase}` + (full ? ' sc-full' : '');
@@ -2233,6 +2273,7 @@ function renderCards() {
           <span class="sc-emoji">${info.emoji}</span>
           <span class="sc-name">${info.nombre}</span>
         </div>
+        <div class="sc-instructor">👤 ${instructor}</div>
         <div class="sc-cupos-row">
           <span class="sc-cupos-txt"><strong>${libres}</strong> / ${info.cupos} cupos libres · $${info.precio}</span>
           <div class="sc-progress">
@@ -2240,8 +2281,8 @@ function renderCards() {
           </div>
         </div>
         <button class="sc-btn${full?' sc-lleno':''}"
-          onclick="${full?'':'openBooking(\''+clase+'\',\''+schedSelDay+'\',\''+hora+'\')'}"
-        >${full ? 'Cupos por horario completos' : 'Reservar cupo →'}</button>
+          onclick="${full?'':'openBooking(\''+clase+'\',\''+schedSelDay+'\',\''+hora+'\',\''+instructor+'\')'}"
+        >${full ? 'Cupos llenos' : 'Reservar cupo →'}</button>
       </div>`;
     grid.appendChild(card);
   });
@@ -2251,8 +2292,8 @@ function renderCards() {
 let booking = {};
 let pagoMetodo = null;
 
-function openBooking(clase, dateStr, hora) {
-  booking = { clase, dateStr, hora };
+function openBooking(clase, dateStr, hora, instructor) {
+  booking = { clase, dateStr, hora, instructor };
   const info = INFO[clase];
   const d = new Date(dateStr+'T12:00:00');
   const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
@@ -2261,7 +2302,7 @@ function openBooking(clase, dateStr, hora) {
   ms.className = `modal-sel ms-${clase}`;
   document.getElementById('mSelEmoji').textContent  = info.emoji;
   document.getElementById('mSelNombre').textContent = info.nombre;
-  document.getElementById('mSelDia').textContent    = diaStr;
+  document.getElementById('mSelDia').textContent    = `${diaStr} · ${instructor}`;
   document.getElementById('mSelHora').textContent   = hora;
 
   ['mNombre','mEmail','mTel'].forEach(id => document.getElementById(id).value='');
@@ -2301,14 +2342,14 @@ function checkMForm() {
 }
 
 function submitR() {
-  const { clase, dateStr, hora } = booking;
+  const { clase, dateStr, hora, instructor } = booking;
   const info   = INFO[clase];
   const d      = new Date(dateStr+'T12:00:00');
   const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
 
   document.getElementById('psIcon').textContent   = info.emoji;
   document.getElementById('psNombre').textContent = info.nombre;
-  document.getElementById('psDia').textContent    = `${diaStr} · ${hora} hrs`;
+  document.getElementById('psDia').textContent    = `${diaStr} · ${hora} hrs · ${instructor}`;
   document.getElementById('psPrice').textContent  = `$${info.precio}`;
 
   pagoMetodo = null;
@@ -2336,7 +2377,7 @@ function proceedToConfirm() {
   const tel    = document.getElementById('mTel').value.trim();
   const nivel  = document.getElementById('mNivel').value;
   const notas  = document.getElementById('mNotas').value.trim();
-  const { clase, dateStr, hora } = booking;
+  const { clase, dateStr, hora, instructor } = booking;
   const info   = INFO[clase];
   const d      = new Date(dateStr+'T12:00:00');
   const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
@@ -2350,6 +2391,7 @@ function proceedToConfirm() {
     <div class="cr-row"><span class="cr-icon">${info.emoji}</span><span class="cr-text"><strong>${info.nombre}</strong></span></div>
     <div class="cr-row"><span class="cr-icon">📅</span><span class="cr-text">${diaStr}</span></div>
     <div class="cr-row"><span class="cr-icon">⏰</span><span class="cr-text">${hora} hrs · $${info.precio}</span></div>
+    <div class="cr-row"><span class="cr-icon">🎽</span><span class="cr-text">Instructora: ${instructor}</span></div>
     <div class="cr-row"><span class="cr-icon">👤</span><span class="cr-text">${nombre} · ${nivel}</span></div>
     <div class="cr-row"><span class="cr-icon">📱</span><span class="cr-text">${tel}</span></div>
     <div class="cr-row"><span class="cr-icon">💳</span><span class="cr-text">${metodoDtxt}</span></div>
@@ -2364,6 +2406,7 @@ function proceedToConfirm() {
     `${info.emoji} Clase: ${info.nombre}\n` +
     `📅 Fecha: ${diaStr}\n` +
     `⏰ Hora: ${hora} hrs\n` +
+    `🎽 Instructora: ${instructor}\n` +
     `💰 Monto: $${info.precio}\n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
     `👤 Cliente: ${nombre}\n` +
