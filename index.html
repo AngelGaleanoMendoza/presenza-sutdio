@@ -815,6 +815,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 /* banda de color superior */
 .sc-band { height:6px; flex-shrink:0; }
 .c-barre   .sc-band { background:linear-gradient(90deg,var(--wine),var(--wine-l)); }
+.c-burn    .sc-band { background:linear-gradient(90deg,var(--wine),var(--wine-l)); }
+.c-essenza .sc-band { background:linear-gradient(90deg,#9B2C45,#C4587A); }
 .c-pilates .sc-band { background:linear-gradient(90deg,var(--blush),#D4A891); }
 .c-yoga    .sc-band { background:linear-gradient(90deg,#8B9E7A,#A8C49A); }
 
@@ -828,12 +830,15 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   border-radius:50px; letter-spacing:.5px; flex-shrink:0; text-transform:uppercase;
 }
 .c-barre   .sc-chip { background:rgba(107,23,40,.08);   color:var(--wine); }
+.c-burn    .sc-chip { background:rgba(107,23,40,.08);   color:var(--wine); }
+.c-essenza .sc-chip { background:rgba(155,44,69,.08);   color:#9B2C45; }
 .c-pilates .sc-chip { background:rgba(201,149,106,.12); color:#8B5A30; }
 .c-yoga    .sc-chip { background:rgba(139,158,122,.12); color:#3D5C2E; }
 
-.sc-clase { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.sc-clase { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
 .sc-emoji { font-size:1.2rem; }
 .sc-name  { font-size:.9rem; font-weight:700; color:var(--text); }
+.sc-instructor { font-size:.72rem; color:var(--gray); margin-bottom:10px; padding-left:2px; }
 
 /* barra de cupos */
 .sc-cupos-row { margin-bottom:12px; }
@@ -845,6 +850,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 }
 .sc-progress-fill { height:100%; border-radius:5px; transition:width .6s ease; }
 .c-barre   .sc-progress-fill { background:var(--wine); }
+.c-burn    .sc-progress-fill { background:var(--wine); }
+.c-essenza .sc-progress-fill { background:#9B2C45; }
 .c-pilates .sc-progress-fill { background:var(--blush); }
 .c-yoga    .sc-progress-fill { background:#8B9E7A; }
 
@@ -857,6 +864,10 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 }
 .c-barre   .sc-btn { background:var(--wine); }
 .c-barre   .sc-btn:hover { background:var(--wine-l); }
+.c-burn    .sc-btn { background:var(--wine); }
+.c-burn    .sc-btn:hover { background:var(--wine-l); }
+.c-essenza .sc-btn { background:#9B2C45; }
+.c-essenza .sc-btn:hover { background:#C4587A; }
 .c-pilates .sc-btn { background:var(--blush); }
 .c-pilates .sc-btn:hover { background:#B8785A; }
 .c-yoga    .sc-btn { background:#8B9E7A; }
@@ -873,8 +884,22 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .legend-item { display:flex; align-items:center; gap:7px; font-size:.78rem; color:var(--gray); }
 .leg-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
 .leg-dot.barre   { background:var(--wine); }
+.leg-dot.burn    { background:var(--wine); }
+.leg-dot.essenza { background:#9B2C45; }
 .leg-dot.pilates { background:var(--blush); }
 .leg-dot.yoga    { background:#8B9E7A; }
+
+/* separador de descanso */
+.sched-descanso {
+  grid-column:1/-1; display:flex; align-items:center; gap:16px;
+  padding:12px 0; color:var(--gray);
+}
+.sched-descanso::before, .sched-descanso::after {
+  content:''; flex:1; height:1px; background:rgba(107,23,40,.1);
+}
+.sched-descanso span {
+  font-size:.7rem; font-weight:700; letter-spacing:3px; text-transform:uppercase;
+}
 
 /* ═══════════════════════════════════════════
    MODAL DE RESERVA (2 pasos)
@@ -925,6 +950,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   border:1.5px solid rgba(107,23,40,0.12);
 }
 .modal-sel.ms-barre   { background:rgba(107,23,40,0.04);  border-color:rgba(107,23,40,0.2); }
+.modal-sel.ms-burn    { background:rgba(107,23,40,0.04);  border-color:rgba(107,23,40,0.2); }
+.modal-sel.ms-essenza { background:rgba(155,44,69,0.04);  border-color:rgba(155,44,69,0.2); }
 .modal-sel.ms-pilates { background:rgba(201,149,106,0.07); border-color:rgba(201,149,106,0.3); }
 .modal-sel.ms-yoga    { background:rgba(139,158,122,0.07); border-color:rgba(139,158,122,0.3); }
 .ms-icon { font-size:1.7rem; }
@@ -1092,6 +1119,78 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   .modal-header,.modal-body,.modal-steps,.modal-steps-lbl { padding-left:18px; padding-right:18px; }
   .modal-sel { margin-left:18px; margin-right:18px; }
 }
+
+/* ════ VOUCHER DE DESCARGA ════ */
+#voucher {
+  position:fixed; left:-9999px; top:0; z-index:-1;
+  width:480px; font-family:'Poppins',sans-serif;
+}
+.vou-header {
+  background:#4A0F1A; padding:28px 32px 20px; text-align:center;
+}
+.vou-logo { height:52px; margin:0 auto 14px; display:block; border-radius:6px; }
+.vou-header-title {
+  font-family:'Playfair Display',serif; color:#F5EDE3;
+  font-size:1rem; font-weight:900; letter-spacing:3px; text-transform:uppercase;
+}
+.vou-header-sub { color:rgba(245,237,227,.5); font-size:.63rem; letter-spacing:2px; margin-top:4px; }
+.vou-gold-line { height:3px; background:linear-gradient(90deg,transparent,#C9956A,transparent); }
+.vou-body { background:#F5EDE3; padding:24px 32px; }
+.vou-class-block {
+  background:#4A0F1A; border-radius:14px;
+  padding:16px 20px; margin-bottom:20px;
+  display:flex; align-items:center; gap:14px;
+}
+.vou-cls-emoji { font-size:2rem; flex-shrink:0; }
+.vou-cls-info { flex:1; }
+.vou-cls-name {
+  font-family:'Playfair Display',serif; font-size:1.1rem;
+  font-weight:900; color:#F5EDE3; line-height:1.2;
+}
+.vou-cls-inst { font-size:.7rem; color:#C9956A; margin-top:3px; letter-spacing:.5px; }
+.vou-cls-price {
+  font-family:'Playfair Display',serif; font-size:1.6rem;
+  font-weight:900; color:#F5EDE3; flex-shrink:0;
+}
+.vou-rows { margin-bottom:18px; }
+.vou-row {
+  display:flex; align-items:center; gap:12px;
+  padding:9px 0; border-bottom:1px solid rgba(107,23,40,.1);
+}
+.vou-row:last-child { border-bottom:none; }
+.vou-row-icon { font-size:.85rem; width:20px; text-align:center; flex-shrink:0; }
+.vou-row-lbl {
+  font-size:.62rem; font-weight:700; color:#9A8880;
+  text-transform:uppercase; letter-spacing:1px; min-width:76px; flex-shrink:0;
+}
+.vou-row-val { font-size:.82rem; font-weight:600; color:#2C1810; }
+.vou-num-box {
+  background:#fff; border-radius:10px;
+  border:1.5px dashed rgba(107,23,40,.2); padding:14px 18px; text-align:center;
+}
+.vou-num-lbl { font-size:.6rem; color:#9A8880; letter-spacing:2px; text-transform:uppercase; margin-bottom:4px; }
+.vou-num-val {
+  font-family:'Playfair Display',serif; font-size:1.2rem;
+  font-weight:900; color:#6B1728; letter-spacing:4px;
+}
+.vou-footer { background:#4A0F1A; padding:16px 32px; text-align:center; }
+.vou-foot-brand {
+  font-family:'Playfair Display',serif; font-size:.9rem;
+  font-weight:900; color:#F5EDE3; letter-spacing:2px;
+}
+.vou-foot-sub { font-size:.63rem; color:rgba(245,237,227,.45); letter-spacing:1px; margin-top:3px; }
+
+/* botón de descarga */
+.btn-download {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  background:var(--cream); color:var(--wine);
+  border:2px solid var(--wine);
+  font-family:'Poppins',sans-serif; font-weight:700; font-size:.88rem;
+  padding:11px; border-radius:12px; width:100%;
+  cursor:pointer; transition:all .25s; margin-bottom:10px;
+}
+.btn-download:hover { background:var(--wine); color:#fff; }
+.btn-download:disabled { opacity:.5; cursor:not-allowed; }
 </style>
 </head>
 <body>
@@ -1650,7 +1749,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
     <div class="pagos-metodos r d1">
       <h4>Métodos de pago aceptados</h4>
       <div class="metodos-chips">
-        <div class="mc-chip"><span class="mci">🏦</span> Transferencia BAC · 7835-9079</div>
+        <div class="mc-chip"><span class="mci">🏦</span> Transferencia BAC · 373845890</div>
         <div class="mc-chip"><span class="mci">💵</span> Efectivo en el estudio</div>
         <div class="mc-chip"><span class="mci">💬</span> Coordinar por WhatsApp</div>
       </div>
@@ -1688,8 +1787,9 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 
     <!-- leyenda -->
     <div class="sched-legend r d2">
-      <div class="legend-item"><span class="leg-dot barre"></span>Barre Burn</div>
-      <div class="legend-item"><span class="leg-dot pilates"></span>Pilates</div>
+      <div class="legend-item"><span class="leg-dot burn"></span>Barre Burn</div>
+      <div class="legend-item"><span class="leg-dot essenza"></span>Barre Essenza</div>
+      <div class="legend-item"><span class="leg-dot pilates"></span>Presence Pilates</div>
       <div class="legend-item"><span class="leg-dot yoga"></span>Unwind Yoga</div>
     </div>
 
@@ -1929,6 +2029,44 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 });
 </script>
 
+<!-- VOUCHER DESCARGABLE (off-screen) -->
+<div id="voucher">
+  <div class="vou-header">
+    <img src="assets/logo.jpg" class="vou-logo" alt="Presenza Studio">
+    <div class="vou-header-title">Comprobante de Reserva</div>
+    <div class="vou-header-sub">PRESENZA STUDIO · MANAGUA</div>
+  </div>
+  <div class="vou-gold-line"></div>
+  <div class="vou-body">
+    <div class="vou-class-block">
+      <span class="vou-cls-emoji" id="vouEmoji"></span>
+      <div class="vou-cls-info">
+        <div class="vou-cls-name" id="vouClase"></div>
+        <div class="vou-cls-inst" id="vouInstructor"></div>
+      </div>
+      <span class="vou-cls-price" id="vouPrice"></span>
+    </div>
+    <div class="vou-rows">
+      <div class="vou-row"><span class="vou-row-icon">📅</span><span class="vou-row-lbl">Fecha</span><span class="vou-row-val" id="vouFecha"></span></div>
+      <div class="vou-row"><span class="vou-row-icon">⏰</span><span class="vou-row-lbl">Hora</span><span class="vou-row-val" id="vouHora"></span></div>
+      <div class="vou-row"><span class="vou-row-icon">👤</span><span class="vou-row-lbl">Cliente</span><span class="vou-row-val" id="vouNombre"></span></div>
+      <div class="vou-row"><span class="vou-row-icon">📧</span><span class="vou-row-lbl">Email</span><span class="vou-row-val" id="vouEmail"></span></div>
+      <div class="vou-row"><span class="vou-row-icon">📱</span><span class="vou-row-lbl">Teléfono</span><span class="vou-row-val" id="vouTel"></span></div>
+      <div class="vou-row"><span class="vou-row-icon">🏋</span><span class="vou-row-lbl">Nivel</span><span class="vou-row-val" id="vouNivel"></span></div>
+      <div class="vou-row"><span class="vou-row-icon">💳</span><span class="vou-row-lbl">Pago</span><span class="vou-row-val" id="vouPago"></span></div>
+      <div class="vou-row" id="vouNotasRow"><span class="vou-row-icon">📝</span><span class="vou-row-lbl">Notas</span><span class="vou-row-val" id="vouNotas"></span></div>
+    </div>
+    <div class="vou-num-box">
+      <div class="vou-num-lbl">N° de Confirmación</div>
+      <div class="vou-num-val" id="vouNum"></div>
+    </div>
+  </div>
+  <div class="vou-footer">
+    <div class="vou-foot-brand">Presenza Studio</div>
+    <div class="vou-foot-sub">Barre · Pilates · Yoga · Managua</div>
+  </div>
+</div>
+
 <!-- ═══════════════════════════════════════
      MODAL DE RESERVA (2 pasos)
 ════════════════════════════════════════ -->
@@ -2026,7 +2164,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
         </div>
         <div class="transfer-box" id="transferBox">
           <p class="tb-label">Número de cuenta · Ahorro a la Mano BAC</p>
-          <p class="tb-num">7835 9079</p>
+          <p class="tb-num">373845890</p>
           <p class="tb-bank">BAC Nicaragua · Presenza Studio</p>
         </div>
         <div class="pago-note" id="cashNote" style="display:none">
@@ -2046,6 +2184,9 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
           <p>Tu cupo está asegurado. Te esperamos con energía.<br/>
           Escríbenos si necesitas cancelar.</p>
           <div class="confirm-card" id="confirmCard"></div>
+          <button class="btn-download" id="btnDownload" onclick="downloadVoucher()">
+            ↓ Descargar comprobante
+          </button>
           <a class="btn-wa-big" id="waLink" href="#" target="_blank">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
@@ -2071,51 +2212,52 @@ const MESES_ES  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','
 
 /* ── Definición de clases ── */
 const INFO = {
-  barre:   { nombre:'Barre Burn',  emoji:'🩰', tag:'Alta energía',  cupos:15, precio:15 },
-  pilates: { nombre:'Pilates',     emoji:'🌿', tag:'Core & fuerza', cupos:12, precio:15 },
-  yoga:    { nombre:'Unwind Yoga', emoji:'🧘', tag:'Restaurativo',  cupos:12, precio:12 },
+  burn:    { nombre:'Barre Burn',       emoji:'🔥', tag:'Alta energía',  cupos:15, precio:15 },
+  essenza: { nombre:'Barre Essenza',    emoji:'🩰', tag:'Barre clásico', cupos:15, precio:15 },
+  pilates: { nombre:'Presence Pilates', emoji:'🌿', tag:'Core & fuerza', cupos:12, precio:15 },
+  yoga:    { nombre:'Unwind Yoga',      emoji:'🧘', tag:'Restaurativo',  cupos:12, precio:12 },
 };
 
-/* ── Horario semanal (jsDay: 1=Lun … 6=Sáb) ── */
+/* ── Horario semanal (jsDay: 1=Lun … 5=Vie) ── */
 const HORARIO = {
-  1: [
-    { clase:'barre',   hora:'07:00' },
-    { clase:'yoga',    hora:'07:30' },
-    { clase:'barre',   hora:'09:00' },
-    { clase:'barre',   hora:'18:00' },
-    { clase:'yoga',    hora:'19:30' },
+  1: [ // Lunes
+    { clase:'burn',    hora:'06:30', instructor:'Alejandra' },
+    { clase:'burn',    hora:'07:30', instructor:'Alejandra' },
+    { clase:'essenza', hora:'08:30', instructor:'M. Carmen' },
+    { clase:'essenza', hora:'17:30', instructor:'Milena'    },
+    { clase:'burn',    hora:'18:30', instructor:'Jimena'    },
+    { clase:'burn',    hora:'19:30', instructor:'Jimena'    },
   ],
-  2: [
-    { clase:'pilates', hora:'08:00' },
-    { clase:'pilates', hora:'10:00' },
-    { clase:'pilates', hora:'17:30' },
-    { clase:'yoga',    hora:'19:30' },
+  2: [ // Martes
+    { clase:'essenza', hora:'06:30', instructor:'Jimena'    },
+    { clase:'burn',    hora:'07:30', instructor:'Milena'    },
+    { clase:'essenza', hora:'08:30', instructor:'M. Carmen' },
+    { clase:'essenza', hora:'17:30', instructor:'M. Carmen' },
+    { clase:'pilates', hora:'18:30', instructor:'Jimena'    },
+    { clase:'burn',    hora:'19:30', instructor:'Alejandra' },
   ],
-  3: [
-    { clase:'barre',   hora:'07:00' },
-    { clase:'yoga',    hora:'07:30' },
-    { clase:'barre',   hora:'09:00' },
-    { clase:'barre',   hora:'18:00' },
-    { clase:'yoga',    hora:'19:30' },
+  3: [ // Miércoles
+    { clase:'burn',    hora:'06:30', instructor:'Jimena'    },
+    { clase:'essenza', hora:'07:30', instructor:'M. Carmen' },
+    { clase:'essenza', hora:'08:30', instructor:'M. Carmen' },
+    { clase:'burn',    hora:'09:30', instructor:'Milena'    },
+    { clase:'burn',    hora:'17:30', instructor:'Milena'    },
+    { clase:'yoga',    hora:'18:30', instructor:'Yeni'      },
+    { clase:'burn',    hora:'19:30', instructor:'Alejandra' },
   ],
-  4: [
-    { clase:'pilates', hora:'08:00' },
-    { clase:'pilates', hora:'10:00' },
-    { clase:'pilates', hora:'17:30' },
-    { clase:'yoga',    hora:'19:30' },
+  4: [ // Jueves
+    { clase:'burn',    hora:'06:30', instructor:'Jimena'    },
+    { clase:'essenza', hora:'07:30', instructor:'M. Carmen' },
+    { clase:'essenza', hora:'08:30', instructor:'M. Carmen' },
+    { clase:'yoga',    hora:'17:00', instructor:'Yeni'      },
+    { clase:'pilates', hora:'18:30', instructor:'Jimena'    },
+    { clase:'burn',    hora:'19:30', instructor:'Jimena'    },
   ],
-  5: [
-    { clase:'barre',   hora:'07:00' },
-    { clase:'yoga',    hora:'07:30' },
-    { clase:'barre',   hora:'09:00' },
-    { clase:'barre',   hora:'18:00' },
-    { clase:'yoga',    hora:'19:30' },
-  ],
-  6: [
-    { clase:'barre',   hora:'08:00' },
-    { clase:'yoga',    hora:'09:30' },
-    { clase:'pilates', hora:'10:00' },
-    { clase:'yoga',    hora:'19:30' },
+  5: [ // Viernes
+    { clase:'burn',    hora:'06:30', instructor:'Alejandra' },
+    { clase:'burn',    hora:'07:30', instructor:'Alejandra' },
+    { clase:'essenza', hora:'08:30', instructor:'M. Carmen' },
+    { clase:'burn',    hora:'09:30', instructor:'Milena'    },
   ],
 };
 
@@ -2212,12 +2354,23 @@ function renderCards() {
     return;
   }
 
-  sesiones.forEach(({ clase, hora }) => {
+  let descansoInserted = false;
+
+  sesiones.forEach(({ clase, hora, instructor }) => {
     const info    = INFO[clase];
     const ocup    = getOcupados(clase, schedSelDay, hora);
     const libres  = info.cupos - ocup;
     const full    = libres <= 0;
     const fillPct = Math.round((ocup / info.cupos) * 100);
+    const horaNum = parseInt(hora.replace(':',''), 10);
+
+    if (!descansoInserted && horaNum >= 1200) {
+      descansoInserted = true;
+      const des = document.createElement('div');
+      des.className = 'sched-descanso';
+      des.innerHTML = '<span>Descanso</span>';
+      grid.appendChild(des);
+    }
 
     const card = document.createElement('div');
     card.className = `sched-card c-${clase}` + (full ? ' sc-full' : '');
@@ -2233,6 +2386,7 @@ function renderCards() {
           <span class="sc-emoji">${info.emoji}</span>
           <span class="sc-name">${info.nombre}</span>
         </div>
+        <div class="sc-instructor">👤 ${instructor}</div>
         <div class="sc-cupos-row">
           <span class="sc-cupos-txt"><strong>${libres}</strong> / ${info.cupos} cupos libres · $${info.precio}</span>
           <div class="sc-progress">
@@ -2240,8 +2394,8 @@ function renderCards() {
           </div>
         </div>
         <button class="sc-btn${full?' sc-lleno':''}"
-          onclick="${full?'':'openBooking(\''+clase+'\',\''+schedSelDay+'\',\''+hora+'\')'}"
-        >${full ? 'Cupos por horario completos' : 'Reservar cupo →'}</button>
+          onclick="${full?'':'openBooking(\''+clase+'\',\''+schedSelDay+'\',\''+hora+'\',\''+instructor+'\')'}"
+        >${full ? 'Cupos llenos' : 'Reservar cupo →'}</button>
       </div>`;
     grid.appendChild(card);
   });
@@ -2251,8 +2405,8 @@ function renderCards() {
 let booking = {};
 let pagoMetodo = null;
 
-function openBooking(clase, dateStr, hora) {
-  booking = { clase, dateStr, hora };
+function openBooking(clase, dateStr, hora, instructor) {
+  booking = { clase, dateStr, hora, instructor };
   const info = INFO[clase];
   const d = new Date(dateStr+'T12:00:00');
   const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
@@ -2261,7 +2415,7 @@ function openBooking(clase, dateStr, hora) {
   ms.className = `modal-sel ms-${clase}`;
   document.getElementById('mSelEmoji').textContent  = info.emoji;
   document.getElementById('mSelNombre').textContent = info.nombre;
-  document.getElementById('mSelDia').textContent    = diaStr;
+  document.getElementById('mSelDia').textContent    = `${diaStr} · ${instructor}`;
   document.getElementById('mSelHora').textContent   = hora;
 
   ['mNombre','mEmail','mTel'].forEach(id => document.getElementById(id).value='');
@@ -2301,14 +2455,14 @@ function checkMForm() {
 }
 
 function submitR() {
-  const { clase, dateStr, hora } = booking;
+  const { clase, dateStr, hora, instructor } = booking;
   const info   = INFO[clase];
   const d      = new Date(dateStr+'T12:00:00');
   const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
 
   document.getElementById('psIcon').textContent   = info.emoji;
   document.getElementById('psNombre').textContent = info.nombre;
-  document.getElementById('psDia').textContent    = `${diaStr} · ${hora} hrs`;
+  document.getElementById('psDia').textContent    = `${diaStr} · ${hora} hrs · ${instructor}`;
   document.getElementById('psPrice').textContent  = `$${info.precio}`;
 
   pagoMetodo = null;
@@ -2336,12 +2490,12 @@ function proceedToConfirm() {
   const tel    = document.getElementById('mTel').value.trim();
   const nivel  = document.getElementById('mNivel').value;
   const notas  = document.getElementById('mNotas').value.trim();
-  const { clase, dateStr, hora } = booking;
+  const { clase, dateStr, hora, instructor } = booking;
   const info   = INFO[clase];
   const d      = new Date(dateStr+'T12:00:00');
   const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
   const metodoDtxt = pagoMetodo==='transfer'
-    ? 'Transferencia BAC · 7835 9079'
+    ? 'Transferencia BAC · 373845890'
     : 'Efectivo en el estudio';
 
   saveSlot(clase, dateStr, hora, nombre, email);
@@ -2350,6 +2504,7 @@ function proceedToConfirm() {
     <div class="cr-row"><span class="cr-icon">${info.emoji}</span><span class="cr-text"><strong>${info.nombre}</strong></span></div>
     <div class="cr-row"><span class="cr-icon">📅</span><span class="cr-text">${diaStr}</span></div>
     <div class="cr-row"><span class="cr-icon">⏰</span><span class="cr-text">${hora} hrs · $${info.precio}</span></div>
+    <div class="cr-row"><span class="cr-icon">🎽</span><span class="cr-text">Instructora: ${instructor}</span></div>
     <div class="cr-row"><span class="cr-icon">👤</span><span class="cr-text">${nombre} · ${nivel}</span></div>
     <div class="cr-row"><span class="cr-icon">📱</span><span class="cr-text">${tel}</span></div>
     <div class="cr-row"><span class="cr-icon">💳</span><span class="cr-text">${metodoDtxt}</span></div>
@@ -2364,6 +2519,7 @@ function proceedToConfirm() {
     `${info.emoji} Clase: ${info.nombre}\n` +
     `📅 Fecha: ${diaStr}\n` +
     `⏰ Hora: ${hora} hrs\n` +
+    `🎽 Instructora: ${instructor}\n` +
     `💰 Monto: $${info.precio}\n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
     `👤 Cliente: ${nombre}\n` +
@@ -2377,8 +2533,54 @@ function proceedToConfirm() {
   );
   document.getElementById('waLink').href = `https://wa.me/${WA}?text=${msg}`;
 
+  /* ── Llenar voucher ── */
+  const confirmNum = 'PS-' + Date.now().toString(36).toUpperCase().slice(-6);
+  document.getElementById('vouEmoji').textContent      = info.emoji;
+  document.getElementById('vouClase').textContent      = info.nombre;
+  document.getElementById('vouInstructor').textContent = `Instructora: ${instructor}`;
+  document.getElementById('vouPrice').textContent      = `$${info.precio}`;
+  document.getElementById('vouFecha').textContent      = diaStr;
+  document.getElementById('vouHora').textContent       = `${hora} hrs`;
+  document.getElementById('vouNombre').textContent     = nombre;
+  document.getElementById('vouEmail').textContent      = email;
+  document.getElementById('vouTel').textContent        = tel;
+  document.getElementById('vouNivel').textContent      = nivel;
+  document.getElementById('vouPago').textContent       = metodoDtxt;
+  document.getElementById('vouNum').textContent        = confirmNum;
+  const notasRow = document.getElementById('vouNotasRow');
+  if (notas) {
+    document.getElementById('vouNotas').textContent = notas;
+    notasRow.style.display = 'flex';
+  } else {
+    notasRow.style.display = 'none';
+  }
+  const btnDl = document.getElementById('btnDownload');
+  btnDl.textContent = '↓ Descargar comprobante';
+  btnDl.disabled = false;
+
   mGoStep(3);
   renderCards();
+}
+
+/* ── Descarga de voucher ── */
+function downloadVoucher() {
+  const btn = document.getElementById('btnDownload');
+  btn.textContent = 'Generando...';
+  btn.disabled = true;
+  html2canvas(document.getElementById('voucher'), {
+    scale: 2, useCORS: true, allowTaint: true,
+    logging: false, backgroundColor: '#4A0F1A'
+  }).then(canvas => {
+    const a = document.createElement('a');
+    a.download = `presenza_${booking.dateStr}_${booking.hora.replace(':','')}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+    btn.textContent = '↓ Descargar comprobante';
+    btn.disabled = false;
+  }).catch(() => {
+    btn.textContent = '↓ Descargar comprobante';
+    btn.disabled = false;
+  });
 }
 
 /* ── Init ── */
@@ -2393,5 +2595,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>
