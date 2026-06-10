@@ -1499,6 +1499,114 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   border-radius:10px; font-size:.8rem; color:var(--gray); cursor:pointer;
 }
 
+/* Alumna row mejorado */
+.sa-alumna-info { display:flex; flex-direction:column; }
+.sa-alumna-email { font-size:.67rem; color:var(--gray); }
+.sa-alumna-tel   { font-size:.71rem; color:var(--gray); white-space:nowrap; }
+.sa-sub-tel      { font-size:.69rem; color:var(--blush); display:block; }
+
+/* Pagos del día */
+.sa-pagos-hoy {
+  background:linear-gradient(135deg,rgba(107,23,40,.07),rgba(107,23,40,.03));
+  border:1px solid rgba(107,23,40,.14); border-radius:12px;
+  padding:12px 16px; margin-bottom:18px;
+}
+.sa-pagos-titulo { font-size:.75rem; font-weight:700; color:var(--wine-d); margin-bottom:10px; letter-spacing:.5px; }
+.sa-pagos-grid  { display:flex; gap:10px; flex-wrap:wrap; }
+.sa-pago-item   { display:flex; align-items:center; gap:6px; background:white; border:1px solid rgba(107,23,40,.1); border-radius:8px; padding:6px 12px; font-size:.74rem; }
+.sa-pago-icon   { font-size:1rem; }
+.sa-pago-label  { color:var(--gray); }
+.sa-pago-cnt    { font-weight:700; color:var(--wine-d); margin-left:4px; }
+.sa-pago-monto  { font-size:.68rem; color:var(--gray); }
+.sa-pagos-total { margin-top:10px; font-size:.78rem; color:var(--gray); }
+.sa-pagos-total strong { color:var(--wine-d); }
+
+/* Botón eliminar suscriptora */
+.btn-sa-del {
+  padding:7px 12px; border:1.5px solid rgba(220,53,69,.3);
+  background:transparent; color:#c0392b; border-radius:8px;
+  font-size:.74rem; cursor:pointer; transition:all .2s;
+}
+.btn-sa-del:hover { background:rgba(220,53,69,.08); }
+
+/* Tab Calendario */
+.cal-mes-hd { margin-bottom:12px; }
+.cal-mes-hd h3 { font-family:'Playfair Display',serif; font-size:1rem; color:var(--wine-d); }
+.cal-dow-hd {
+  display:grid; grid-template-columns:repeat(7,1fr);
+  font-size:.66rem; font-weight:600; color:var(--gray); letter-spacing:.5px;
+  text-align:center; margin-bottom:4px;
+}
+.cal-grid {
+  display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:18px;
+}
+.cal-cell {
+  aspect-ratio:1; border-radius:8px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; cursor:pointer;
+  border:1.5px solid transparent; transition:all .15s; position:relative;
+  background:rgba(107,23,40,.04);
+}
+.cal-cell:hover { border-color:rgba(107,23,40,.3); background:rgba(107,23,40,.08); }
+.cal-cell.empty { background:none; cursor:default; }
+.cal-cell.cal-hoy { border-color:var(--wine); background:rgba(107,23,40,.08); }
+.cal-cell.cal-has { background:rgba(107,23,40,.1); }
+.cal-cell.cal-sel { border-color:var(--wine); background:rgba(107,23,40,.15); }
+.cal-dn   { font-size:.78rem; font-weight:600; color:var(--text); }
+.cal-badge {
+  font-size:.58rem; font-weight:700; background:var(--wine); color:white;
+  border-radius:50px; padding:1px 5px; margin-top:1px;
+}
+.cal-day-detail {
+  background:white; border:1px solid rgba(107,23,40,.1); border-radius:12px;
+  padding:14px; margin-top:4px;
+}
+.cal-day-detail h4 { font-family:'Playfair Display',serif; font-size:.95rem; color:var(--wine-d); margin-bottom:12px; }
+
+/* Tab Horarios */
+.hor-toolbar {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:16px; gap:10px; flex-wrap:wrap;
+}
+.hor-note { font-size:.75rem; color:var(--gray); }
+.btn-hor-save {
+  padding:8px 18px; background:var(--wine); color:white;
+  border:none; border-radius:50px; font-size:.75rem; font-weight:600; cursor:pointer; transition:all .2s;
+}
+.btn-hor-save:hover { background:var(--wine-d); }
+.btn-hor-reset {
+  padding:8px 14px; background:transparent; color:var(--gray);
+  border:1.5px solid rgba(107,23,40,.2); border-radius:50px; font-size:.75rem; cursor:pointer;
+}
+.hor-dia-blk { margin-bottom:16px; }
+.hor-dia-hd {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:8px 4px; border-bottom:2px solid rgba(107,23,40,.1); margin-bottom:8px;
+}
+.hor-dia-hd strong { font-size:.85rem; color:var(--wine-d); font-weight:700; }
+.btn-hor-add {
+  font-size:.72rem; color:var(--wine); background:none;
+  border:1px solid rgba(107,23,40,.25); border-radius:50px;
+  padding:4px 12px; cursor:pointer; transition:all .2s;
+}
+.btn-hor-add:hover { background:rgba(107,23,40,.07); }
+.hor-row {
+  display:grid; grid-template-columns:1fr 110px 1fr auto;
+  gap:8px; align-items:center; padding:5px 0;
+  border-bottom:1px solid rgba(107,23,40,.05);
+}
+.hor-row:last-child { border-bottom:none; }
+.hor-sel, .hor-inp {
+  padding:7px 10px; border:1.5px solid rgba(107,23,40,.15); border-radius:8px;
+  font-size:.78rem; color:var(--text); background:white; outline:none; width:100%;
+}
+.hor-sel:focus, .hor-inp:focus { border-color:var(--wine); }
+.btn-hor-del {
+  width:28px; height:28px; border-radius:50%; border:none;
+  background:rgba(220,53,69,.08); color:#c0392b;
+  font-size:.8rem; cursor:pointer; flex-shrink:0; transition:all .2s;
+}
+.btn-hor-del:hover { background:rgba(220,53,69,.18); }
+
 /* Super PIN modal */
 .super-pin-backdrop {
   position:fixed; inset:0; z-index:2000;
@@ -2600,7 +2708,7 @@ const DIAS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const MESES_ES  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
 const ADMIN_PIN  = '7835';
-const SUPER_PIN  = 'PRES2026';   /* ← cambia esto por tu contraseña de super admin */
+const SUPER_PIN  = 'pres1234';   /* ← contraseña del super admin */
 
 const PLANES_SUB = {
   singular: { nombre:'Clase singular',        clases:1,    precio:12,  tag:'Single',   meses:1 },
@@ -2661,6 +2769,12 @@ const HORARIO = {
     { clase:'burn',    hora:'09:30', instructor:'Milena'    },
   ],
 };
+
+/* Cargar horario personalizado si el admin lo editó */
+(function() {
+  const h = localStorage.getItem('presenza_horario_custom');
+  if (h) try { Object.assign(HORARIO, JSON.parse(h)); } catch(e) {}
+})();
 
 /* ── localStorage ── */
 function slotKey(clase, dateStr, hora) {
@@ -3502,9 +3616,10 @@ function sadminTab(tab) {
     t.classList.toggle('active', t.dataset.tab === tab));
   const body = document.getElementById('sadminBody');
   body.innerHTML = '';
-  if (tab === 'hoy')      buildSAdminHoy();
-  if (tab === 'subs')     buildSAdminSubs();
-  if (tab === 'reservas') buildAdminContent(body);
+  if (tab === 'hoy')        buildSAdminHoy();
+  if (tab === 'calendario') buildSAdminCalendario();
+  if (tab === 'horarios')   buildSAdminHorarios();
+  if (tab === 'subs')       buildSAdminSubs();
 }
 
 /* ── Tab: Hoy ── */
@@ -3522,6 +3637,20 @@ function buildSAdminHoy() {
     return;
   }
 
+  /* ── Calcular pagos del día ── */
+  const pagos = { transfer:0, sub:0, cash:0 };
+  let totalIngreso = 0;
+  slots.forEach(({ clase, hora }) => {
+    const info = INFO[clase];
+    getClientes(clase, dateStr, hora).forEach(c => {
+      const m = (c.metodo||'').toLowerCase();
+      if (m.includes('transfer'))   { pagos.transfer++; totalIngreso += info.precio; }
+      else if (m.includes('suscri'))  { pagos.sub++; }
+      else                            { pagos.cash++;    totalIngreso += info.precio; }
+    });
+  });
+  const totalClientes = pagos.transfer + pagos.sub + pagos.cash;
+
   let totalSubs = 0;
   const clasesHtml = slots.map(({ clase, hora, instructor }) => {
     const info     = INFO[clase];
@@ -3537,13 +3666,14 @@ function buildSAdminHoy() {
       const cuposCls  = cupos === null ? '' : cupos <= 2 ? 'sa-cupos-low' : cupos <= 0 ? 'sa-cupos-out' : 'sa-cupos-ok';
 
       return `<div class="sa-alumna-row">
-        <div>
+        <div class="sa-alumna-info">
           <div class="sa-alumna-nombre">${c.nombre}</div>
+          <div class="sa-alumna-email">${c.email||'—'}</div>
           <div class="sa-alumna-sub">${esSub ? '💎 Suscriptora' : (c.metodo||'—').split('·')[0].trim()}</div>
         </div>
-        <span style="font-size:.71rem;color:var(--gray)">${c.tel||'—'}</span>
+        <span class="sa-alumna-tel">${c.tel||'—'}</span>
         ${esSub
-          ? `<span class="sa-cupos-left ${cuposCls}">${cupos} clases</span>
+          ? `<span class="sa-cupos-left ${cuposCls}">${cupos >= 9999 ? '∞' : cupos} clases</span>
              <button class="btn-sa-asist" ${yaAsistio?'disabled':''} onclick="registrarAsistencia('${c.email}','${clase}','${dateStr}','${hora}','${asistKey}')">
                ${yaAsistio ? '✓ Asistió' : 'Marcar ✓'}
              </button>`
@@ -3565,7 +3695,30 @@ function buildSAdminHoy() {
     <div class="sa-fecha">${diaStr}</div>
     <div class="sa-stats">
       <span class="sa-stat-chip">📅 ${slots.length} clases hoy</span>
-      <span class="sa-stat-chip">💎 ${totalSubs} suscriptoras hoy</span>
+      <span class="sa-stat-chip">👥 ${totalClientes} alumnas</span>
+      <span class="sa-stat-chip">💎 ${totalSubs} suscriptoras</span>
+    </div>
+    <div class="sa-pagos-hoy">
+      <div class="sa-pagos-titulo">💰 Pagos de hoy</div>
+      <div class="sa-pagos-grid">
+        <div class="sa-pago-item">
+          <span class="sa-pago-icon">💳</span>
+          <span class="sa-pago-label">Transferencia</span>
+          <span class="sa-pago-cnt">${pagos.transfer}</span>
+          <span class="sa-pago-monto">$${pagos.transfer * 0}</span>
+        </div>
+        <div class="sa-pago-item">
+          <span class="sa-pago-icon">💵</span>
+          <span class="sa-pago-label">Efectivo</span>
+          <span class="sa-pago-cnt">${pagos.cash}</span>
+        </div>
+        <div class="sa-pago-item">
+          <span class="sa-pago-icon">💎</span>
+          <span class="sa-pago-label">Suscripción</span>
+          <span class="sa-pago-cnt">${pagos.sub}</span>
+        </div>
+      </div>
+      <div class="sa-pagos-total">Total cobrado: <strong>$${totalIngreso}</strong></div>
     </div>
     ${clasesHtml}`;
 }
@@ -3615,6 +3768,7 @@ function buildSAdminSubs() {
             <div class="sa-sub-card-info">
               <strong>${sub.nombre}</strong>
               <span>${sub.email}</span>
+              <span class="sa-sub-tel">${sub.tel||'Sin teléfono'}</span>
             </div>
             <div class="sa-sub-card-meta">
               <div><span class="sa-sub-plan-tag">${plan.nombre}</span></div>
@@ -3628,6 +3782,7 @@ function buildSAdminSubs() {
           <div class="sa-sub-actions">
             <button class="btn-sa-renovar" onclick="renovarSub('${sub.email}')">⟳ Renovar plan</button>
             <button class="btn-sa-historial" onclick="toggleHistSub(this)">Historial ▾</button>
+            <button class="btn-sa-del" onclick="eliminarSub('${sub.email}')">🗑 Eliminar</button>
           </div>
           <div class="sa-sub-historial">${histRows}</div>
         </div>`;
@@ -3734,6 +3889,176 @@ function renovarSub(email) {
   (arr[idx].renovaciones = arr[idx].renovaciones||[]).push({ fecha:now.toISOString().split('T')[0], plan:choice, clases:pd.clases });
   saveSuscriptoras(arr);
   buildSAdminSubs();
+}
+
+function eliminarSub(email) {
+  if (!confirm(`¿Eliminar la suscriptora ${email}? Esta acción no se puede deshacer.`)) return;
+  const arr = getSuscriptoras().filter(s => s.email.toLowerCase() !== email.toLowerCase());
+  saveSuscriptoras(arr);
+  buildSAdminSubs();
+}
+
+/* ── Tab: Calendario ── */
+function buildSAdminCalendario() {
+  const body  = document.getElementById('sadminBody');
+  const hoy   = new Date();
+  const year  = hoy.getFullYear();
+  const month = hoy.getMonth();
+
+  /* Contar reservas por día del mes actual */
+  const dayCount = {};
+  for (let k in localStorage) {
+    const match = k.match(/^presenza_(\w+)_(\d{4}-\d{2}-\d{2})_(\d{4})$/);
+    if (!match) continue;
+    const [,clase,dateStr,horaRaw] = match;
+    if (!dateStr.startsWith(`${year}-${String(month+1).padStart(2,'0')}`)) continue;
+    const d = new Date(dateStr+'T12:00:00');
+    const day = d.getDate();
+    const hora = horaRaw.slice(0,2)+':'+horaRaw.slice(2);
+    dayCount[day] = (dayCount[day]||0) + getClientes(clase, dateStr, hora).length;
+  }
+
+  const firstDow     = new Date(year, month, 1).getDay();
+  const daysInMonth  = new Date(year, month+1, 0).getDate();
+  const todayDate    = hoy.getDate();
+
+  let cells = '';
+  for (let i = 0; i < firstDow; i++) cells += '<div class="cal-cell empty"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cnt     = dayCount[d] || 0;
+    const isHoy   = d === todayDate;
+    cells += `<div class="cal-cell${isHoy?' cal-hoy':''}${cnt>0?' cal-has':''}" onclick="sadminVerDia('${dateStr}',this)">
+      <span class="cal-dn">${d}</span>
+      ${cnt > 0 ? `<span class="cal-badge">${cnt}</span>` : ''}
+    </div>`;
+  }
+
+  body.innerHTML = `
+    <div class="cal-mes-hd">
+      <h3>${MESES_ES[month]} ${year}</h3>
+    </div>
+    <div class="cal-dow-hd">
+      ${['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map(d=>`<div>${d}</div>`).join('')}
+    </div>
+    <div class="cal-grid">${cells}</div>
+    <div id="calDetail"></div>`;
+}
+
+function sadminVerDia(dateStr, el) {
+  document.querySelectorAll('.cal-cell').forEach(c => c.classList.remove('cal-sel'));
+  if (el) el.classList.add('cal-sel');
+
+  const detail = document.getElementById('calDetail');
+  const d      = new Date(dateStr+'T12:00:00');
+  const dow    = d.getDay();
+  const diaStr = `${DIAS_ES[dow]} ${d.getDate()} ${MESES_ES[d.getMonth()]} ${d.getFullYear()}`;
+  const slots  = HORARIO[dow] || [];
+
+  if (slots.length === 0) {
+    detail.innerHTML = `<div class="cal-day-detail"><p style="color:var(--gray);text-align:center;padding:16px">Sin clases este día.</p></div>`;
+    return;
+  }
+
+  const clasesHtml = slots.map(({ clase, hora, instructor }) => {
+    const info     = INFO[clase];
+    const clientes = getClientes(clase, dateStr, hora);
+    const filas    = clientes.map(c => `
+      <div class="sa-alumna-row">
+        <div class="sa-alumna-info">
+          <div class="sa-alumna-nombre">${c.nombre}</div>
+          <div class="sa-alumna-email">${c.email||'—'}</div>
+        </div>
+        <span class="sa-alumna-tel">${c.tel||'—'}</span>
+        <span style="font-size:.7rem;color:var(--gray)">${(c.metodo||'').split('·')[0].trim()}</span>
+        <span></span>
+      </div>`).join('') || `<div style="padding:6px 20px;font-size:.75rem;color:var(--gray)">Sin reservas</div>`;
+    return `<div class="sa-clase-blk">
+      <div class="sa-clase-hd">
+        <span>${info.emoji}</span><strong>${info.nombre}</strong>
+        <span>${instructor} · ${hora} hrs · ${clientes.length}/${info.cupos}</span>
+      </div>${filas}</div>`;
+  }).join('');
+
+  detail.innerHTML = `<div class="cal-day-detail"><h4>${diaStr}</h4>${clasesHtml}</div>`;
+}
+
+/* ── Tab: Horarios ── */
+function buildSAdminHorarios() {
+  const body  = document.getElementById('sadminBody');
+  const DNOM  = { 1:'Lunes', 2:'Martes', 3:'Miércoles', 4:'Jueves', 5:'Viernes' };
+
+  let html = `
+    <div class="hor-toolbar">
+      <span class="hor-note">Edita el horario semanal. Guarda para aplicar los cambios.</span>
+      <div>
+        <button class="btn-hor-save"  onclick="saveHorarios()">💾 Guardar</button>
+        <button class="btn-hor-reset" onclick="resetHorarios()">↩ Restaurar</button>
+      </div>
+    </div>`;
+
+  [1,2,3,4,5].forEach(dia => {
+    const slots = HORARIO[dia] || [];
+    const filas = slots.map((s,i) => `
+      <div class="hor-row" id="horRow_${dia}_${i}">
+        <select class="hor-sel" id="horClase_${dia}_${i}">
+          ${Object.entries(INFO).map(([k,v])=>`<option value="${k}"${s.clase===k?' selected':''}>${v.emoji} ${v.nombre}</option>`).join('')}
+        </select>
+        <input class="hor-inp hor-time" type="time" value="${s.hora}" id="horHora_${dia}_${i}"/>
+        <input class="hor-inp hor-instr" type="text"  value="${s.instructor}" placeholder="Instructor" id="horInstr_${dia}_${i}"/>
+        <button class="btn-hor-del" onclick="horDel(${dia},${i})">✕</button>
+      </div>`).join('');
+
+    html += `<div class="hor-dia-blk">
+      <div class="hor-dia-hd">
+        <strong>${DNOM[dia]}</strong>
+        <button class="btn-hor-add" onclick="horAdd(${dia})">+ Añadir clase</button>
+      </div>
+      <div id="horSlots${dia}">${filas||'<p style="color:var(--gray);font-size:.76rem;padding:8px">Sin clases — añade una.</p>'}</div>
+    </div>`;
+  });
+
+  body.innerHTML = html;
+}
+
+function horDel(dia, idx) {
+  if (HORARIO[dia]) HORARIO[dia].splice(idx, 1);
+  buildSAdminHorarios();
+}
+
+function horAdd(dia) {
+  if (!HORARIO[dia]) HORARIO[dia] = [];
+  HORARIO[dia].push({ clase:'burn', hora:'08:00', instructor:'' });
+  buildSAdminHorarios();
+  /* Scroll al nuevo campo */
+  setTimeout(() => {
+    const last = document.querySelectorAll(`#horSlots${dia} .hor-row`);
+    if (last.length) last[last.length-1].scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }, 80);
+}
+
+function saveHorarios() {
+  [1,2,3,4,5].forEach(dia => {
+    const rows = document.querySelectorAll(`#horSlots${dia} .hor-row`);
+    const newSlots = [];
+    rows.forEach((_, i) => {
+      const claseEl = document.getElementById(`horClase_${dia}_${i}`);
+      const horaEl  = document.getElementById(`horHora_${dia}_${i}`);
+      const instrEl = document.getElementById(`horInstr_${dia}_${i}`);
+      if (claseEl && horaEl && horaEl.value)
+        newSlots.push({ clase:claseEl.value, hora:horaEl.value, instructor:instrEl?.value.trim()||'' });
+    });
+    HORARIO[dia] = newSlots;
+  });
+  localStorage.setItem('presenza_horario_custom', JSON.stringify(HORARIO));
+  const btn = document.querySelector('.btn-hor-save');
+  if (btn) { btn.textContent = '✅ Guardado'; setTimeout(() => btn.textContent = '💾 Guardar', 1800); }
+}
+
+function resetHorarios() {
+  if (!confirm('¿Restaurar el horario original? Se perderán todos los cambios.')) return;
+  localStorage.removeItem('presenza_horario_custom');
+  location.reload();
 }
 
 /* Extender buildAdminContent para aceptar un contenedor externo */
@@ -3843,14 +4168,15 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="sadmin-hd">
       <div class="sadmin-hd-left">
         <p>✧ Presencia Studio</p>
-        <h2>Super Admin — Suscripciones</h2>
+        <h2>Super Admin</h2>
       </div>
       <div class="sadmin-close" onclick="closeSuperAdmin()">✕</div>
     </div>
     <div class="sadmin-tabs">
-      <div class="sadmin-tab active" data-tab="hoy"      onclick="sadminTab('hoy')">📅 Hoy</div>
-      <div class="sadmin-tab"        data-tab="subs"     onclick="sadminTab('subs')">💎 Suscriptoras</div>
-      <div class="sadmin-tab"        data-tab="reservas" onclick="sadminTab('reservas')">📋 Reservas</div>
+      <div class="sadmin-tab active" data-tab="hoy"        onclick="sadminTab('hoy')">📅 Hoy</div>
+      <div class="sadmin-tab"        data-tab="calendario" onclick="sadminTab('calendario')">📆 Calendario</div>
+      <div class="sadmin-tab"        data-tab="horarios"   onclick="sadminTab('horarios')">🗓 Horarios</div>
+      <div class="sadmin-tab"        data-tab="subs"       onclick="sadminTab('subs')">💎 Suscriptoras</div>
     </div>
     <div class="sadmin-body" id="sadminBody"></div>
   </div>
