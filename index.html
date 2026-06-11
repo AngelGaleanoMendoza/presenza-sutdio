@@ -1707,7 +1707,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 
 <!-- NAV -->
 <nav id="navbar">
-  <div class="nav-logo">Presenza</div>
+  <div class="nav-logo" id="navLogo">Presenza</div>
   <ul class="nav-links" id="navLinks">
     <li><a href="#clases">Clases</a></li>
     <li><a href="#equipo">Equipo</a></li>
@@ -4154,21 +4154,18 @@ function buildAdminContent(customContainer) {
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {
   renderSched();
-  /* Super Admin: triple toque en botón "Reservar" del nav */
-  let tapCount = 0, tapTimer = null;
-  const navReservar = document.getElementById('navReservar');
-  navReservar.addEventListener('click', (e) => {
-    tapCount++;
-    clearTimeout(tapTimer);
-    if (tapCount >= 3) {
-      tapCount = 0;
-      e.preventDefault();   /* cancelar scroll en el 3er toque */
-      e.stopImmediatePropagation();
+  /* Super Admin: triple toque en el logo Presenza */
+  let logoTaps = 0, logoTimer = null;
+  document.getElementById('navLogo').addEventListener('click', () => {
+    logoTaps++;
+    clearTimeout(logoTimer);
+    if (logoTaps >= 3) {
+      logoTaps = 0;
       openSuperAdmin();
       return;
     }
-    tapTimer = setTimeout(() => { tapCount = 0; }, 700);
-  }, true);   /* capture=true → se ejecuta antes del listener de scroll */
+    logoTimer = setTimeout(() => { logoTaps = 0; }, 700);
+  });
 
   /* "Reservar" del nav → scroll a sección */
   document.querySelectorAll('.nav-cta, a[href="#reserva"]').forEach(a => {
