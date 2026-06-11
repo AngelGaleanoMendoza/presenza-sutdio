@@ -87,6 +87,7 @@ nav.scrolled .nav-links a { color:var(--gray); }
   background:var(--wine) !important; color:var(--white) !important;
   font-weight:600 !important; padding:9px 24px; border-radius:50px;
   transition:all .3s !important; box-shadow:0 4px 16px rgba(107,23,40,.28);
+  touch-action:manipulation;
 }
 .nav-cta:hover { background:var(--wine-d) !important; transform:translateY(-2px) !important; }
 .nav-cta::after { display:none !important; }
@@ -4154,24 +4155,23 @@ function buildAdminContent(customContainer) {
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {
   renderSched();
-  /* Super Admin: triple toque en el logo Presenza */
-  let logoTaps = 0, logoTimer = null;
-  document.getElementById('navLogo').addEventListener('click', () => {
-    logoTaps++;
-    clearTimeout(logoTimer);
-    if (logoTaps >= 3) {
-      logoTaps = 0;
-      openSuperAdmin();
-      return;
-    }
-    logoTimer = setTimeout(() => { logoTaps = 0; }, 700);
-  });
-
-  /* "Reservar" del nav → scroll a sección */
+  /* "Reservar" del nav → scroll a sección + triple tap = Super Admin */
+  let rsvTaps = 0, rsvTimer = null;
   document.querySelectorAll('.nav-cta, a[href="#reserva"]').forEach(a => {
+    a.style.touchAction = 'manipulation';   /* evita zoom en doble tap */
     a.addEventListener('click', e => {
       e.preventDefault();
-      document.getElementById('reserva').scrollIntoView({ behavior:'smooth', block:'start' });
+      rsvTaps++;
+      clearTimeout(rsvTimer);
+      if (rsvTaps >= 3) {
+        rsvTaps = 0;
+        openSuperAdmin();
+        return;
+      }
+      rsvTimer = setTimeout(() => {
+        rsvTaps = 0;
+        document.getElementById('reserva').scrollIntoView({ behavior:'smooth', block:'start' });
+      }, 400);
     });
   });
 
