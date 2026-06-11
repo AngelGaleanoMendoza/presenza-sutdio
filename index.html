@@ -1708,6 +1708,72 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 }
 .pin-modal input:focus { border-color:var(--wine); }
 .pin-err { font-size:.78rem; color:#dc3545; margin-top:8px; }
+
+/* ════════════════════════════════════════
+   EVENTOS DEL ESTUDIO
+════════════════════════════════════════ */
+.eventos {
+  padding:112px 52px; background:var(--white);
+  position:relative; overflow:hidden;
+}
+.eventos-inner { max-width:1100px; margin:0 auto; }
+.eventos-header { text-align:center; margin-bottom:48px; }
+.eventos-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:20px;
+}
+.evento-card {
+  background:var(--cream); border-radius:20px; overflow:hidden;
+  border:1.5px solid rgba(107,23,40,.08);
+  display:flex; flex-direction:column; transition:all .3s;
+}
+.evento-card:hover {
+  transform:translateY(-5px);
+  box-shadow:0 18px 44px rgba(107,23,40,.14);
+  border-color:rgba(107,23,40,.18);
+}
+.ev-band {
+  background:linear-gradient(135deg,var(--wine-d),var(--wine));
+  padding:16px 20px; display:flex; align-items:center; gap:14px;
+}
+.ev-fecha-box {
+  background:rgba(245,237,227,.12); border:1px solid rgba(245,237,227,.2);
+  border-radius:12px; padding:8px 12px; text-align:center; flex-shrink:0; min-width:58px;
+}
+.ev-fecha-dia { font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:900; color:var(--cream); line-height:1; }
+.ev-fecha-mes { font-size:.6rem; letter-spacing:2px; color:rgba(245,237,227,.65); text-transform:uppercase; margin-top:2px; }
+.ev-band-tit { font-family:'Playfair Display',serif; font-size:1.05rem; font-weight:900; color:var(--cream); line-height:1.3; }
+.ev-band-sub { font-size:.68rem; color:rgba(245,237,227,.55); margin-top:3px; }
+.ev-body { padding:18px 20px; flex:1; display:flex; flex-direction:column; }
+.ev-desc { font-size:.83rem; color:var(--text); line-height:1.7; margin-bottom:14px; flex:1; }
+.ev-meta { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+.ev-chip {
+  font-size:.68rem; font-weight:600; padding:4px 12px; border-radius:50px;
+  background:rgba(107,23,40,.07); color:var(--wine-d);
+}
+.btn-ev {
+  display:block; text-align:center; background:var(--wine); color:#fff;
+  font-weight:600; font-size:.8rem; padding:11px; border-radius:11px;
+  transition:all .25s; text-decoration:none;
+}
+.btn-ev:hover { background:var(--wine-l); transform:translateY(-2px); }
+.eventos-empty { text-align:center; color:var(--gray); font-size:.9rem; padding:40px 20px; }
+@media(max-width:620px){ .eventos { padding:70px 18px; } .eventos-grid { grid-template-columns:1fr; } }
+
+/* ── Admin tab Eventos ── */
+.ev-adm-card {
+  background:white; border:1px solid rgba(107,23,40,.1);
+  border-radius:14px; padding:14px 16px; margin-bottom:12px;
+}
+.ev-adm-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+.ev-adm-grid .mfg { margin-bottom:0; }
+.ev-adm-full { grid-column:1/-1; }
+.ev-adm-actions { display:flex; gap:8px; justify-content:flex-end; }
+.btn-ev-del {
+  padding:7px 14px; border:1.5px solid rgba(220,53,69,.3); background:transparent;
+  color:#a82332; border-radius:8px; font-size:.74rem; font-weight:600; cursor:pointer;
+}
+.btn-ev-del:hover { background:#a82332; color:white; border-color:#a82332; }
 </style>
 </head>
 <body>
@@ -1722,6 +1788,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
     <li><a href="#clases">Clases</a></li>
     <li><a href="#equipo">Equipo</a></li>
     <li><a href="#galeria">Galería</a></li>
+    <li><a href="#eventos">Eventos</a></li>
     <li><a href="#pagos">Pagos</a></li>
     <li><a href="#ubicacion">Ubicación</a></li>
     <li><a href="#reserva" class="nav-cta" id="navReservar">Reservar</a></li>
@@ -1735,6 +1802,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   <a href="#clases"    onclick="toggleMenu()">Clases</a>
   <a href="#equipo"    onclick="toggleMenu()">Equipo</a>
   <a href="#galeria"   onclick="toggleMenu()">Galería</a>
+  <a href="#eventos"   onclick="toggleMenu()">Eventos</a>
   <a href="#pagos"     onclick="toggleMenu()">Pagos</a>
   <a href="#ubicacion" onclick="toggleMenu()">Ubicación</a>
   <a href="#reserva"   onclick="toggleMenu()">Reservar</a>
@@ -2213,6 +2281,20 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
     Síguenos para más contenido →
     <a href="#" target="_blank">@presenzastudio</a>
   </p>
+</section>
+
+<!-- ═══ EVENTOS DEL ESTUDIO ═══ -->
+<section class="eventos" id="eventos">
+  <div class="eventos-inner">
+    <div class="eventos-header">
+      <p class="section-tag r">próximos eventos</p>
+      <h2 class="section-title r">Vive la experiencia<br/><em>Presenza</em></h2>
+      <p class="section-body r d1">
+        Workshops, masterclasses y experiencias especiales para nuestra comunidad.
+      </p>
+    </div>
+    <div class="eventos-grid" id="eventosGrid"></div>
+  </div>
 </section>
 
 <!-- ═══ MODALIDADES DE PAGO ═══ -->
@@ -3669,6 +3751,7 @@ function sadminTab(tab) {
   if (tab === 'calendario') buildSAdminCalendario();
   if (tab === 'horarios')   buildSAdminHorarios();
   if (tab === 'subs')       buildSAdminSubs();
+  if (tab === 'eventos')    buildSAdminEventos();
 }
 
 /* ── Tab: Hoy ── */
@@ -4162,9 +4245,154 @@ function buildAdminContent(customContainer) {
   });
 }
 
+/* ════════════════════════════════════════
+   EVENTOS DEL ESTUDIO
+════════════════════════════════════════ */
+const EVENTOS_DEFAULT = [
+  {
+    titulo:'Open House · Clase gratuita', emoji:'✨',
+    fecha:'2026-06-27', hora:'09:00',
+    precio:0, cupos:20,
+    desc:'Ven a conocer el estudio, prueba una clase de barre sin costo y descubre la experiencia Presenza. Trae a una amiga.',
+  },
+];
+
+function getEventos() {
+  const d = localStorage.getItem('presenza_eventos');
+  if (d) try { return JSON.parse(d); } catch(e) {}
+  return EVENTOS_DEFAULT;
+}
+function saveEventos(arr) {
+  localStorage.setItem('presenza_eventos', JSON.stringify(arr));
+}
+
+function renderEventosPublic() {
+  const grid = document.getElementById('eventosGrid');
+  if (!grid) return;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const evs = getEventos()
+    .filter(ev => new Date(ev.fecha + 'T23:59:59') >= hoy)
+    .sort((a,b) => a.fecha.localeCompare(b.fecha));
+
+  if (evs.length === 0) {
+    grid.innerHTML = '<div class="eventos-empty" style="grid-column:1/-1">Pronto anunciaremos nuevos eventos · síguenos en Instagram para enterarte ✧</div>';
+    return;
+  }
+
+  grid.innerHTML = evs.map(ev => {
+    const d = new Date(ev.fecha + 'T12:00:00');
+    const msgWA = encodeURIComponent(
+      `Hola Presenza ✧ Quiero reservar mi cupo para el evento "${ev.titulo}" del ${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}.`
+    );
+    return `<div class="evento-card r">
+      <div class="ev-band">
+        <div class="ev-fecha-box">
+          <div class="ev-fecha-dia">${d.getDate()}</div>
+          <div class="ev-fecha-mes">${MESES_ES[d.getMonth()]}</div>
+        </div>
+        <div>
+          <div class="ev-band-tit">${ev.emoji||'✧'} ${ev.titulo}</div>
+          <div class="ev-band-sub">${DIAS_ES[d.getDay()]} · ${ev.hora} hrs</div>
+        </div>
+      </div>
+      <div class="ev-body">
+        <p class="ev-desc">${ev.desc||''}</p>
+        <div class="ev-meta">
+          <span class="ev-chip">${ev.precio > 0 ? '$'+ev.precio : 'Gratis'}</span>
+          ${ev.cupos ? `<span class="ev-chip">👥 ${ev.cupos} cupos</span>` : ''}
+          <span class="ev-chip">⏰ ${ev.hora} hrs</span>
+        </div>
+        <a class="btn-ev" href="https://wa.me/${WA}?text=${msgWA}" target="_blank">Reservar mi cupo →</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Tab: Eventos (Super Admin) ── */
+function buildSAdminEventos() {
+  const body = document.getElementById('sadminBody');
+  const evs  = getEventos();
+
+  const cards = evs.map((ev, i) => `
+    <div class="ev-adm-card">
+      <div class="ev-adm-grid">
+        <div class="mfg ev-adm-full"><label>Título</label>
+          <input type="text" id="evTit_${i}" value="${(ev.titulo||'').replace(/"/g,'&quot;')}" placeholder="Nombre del evento"/></div>
+        <div class="mfg"><label>Emoji</label>
+          <input type="text" id="evEmo_${i}" value="${ev.emoji||''}" maxlength="4" placeholder="✨"/></div>
+        <div class="mfg"><label>Fecha</label>
+          <input type="date" id="evFec_${i}" value="${ev.fecha||''}"/></div>
+        <div class="mfg"><label>Hora</label>
+          <input type="time" id="evHor_${i}" value="${ev.hora||''}"/></div>
+        <div class="mfg"><label>Precio $ (0 = gratis)</label>
+          <input type="number" id="evPre_${i}" value="${ev.precio||0}" min="0"/></div>
+        <div class="mfg"><label>Cupos</label>
+          <input type="number" id="evCup_${i}" value="${ev.cupos||''}" min="0" placeholder="Sin límite"/></div>
+        <div class="mfg ev-adm-full"><label>Descripción</label>
+          <textarea id="evDes_${i}" placeholder="Describe el evento...">${ev.desc||''}</textarea></div>
+      </div>
+      <div class="ev-adm-actions">
+        <button class="btn-ev-del" onclick="evDel(${i})">🗑 Eliminar</button>
+      </div>
+    </div>`).join('');
+
+  body.innerHTML = `
+    <div class="hor-toolbar">
+      <span class="hor-note">Crea y edita los eventos del estudio. Guarda para publicarlos en la página.</span>
+      <div>
+        <button class="btn-hor-save" onclick="evSaveAll()">💾 Guardar</button>
+        <button class="btn-nueva-sub" onclick="evAdd()">+ Nuevo evento</button>
+      </div>
+    </div>
+    <div id="evAdmList">${cards || '<p style="text-align:center;color:var(--gray);padding:32px">Sin eventos — crea el primero.</p>'}</div>`;
+}
+
+function evCollect() {
+  const evs = [];
+  document.querySelectorAll('#evAdmList .ev-adm-card').forEach((_, i) => {
+    const tit = document.getElementById(`evTit_${i}`);
+    if (!tit) return;
+    evs.push({
+      titulo: tit.value.trim(),
+      emoji:  document.getElementById(`evEmo_${i}`).value.trim(),
+      fecha:  document.getElementById(`evFec_${i}`).value,
+      hora:   document.getElementById(`evHor_${i}`).value,
+      precio: parseFloat(document.getElementById(`evPre_${i}`).value) || 0,
+      cupos:  parseInt(document.getElementById(`evCup_${i}`).value) || 0,
+      desc:   document.getElementById(`evDes_${i}`).value.trim(),
+    });
+  });
+  return evs;
+}
+
+function evAdd() {
+  const evs = evCollect();
+  evs.push({ titulo:'', emoji:'✨', fecha:'', hora:'18:00', precio:0, cupos:0, desc:'' });
+  saveEventos(evs);
+  buildSAdminEventos();
+}
+
+function evDel(i) {
+  if (!confirm('¿Eliminar este evento?')) return;
+  const evs = evCollect();
+  evs.splice(i, 1);
+  saveEventos(evs);
+  buildSAdminEventos();
+  renderEventosPublic();
+}
+
+function evSaveAll() {
+  const evs = evCollect().filter(ev => ev.titulo && ev.fecha);
+  saveEventos(evs);
+  renderEventosPublic();
+  const btn = document.querySelector('.btn-hor-save');
+  if (btn) { btn.textContent = '✅ Publicado'; setTimeout(() => btn.textContent = '💾 Guardar', 1800); }
+}
+
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {
   renderSched();
+  renderEventosPublic();
   /* "Reservar" del nav → scroll a sección + triple tap = Super Admin */
   let rsvTaps = 0, rsvTimer = null;
   document.querySelectorAll('.nav-cta, a[href="#reserva"]').forEach(a => {
@@ -4233,6 +4461,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="sadmin-tab"        data-tab="calendario" onclick="sadminTab('calendario')">📆 Calendario</div>
       <div class="sadmin-tab"        data-tab="horarios"   onclick="sadminTab('horarios')">🗓 Horarios</div>
       <div class="sadmin-tab"        data-tab="subs"       onclick="sadminTab('subs')">💎 Suscriptoras</div>
+      <div class="sadmin-tab"        data-tab="eventos"    onclick="sadminTab('eventos')">🎉 Eventos</div>
     </div>
     <div class="sadmin-body" id="sadminBody"></div>
   </div>
