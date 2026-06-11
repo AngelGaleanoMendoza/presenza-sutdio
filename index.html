@@ -91,6 +91,14 @@ nav.scrolled .nav-links a { color:var(--gray); }
 }
 .nav-cta:hover { background:var(--wine-d) !important; transform:translateY(-2px) !important; }
 .nav-cta::after { display:none !important; }
+.nav-info-btn {
+  display:none; background:none; border:none; cursor:pointer;
+  color:rgba(255,251,248,.7); font-size:1.15rem; line-height:1;
+  padding:4px 6px; z-index:910; transition:color .3s;
+  touch-action:manipulation;
+}
+nav.scrolled .nav-info-btn { color:rgba(107,23,40,.5); }
+.nav-info-btn:hover { color:var(--wine); }
 .hamburger { display:none; flex-direction:column; gap:5px; width:26px; cursor:pointer; z-index:910; }
 .hamburger span { display:block; height:2px; background:var(--white); border-radius:2px; transition:all .3s; }
 nav.scrolled .hamburger span { background:var(--wine); }
@@ -724,6 +732,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 @media(max-width:620px){
   .nav-links { display:none; }
   .hamburger { display:flex; }
+  .nav-info-btn { display:block; }
   .hero-h1 { font-size:2.5rem; }
   .clases-grid { grid-template-columns:1fr; max-width:400px; margin:0 auto; }
   .footer-top { grid-template-columns:1fr; gap:28px; }
@@ -1717,6 +1726,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
     <li><a href="#ubicacion">Ubicación</a></li>
     <li><a href="#reserva" class="nav-cta" id="navReservar">Reservar</a></li>
   </ul>
+  <button class="nav-info-btn" onclick="openSuperAdmin()" aria-label="Info">ⓘ</button>
   <div class="hamburger" id="hamburger" onclick="toggleMenu()">
     <span></span><span></span><span></span>
   </div>
