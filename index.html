@@ -1362,22 +1362,36 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,.4); margin:auto;
 }
 .sadmin-hd {
-  background:linear-gradient(135deg,#1e0709,var(--wine));
-  padding:20px 26px; display:flex; align-items:center; justify-content:space-between;
+  background:linear-gradient(135deg,#0d0305 0%,#1e0709 45%,#2a0c12 100%);
+  padding:0; display:flex; flex-direction:column;
+  border-bottom:2px solid rgba(201,149,106,.2);
 }
-.sadmin-hd-left p  { font-size:.63rem; letter-spacing:3px; color:rgba(245,237,227,.45); text-transform:uppercase; margin-bottom:2px; }
-.sadmin-hd-left h2 { font-family:'Playfair Display',serif; font-size:1.15rem; color:var(--cream); }
-.sadmin-close { cursor:pointer; color:rgba(245,237,227,.55); font-size:1.25rem; padding:6px; line-height:1; }
-.sadmin-close:hover { color:var(--cream); }
-.sadmin-tabs { display:flex; background:#f5ede3; border-bottom:1px solid rgba(107,23,40,.1); }
+.sadmin-hd-top {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:20px 26px 16px;
+}
+.sadmin-hd-left p  { font-size:.58rem; letter-spacing:4px; color:rgba(201,149,106,.6); text-transform:uppercase; margin-bottom:3px; }
+.sadmin-hd-left h2 { font-family:'Playfair Display',serif; font-size:1.2rem; font-weight:900; color:var(--cream); letter-spacing:1px; }
+.sadmin-close {
+  cursor:pointer; width:32px; height:32px; border-radius:50%;
+  background:rgba(245,237,227,.08); color:rgba(245,237,227,.45);
+  display:flex; align-items:center; justify-content:center;
+  font-size:.9rem; transition:all .2s; flex-shrink:0;
+}
+.sadmin-close:hover { background:rgba(245,237,227,.16); color:var(--cream); }
+.sadmin-gold-line { height:1px; background:linear-gradient(90deg,transparent,rgba(201,149,106,.4),transparent); margin:0 26px; }
+.sadmin-tabs {
+  display:flex; background:var(--white);
+  border-bottom:1.5px solid rgba(107,23,40,.1);
+}
 .sadmin-tab {
-  flex:1; padding:13px 8px; text-align:center;
+  flex:1; padding:14px 8px; text-align:center;
   font-size:.74rem; font-weight:600; cursor:pointer;
-  color:var(--gray); letter-spacing:.4px; transition:all .2s;
-  border-bottom:2.5px solid transparent;
+  color:var(--gray); letter-spacing:.3px; transition:all .2s;
+  border-bottom:2.5px solid transparent; margin-bottom:-1.5px;
 }
-.sadmin-tab:hover { color:var(--wine); }
-.sadmin-tab.active { color:var(--wine); border-bottom-color:var(--wine); }
+.sadmin-tab:hover { color:var(--wine); background:rgba(107,23,40,.03); }
+.sadmin-tab.active { color:var(--wine); border-bottom-color:var(--wine); background:rgba(107,23,40,.02); }
 .sadmin-body { padding:22px 26px; min-height:320px; }
 
 /* Tab Hoy */
@@ -1609,37 +1623,56 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 
 /* Super PIN modal */
 .super-pin-backdrop {
-  position:fixed; inset:0; z-index:2000;
-  background:rgba(20,5,10,.85); backdrop-filter:blur(8px);
-  display:none; align-items:center; justify-content:center;
+  position:fixed; inset:0; z-index:2200;
+  background:rgba(8,2,5,.94); backdrop-filter:blur(22px);
+  display:none; align-items:center; justify-content:center; padding:20px;
 }
 .super-pin-backdrop.open { display:flex; }
 .super-pin-modal {
-  background:#1e0709; border-radius:22px; padding:36px 32px;
-  text-align:center; width:320px; box-shadow:0 24px 64px rgba(0,0,0,.6);
+  background:linear-gradient(160deg,#140306 0%,#220810 55%,#140306 100%);
+  border-radius:28px; width:100%; max-width:360px; overflow:hidden;
+  box-shadow:0 32px 80px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.05);
+  position:relative;
 }
-.super-pin-modal .pin-icon { font-size:2.4rem; margin-bottom:14px; }
-.super-pin-modal h3 { font-family:'Playfair Display',serif; font-size:1.1rem; color:var(--cream); margin-bottom:6px; }
-.super-pin-modal p  { font-size:.78rem; color:rgba(245,237,227,.45); margin-bottom:20px; }
-.super-pin-modal input {
-  width:100%; padding:12px 16px; border-radius:10px;
-  border:1.5px solid rgba(245,237,227,.18); background:rgba(245,237,227,.06);
-  color:var(--cream); font-size:1rem; text-align:center; letter-spacing:3px;
-  outline:none; margin-bottom:14px; font-family:'Poppins',sans-serif;
+.spm-topline { height:3px; background:linear-gradient(90deg,transparent,#C9956A 30%,#e8c49a 50%,#C9956A 70%,transparent); }
+.spm-body { padding:40px 36px 36px; text-align:center; }
+.spm-crown {
+  width:64px; height:64px; border-radius:50%; margin:0 auto 20px;
+  background:rgba(201,149,106,.1); border:1.5px solid rgba(201,149,106,.22);
+  display:flex; align-items:center; justify-content:center; font-size:1.7rem;
 }
-.super-pin-modal input:focus { border-color:var(--gold); }
-.super-pin-modal .btn-confirmar { width:100%; }
-.pin-x-btn {
-  position:absolute; top:14px; right:14px;
-  width:28px; height:28px; border-radius:50%; border:none;
-  background:rgba(245,237,227,.12); color:rgba(245,237,227,.7);
-  font-size:.9rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
-  transition:all .2s;
+.spm-brand { font-family:'Playfair Display',serif; font-size:1.65rem; font-weight:900; color:var(--cream); letter-spacing:2px; }
+.spm-brand-sub { display:block; font-size:.6rem; letter-spacing:5px; color:rgba(201,149,106,.65); text-transform:uppercase; margin:4px 0 28px; }
+.spm-label { display:block; font-size:.63rem; letter-spacing:2px; color:rgba(245,237,227,.35); text-transform:uppercase; margin-bottom:10px; text-align:left; }
+.spm-input-wrap { position:relative; margin-bottom:6px; }
+.spm-input {
+  width:100%; padding:14px 46px 14px 18px; border-radius:12px;
+  border:1.5px solid rgba(245,237,227,.12); background:rgba(245,237,227,.06);
+  color:var(--cream); font-size:.95rem; letter-spacing:2px;
+  outline:none; font-family:'Poppins',sans-serif; transition:border-color .25s;
 }
-.pin-x-btn:hover { background:rgba(245,237,227,.22); color:var(--cream); }
-.pin-x-dark { background:rgba(107,23,40,.1); color:var(--gray); }
-.pin-x-dark:hover { background:rgba(107,23,40,.2); color:var(--wine); }
-.super-pin-modal, .pin-modal { position:relative; }
+.spm-input:focus { border-color:rgba(201,149,106,.55); background:rgba(245,237,227,.09); }
+.spm-input::placeholder { color:rgba(245,237,227,.22); letter-spacing:1px; font-size:.83rem; }
+.spm-eye {
+  position:absolute; right:14px; top:50%; transform:translateY(-50%);
+  color:rgba(245,237,227,.3); cursor:pointer; font-size:.95rem;
+  background:none; border:none; transition:color .2s; line-height:1;
+}
+.spm-eye:hover { color:rgba(245,237,227,.65); }
+.spm-err { font-size:.74rem; color:#ff6b7a; min-height:20px; text-align:left; padding-left:2px; margin-bottom:14px; }
+.btn-spm-enter {
+  width:100%; padding:14px; border-radius:12px; border:none; cursor:pointer;
+  background:linear-gradient(135deg,#C9956A,#a86a40);
+  color:#fff; font-family:'Poppins',sans-serif; font-weight:700; font-size:.88rem; letter-spacing:.5px;
+  transition:all .25s; box-shadow:0 6px 22px rgba(201,149,106,.32);
+}
+.btn-spm-enter:hover { background:linear-gradient(135deg,#daa878,#C9956A); transform:translateY(-2px); box-shadow:0 10px 30px rgba(201,149,106,.45); }
+.spm-close {
+  position:absolute; top:14px; right:14px; width:30px; height:30px; border-radius:50%;
+  background:rgba(245,237,227,.08); border:none; color:rgba(245,237,227,.38);
+  font-size:.82rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s;
+}
+.spm-close:hover { background:rgba(245,237,227,.16); color:var(--cream); }
 
 /* ── PIN MODAL ── */
 .pin-backdrop {
@@ -2708,7 +2741,7 @@ const DIAS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const MESES_ES  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
 const ADMIN_PIN  = '7835';
-const SUPER_PIN  = 'pres1234';   /* ← contraseña del super admin */
+const SUPER_PIN  = 'pre12345';
 
 const PLANES_SUB = {
   singular: { nombre:'Clase singular',        clases:1,    precio:12,  tag:'Single',   meses:1 },
@@ -3589,8 +3622,13 @@ function closePin() {
 function openSuperAdmin() {
   document.getElementById('superPinBackdrop').classList.add('open');
   document.getElementById('superPinInput').value = '';
-  document.getElementById('superPinErr').style.display = 'none';
+  document.getElementById('superPinInput').type = 'password';
+  document.getElementById('superPinErr').textContent = '';
   setTimeout(() => document.getElementById('superPinInput').focus(), 100);
+}
+function toggleSpmVis() {
+  const inp = document.getElementById('superPinInput');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
 }
 function checkSuperPin() {
   const val = document.getElementById('superPinInput').value;
@@ -3600,7 +3638,7 @@ function checkSuperPin() {
     document.body.style.overflow = 'hidden';
     sadminTab('hoy');
   } else {
-    document.getElementById('superPinErr').style.display = 'block';
+    document.getElementById('superPinErr').textContent = 'Contraseña incorrecta, intenta de nuevo.';
     document.getElementById('superPinInput').value = '';
     document.getElementById('superPinInput').focus();
   }
@@ -4151,14 +4189,22 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- ═══ SUPER ADMIN PIN ═══ -->
 <div class="super-pin-backdrop" id="superPinBackdrop" onclick="if(event.target===this)closeSuperPin()">
   <div class="super-pin-modal">
-    <button class="pin-x-btn" onclick="closeSuperPin()" title="Cerrar">✕</button>
-    <div class="pin-icon">👑</div>
-    <h3>Super Admin</h3>
-    <p>Acceso exclusivo para administración de suscripciones</p>
-    <input type="password" id="superPinInput" maxlength="20" placeholder="Contraseña"
-      onkeydown="if(event.key==='Enter')checkSuperPin(); if(event.key==='Escape')closeSuperPin()"/>
-    <button class="btn-confirmar" onclick="checkSuperPin()">Acceder →</button>
-    <p class="pin-err" id="superPinErr" style="display:none">Contraseña incorrecta.</p>
+    <div class="spm-topline"></div>
+    <button class="spm-close" onclick="closeSuperPin()">✕</button>
+    <div class="spm-body">
+      <div class="spm-crown">👑</div>
+      <div class="spm-brand">Presenza</div>
+      <span class="spm-brand-sub">Super Admin</span>
+      <span class="spm-label">Contraseña de acceso</span>
+      <div class="spm-input-wrap">
+        <input type="password" id="superPinInput" class="spm-input" maxlength="20"
+          placeholder="Ingresa tu contraseña"
+          onkeydown="if(event.key==='Enter')checkSuperPin(); if(event.key==='Escape')closeSuperPin()"/>
+        <button class="spm-eye" id="spmEye" onclick="toggleSpmVis()" tabindex="-1">👁</button>
+      </div>
+      <div class="spm-err" id="superPinErr"></div>
+      <button class="btn-spm-enter" onclick="checkSuperPin()">Acceder al panel →</button>
+    </div>
   </div>
 </div>
 
@@ -4166,11 +4212,14 @@ document.addEventListener('DOMContentLoaded', () => {
 <div class="sadmin-backdrop" id="sadminBackdrop">
   <div class="sadmin-panel">
     <div class="sadmin-hd">
-      <div class="sadmin-hd-left">
-        <p>✧ Presencia Studio</p>
-        <h2>Super Admin</h2>
+      <div class="sadmin-hd-top">
+        <div class="sadmin-hd-left">
+          <p>✧ Presenza Studio</p>
+          <h2>👑 Super Admin</h2>
+        </div>
+        <div class="sadmin-close" onclick="closeSuperAdmin()">✕</div>
       </div>
-      <div class="sadmin-close" onclick="closeSuperAdmin()">✕</div>
+      <div class="sadmin-gold-line"></div>
     </div>
     <div class="sadmin-tabs">
       <div class="sadmin-tab active" data-tab="hoy"        onclick="sadminTab('hoy')">📅 Hoy</div>
