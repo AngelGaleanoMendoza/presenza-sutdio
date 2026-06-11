@@ -277,8 +277,17 @@ nav.scrolled .hamburger span { background:var(--wine); }
   font-size:.91rem; font-weight:300; margin-bottom:24px;
 }
 .sep {
-  height:1px; max-width:1100px; margin:0 auto;
+  display:flex; align-items:center; gap:18px;
+  max-width:1100px; margin:0 auto; padding:0 52px;
+}
+.sep::before, .sep::after {
+  content:''; flex:1; height:1px;
   background:linear-gradient(90deg, transparent, rgba(107,23,40,.1), transparent);
+}
+.sep::after { background:linear-gradient(270deg, transparent, rgba(107,23,40,.1), transparent); }
+.sep-dot {
+  width:6px; height:6px; border-radius:50%;
+  background:rgba(107,23,40,.15); flex-shrink:0;
 }
 
 /* ── SCROLL REVEAL ── */
@@ -1786,10 +1795,10 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   <div class="nav-logo" id="navLogo">Presenza</div>
   <ul class="nav-links" id="navLinks">
     <li><a href="#clases">Clases</a></li>
-    <li><a href="#equipo">Equipo</a></li>
+    <li><a href="#equipo">Coaches</a></li>
     <li><a href="#galeria">Galería</a></li>
+    <li><a href="#pagos">Planes</a></li>
     <li><a href="#eventos">Eventos</a></li>
-    <li><a href="#pagos">Pagos</a></li>
     <li><a href="#ubicacion">Ubicación</a></li>
     <li><a href="#reserva" class="nav-cta" id="navReservar">Reservar</a></li>
   </ul>
@@ -1800,10 +1809,10 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 </nav>
 <div class="mobile-menu" id="mobileMenu">
   <a href="#clases"    onclick="toggleMenu()">Clases</a>
-  <a href="#equipo"    onclick="toggleMenu()">Equipo</a>
+  <a href="#equipo"    onclick="toggleMenu()">Coaches</a>
   <a href="#galeria"   onclick="toggleMenu()">Galería</a>
+  <a href="#pagos"     onclick="toggleMenu()">Planes</a>
   <a href="#eventos"   onclick="toggleMenu()">Eventos</a>
-  <a href="#pagos"     onclick="toggleMenu()">Pagos</a>
   <a href="#ubicacion" onclick="toggleMenu()">Ubicación</a>
   <a href="#reserva"   onclick="toggleMenu()">Reservar</a>
 </div>
@@ -1926,7 +1935,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   </div>
 </section>
 
-<div class="sep"></div>
+<div class="sep"><span class="sep-dot"></span></div>
 
 <!-- ═══ CLASES ═══ -->
 <section class="clases" id="clases">
@@ -2007,7 +2016,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   </div>
 </section>
 
-<div class="sep"></div>
+<div class="sep"><span class="sep-dot"></span></div>
 
 <!-- ═══ NUESTRO EQUIPO ═══ -->
 <section class="equipo" id="equipo">
@@ -2080,7 +2089,62 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   </div>
 </section>
 
-<div class="sep"></div>
+<div class="sep"><span class="sep-dot"></span></div>
+
+<!-- ═══ FILOSOFÍA ═══ -->
+<section class="filosofia" id="filosofia">
+  <div class="filo-inner">
+    <div class="filo-imgs rl">
+      <div class="filo-img">
+        <img src="assets/Screenshot 2026-05-30 221705.png" alt="Barre Burn filosofía"
+          onerror="this.outerHTML='<div class=filo-img-ph fip-1>✧</div>'">
+      </div>
+      <div class="filo-img">
+        <img src="assets/Screenshot 2026-05-30 221306.png" alt="Presenza studio entrada"
+          onerror="this.outerHTML='<div class=filo-img-ph fip-2>🏠</div>'">
+      </div>
+      <div class="filo-img">
+        <img src="assets/Screenshot 2026-05-30 221409.png" alt="Presenza definición"
+          onerror="this.outerHTML='<div class=filo-img-ph fip-3>📖</div>'">
+      </div>
+    </div>
+
+    <div class="filo-text rr">
+      <p class="section-tag">nuestra filosofía</p>
+      <h2 class="section-title">Un espacio para<br/><em>volver a ti</em></h2>
+      <p class="section-body">
+        Creemos que el movimiento es una forma de meditación. Cada clase
+        es una invitación a dejar el ruido afuera y estar completamente
+        presente en tu cuerpo y en tu momento.
+      </p>
+      <div class="pillars">
+        <div class="pillar r d1">
+          <div class="pillar-icon">🧠</div>
+          <div>
+            <h4>Presencia plena</h4>
+            <p>Llevar la atención al momento que estás viviendo, integrando cuerpo, mente y espíritu.</p>
+          </div>
+        </div>
+        <div class="pillar r d2">
+          <div class="pillar-icon">💪</div>
+          <div>
+            <h4>Movimiento con intención</h4>
+            <p>Cada ejercicio tiene un propósito. No se trata de cuánto haces, sino de cómo lo haces.</p>
+          </div>
+        </div>
+        <div class="pillar r d3">
+          <div class="pillar-icon">🌸</div>
+          <div>
+            <h4>Comunidad que eleva</h4>
+            <p>Un espacio seguro y amoroso donde todas son bienvenidas, sin importar su nivel.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="sep"><span class="sep-dot"></span></div>
 
 <!-- ═══ SALONES ═══ -->
 <section class="salones" id="salones">
@@ -2160,62 +2224,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   </div>
 </section>
 
-<div class="sep"></div>
-
-<!-- ═══ FILOSOFÍA ═══ -->
-<section class="filosofia" id="filosofia">
-  <div class="filo-inner">
-    <div class="filo-imgs rl">
-      <div class="filo-img">
-        <img src="assets/Screenshot 2026-05-30 221705.png" alt="Barre Burn filosofía"
-          onerror="this.outerHTML='<div class=filo-img-ph fip-1>✧</div>'">
-      </div>
-      <div class="filo-img">
-        <img src="assets/Screenshot 2026-05-30 221306.png" alt="Presenza studio entrada"
-          onerror="this.outerHTML='<div class=filo-img-ph fip-2>🏠</div>'">
-      </div>
-      <div class="filo-img">
-        <img src="assets/Screenshot 2026-05-30 221409.png" alt="Presenza definición"
-          onerror="this.outerHTML='<div class=filo-img-ph fip-3>📖</div>'">
-      </div>
-    </div>
-
-    <div class="filo-text rr">
-      <p class="section-tag">nuestra filosofía</p>
-      <h2 class="section-title">Un espacio para<br/><em>volver a ti</em></h2>
-      <p class="section-body">
-        Creemos que el movimiento es una forma de meditación. Cada clase
-        es una invitación a dejar el ruido afuera y estar completamente
-        presente en tu cuerpo y en tu momento.
-      </p>
-      <div class="pillars">
-        <div class="pillar r d1">
-          <div class="pillar-icon">🧠</div>
-          <div>
-            <h4>Presencia plena</h4>
-            <p>Llevar la atención al momento que estás viviendo, integrando cuerpo, mente y espíritu.</p>
-          </div>
-        </div>
-        <div class="pillar r d2">
-          <div class="pillar-icon">💪</div>
-          <div>
-            <h4>Movimiento con intención</h4>
-            <p>Cada ejercicio tiene un propósito. No se trata de cuánto haces, sino de cómo lo haces.</p>
-          </div>
-        </div>
-        <div class="pillar r d3">
-          <div class="pillar-icon">🌸</div>
-          <div>
-            <h4>Comunidad que eleva</h4>
-            <p>Un espacio seguro y amoroso donde todas son bienvenidas, sin importar su nivel.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div class="sep"></div>
+<div class="sep"><span class="sep-dot"></span></div>
 
 <!-- ═══ GALERÍA / CARRUSEL ═══ -->
 <section class="carrusel" id="galeria">
@@ -2283,19 +2292,44 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   </p>
 </section>
 
-<!-- ═══ EVENTOS DEL ESTUDIO ═══ -->
-<section class="eventos" id="eventos">
-  <div class="eventos-inner">
-    <div class="eventos-header">
-      <p class="section-tag r">próximos eventos</p>
-      <h2 class="section-title r">Vive la experiencia<br/><em>Presenza</em></h2>
+<!-- ═══ NUESTROS HORARIOS — RESERVA SEMANAL ═══ -->
+<section class="reserva" id="reserva">
+  <div class="reserva-inner">
+
+    <div class="reserva-header">
+      <p class="section-tag r">nuestros horarios</p>
+      <h2 class="section-title r">Elige tu clase,<br/><em>elige tu momento</em></h2>
       <p class="section-body r d1">
-        Workshops, masterclasses y experiencias especiales para nuestra comunidad.
+        Selecciona el día y la clase que quieras. Los cupos disponibles
+        se muestran en tiempo real.
       </p>
     </div>
-    <div class="eventos-grid" id="eventosGrid"></div>
+
+    <!-- navegador de semana -->
+    <div class="sched-nav r">
+      <div class="sched-nav-btn" onclick="schedWeek(-1)">‹</div>
+      <span id="schedWeekLabel"></span>
+      <div class="sched-nav-btn" onclick="schedWeek(1)">›</div>
+    </div>
+
+    <!-- tabs de día -->
+    <div class="sched-day-tabs r" id="schedDayTabs"></div>
+
+    <!-- cards de clases -->
+    <div class="sched-classes" id="schedClasses"></div>
+
+    <!-- leyenda -->
+    <div class="sched-legend r d2">
+      <div class="legend-item"><span class="leg-dot burn"></span>Barre Burn</div>
+      <div class="legend-item"><span class="leg-dot essenza"></span>Barre Essenza</div>
+      <div class="legend-item"><span class="leg-dot pilates"></span>Presence Pilates</div>
+      <div class="legend-item"><span class="leg-dot yoga"></span>Unwind Yoga</div>
+    </div>
+
   </div>
 </section>
+
+<div class="sep"><span class="sep-dot"></span></div>
 
 <!-- ═══ MODALIDADES DE PAGO ═══ -->
 <section class="pagos" id="pagos">
@@ -2369,44 +2403,23 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   </div>
 </section>
 
-<div class="sep"></div>
+<div class="sep"><span class="sep-dot"></span></div>
 
-<!-- ═══ NUESTROS HORARIOS — RESERVA SEMANAL ═══ -->
-<section class="reserva" id="reserva">
-  <div class="reserva-inner">
-
-    <div class="reserva-header">
-      <p class="section-tag r">nuestros horarios</p>
-      <h2 class="section-title r">Elige tu clase,<br/><em>elige tu momento</em></h2>
+<!-- ═══ EVENTOS DEL ESTUDIO ═══ -->
+<section class="eventos" id="eventos">
+  <div class="eventos-inner">
+    <div class="eventos-header">
+      <p class="section-tag r">próximos eventos</p>
+      <h2 class="section-title r">Vive la experiencia<br/><em>Presenza</em></h2>
       <p class="section-body r d1">
-        Selecciona el día y la clase que quieras. Los cupos disponibles
-        se muestran en tiempo real.
+        Workshops, masterclasses y experiencias especiales para nuestra comunidad.
       </p>
     </div>
-
-    <!-- navegador de semana -->
-    <div class="sched-nav r">
-      <div class="sched-nav-btn" onclick="schedWeek(-1)">‹</div>
-      <span id="schedWeekLabel"></span>
-      <div class="sched-nav-btn" onclick="schedWeek(1)">›</div>
-    </div>
-
-    <!-- tabs de día -->
-    <div class="sched-day-tabs r" id="schedDayTabs"></div>
-
-    <!-- cards de clases -->
-    <div class="sched-classes" id="schedClasses"></div>
-
-    <!-- leyenda -->
-    <div class="sched-legend r d2">
-      <div class="legend-item"><span class="leg-dot burn"></span>Barre Burn</div>
-      <div class="legend-item"><span class="leg-dot essenza"></span>Barre Essenza</div>
-      <div class="legend-item"><span class="leg-dot pilates"></span>Presence Pilates</div>
-      <div class="legend-item"><span class="leg-dot yoga"></span>Unwind Yoga</div>
-    </div>
-
+    <div class="eventos-grid" id="eventosGrid"></div>
   </div>
 </section>
+
+<div class="sep"><span class="sep-dot"></span></div>
 
 <!-- ═══ UBICACIÓN ═══ -->
 <section class="ubicacion" id="ubicacion">
