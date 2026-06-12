@@ -640,27 +640,44 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .eq-tags { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:14px; }
 .eq-tag { font-size:.63rem; font-weight:600; padding:3px 10px; border-radius:50px; background:var(--cream); color:var(--wine); letter-spacing:.5px; }
 
-/* ── CARRUSEL GALERÍA ── */
+/* ── CARRUSEL GALERÍA — tira editorial ── */
 .carrusel { background:var(--white); overflow:hidden; }
-.car-header { text-align:center; padding:80px 52px 44px; }
+.car-header { text-align:center; padding:80px 52px 36px; }
 .car-header .section-tag { justify-content:center; }
 .car-track-wrap { overflow:hidden; }
-.car-track { display:flex; transition:transform .65s cubic-bezier(.25,.46,.45,.94); will-change:transform; }
-.car-slide { flex-shrink:0; width:100%; }
-.car-slide-inner { display:grid; grid-template-columns:repeat(3,1fr); height:420px; }
-.car-slide-inner.cs-2 { grid-template-columns:1fr 1fr; }
-.car-img { overflow:hidden; position:relative; cursor:pointer; }
-.car-img img { width:100%; height:100%; object-fit:cover; object-position:center top; transition:transform .55s ease; display:block; }
-.car-img:hover img { transform:scale(1.06); }
-.car-img-ph { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:4rem; }
-.car-overlay {
-  position:absolute; inset:0;
-  background:linear-gradient(to top,rgba(74,15,26,.58) 0%,transparent 55%);
-  opacity:0; transition:opacity .4s; display:flex; align-items:flex-end; padding:18px;
+.car-track {
+  display:flex; gap:28px; padding:18px 52px 8px;
+  transition:transform .75s cubic-bezier(.25,.46,.45,.94); will-change:transform;
 }
-.car-img:hover .car-overlay { opacity:1; }
-.car-overlay span { color:white; font-size:.82rem; font-weight:500; letter-spacing:.5px; }
-.car-controls { display:flex; align-items:center; justify-content:center; gap:16px; padding:22px 0 52px; }
+.gal-card {
+  flex-shrink:0; width:clamp(230px,23vw,310px); margin:0;
+  transition:transform .65s ease, opacity .65s ease, filter .65s ease;
+}
+.gal-card:nth-child(even) { transform:translateY(26px); }
+.gal-img {
+  aspect-ratio:2/3; overflow:hidden; border-radius:22px; position:relative;
+  box-shadow:0 18px 44px rgba(74,15,26,.18); cursor:pointer;
+}
+.gal-img img {
+  width:100%; height:100%; object-fit:cover; display:block;
+  transition:transform .8s cubic-bezier(.22,.61,.36,1);
+}
+.gal-card:hover .gal-img img { transform:scale(1.05); }
+.gal-img::after {
+  content:''; position:absolute; inset:0; border-radius:22px; pointer-events:none;
+  border:1px solid rgba(255,255,255,.25);
+  box-shadow:inset 0 -80px 70px -55px rgba(74,15,26,.42);
+}
+.car-img-ph { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:4rem; }
+.gal-caption { display:flex; align-items:baseline; gap:10px; padding:16px 8px 0; }
+.gal-num { font-family:'Playfair Display',serif; font-style:italic; font-size:.85rem; color:var(--blush); }
+.gal-cap { font-size:.72rem; letter-spacing:2px; text-transform:uppercase; color:var(--wine-d); font-weight:600; }
+/* tarjeta fuera de foco */
+.gal-card:not(.gal-active) { opacity:.45; filter:saturate(.65); }
+.gal-card:not(.gal-active) .gal-img { box-shadow:0 10px 26px rgba(74,15,26,.10); }
+.gal-card.gal-active:nth-child(odd)  { transform:scale(1.03); }
+.gal-card.gal-active:nth-child(even) { transform:translateY(26px) scale(1.03); }
+.car-controls { display:flex; align-items:center; justify-content:center; gap:16px; padding:54px 0 52px; }
 .car-btn {
   width:38px; height:38px; border-radius:50%;
   background:var(--white); border:1.5px solid rgba(107,23,40,.15);
@@ -786,8 +803,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   .stat-item:nth-child(3),.stat-item:nth-child(4) { border-bottom:none; }
   .equipo-grid { grid-template-columns:1fr 1fr; gap:16px; }
   .pagos-grid { grid-template-columns:1fr; max-width:480px; margin:0 auto 36px; }
-  .car-slide-inner { grid-template-columns:1fr 1fr; height:320px; }
-  .car-slide-inner .car-img:nth-child(3) { display:none; }
+  .car-track { gap:20px; padding:18px 32px 8px; }
+  .gal-card { width:clamp(220px,34vw,280px); }
 }
 @media(max-width:620px){
   .nav-links { display:none; }
@@ -801,8 +818,10 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   .filo-img:first-child { grid-row:span 1; aspect-ratio:4/3; }
   .equipo-grid { grid-template-columns:1fr 1fr; max-width:100%; gap:12px; }
   .stats-inner { grid-template-columns:repeat(2,1fr); }
-  .car-slide-inner { grid-template-columns:1fr; height:260px; }
-  .car-slide-inner .car-img:nth-child(2),.car-slide-inner .car-img:nth-child(3) { display:none; }
+  .car-track { gap:16px; padding:14px 24px 6px; }
+  .gal-card { width:68vw; }
+  .gal-card:nth-child(even) { transform:translateY(14px); }
+  .gal-card.gal-active:nth-child(even) { transform:translateY(14px) scale(1.03); }
   .pagos-grid { max-width:380px; }
 }
 
@@ -2265,42 +2284,45 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   <div class="car-track-wrap">
     <div class="car-track" id="carTrack">
 
-      <!-- Slide 1 -->
-      <div class="car-slide">
-        <div class="car-slide-inner">
-          <div class="car-img">
-            <img src="assets/galeria/barre-clase.jpeg" alt="Clase de Barre en Presenza"
-              onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,#7B1A2E,var(--wine))&quot;>🩰</div>'">
-            <div class="car-overlay"><span>Barre Burn ✧</span></div>
-          </div>
-          <div class="car-img">
-            <img src="assets/galeria/pilates-ball.jpeg" alt="Presence Pilates"
-              onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,var(--blush),#B8785A)&quot;>🌿</div>'">
-            <div class="car-overlay"><span>Presence Pilates</span></div>
-          </div>
-          <div class="car-img">
-            <img src="assets/galeria/warrior-pose.jpeg" alt="Movimiento con intención"
-              onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,var(--cream-d),var(--cream))&quot;>🧘</div>'">
-            <div class="car-overlay"><span>Movimiento con intención</span></div>
-          </div>
+      <figure class="gal-card">
+        <div class="gal-img">
+          <img src="assets/galeria/barre-clase.jpeg" alt="Clase de Barre en Presenza"
+            onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,#7B1A2E,var(--wine))&quot;>🩰</div>'">
         </div>
-      </div>
+        <figcaption class="gal-caption"><span class="gal-num">01</span><span class="gal-cap">Barre Burn</span></figcaption>
+      </figure>
 
-      <!-- Slide 2 -->
-      <div class="car-slide">
-        <div class="car-slide-inner cs-2">
-          <div class="car-img">
-            <img src="assets/galeria/estudio-fachada.jpeg" alt="Nuestro estudio en TerraPlaza"
-              onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,#8B9E7A,#C5D4B8)&quot;>🏠</div>'">
-            <div class="car-overlay"><span>Nuestro estudio ✧</span></div>
-          </div>
-          <div class="car-img">
-            <img src="assets/galeria/comunidad.jpeg" alt="Comunidad Presenza"
-              onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,var(--wine-d),#9B2B42)&quot;>💃</div>'">
-            <div class="car-overlay"><span>Comunidad que eleva</span></div>
-          </div>
+      <figure class="gal-card">
+        <div class="gal-img">
+          <img src="assets/galeria/pilates-ball.jpeg" alt="Presence Pilates"
+            onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,var(--blush),#B8785A)&quot;>🌿</div>'">
         </div>
-      </div>
+        <figcaption class="gal-caption"><span class="gal-num">02</span><span class="gal-cap">Presence Pilates</span></figcaption>
+      </figure>
+
+      <figure class="gal-card">
+        <div class="gal-img">
+          <img src="assets/galeria/warrior-pose.jpeg" alt="Movimiento con intención"
+            onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,var(--cream-d),var(--cream))&quot;>🧘</div>'">
+        </div>
+        <figcaption class="gal-caption"><span class="gal-num">03</span><span class="gal-cap">Movimiento con intención</span></figcaption>
+      </figure>
+
+      <figure class="gal-card">
+        <div class="gal-img">
+          <img src="assets/galeria/estudio-fachada.jpeg" alt="Nuestro estudio en TerraPlaza"
+            onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,#8B9E7A,#C5D4B8)&quot;>🏠</div>'">
+        </div>
+        <figcaption class="gal-caption"><span class="gal-num">04</span><span class="gal-cap">Nuestro estudio</span></figcaption>
+      </figure>
+
+      <figure class="gal-card">
+        <div class="gal-img">
+          <img src="assets/galeria/comunidad.jpeg" alt="Comunidad Presenza"
+            onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,var(--wine-d),#9B2B42)&quot;>💃</div>'">
+        </div>
+        <figcaption class="gal-caption"><span class="gal-num">05</span><span class="gal-cap">Comunidad que eleva</span></figcaption>
+      </figure>
 
     </div>
   </div>
@@ -2682,16 +2704,16 @@ const countObs = new IntersectionObserver(entries => {
 }, { threshold: 0.4 });
 document.querySelectorAll('.salon-card, .stats-inner').forEach(c => countObs.observe(c));
 
-/* ── CARRUSEL ── */
+/* ── CARRUSEL — tira editorial centrada ── */
 let carIdx = 0;
-const carSlides = document.querySelectorAll('.car-slide');
+const carCards  = document.querySelectorAll('.gal-card');
 const carDotsEl = document.getElementById('carDots');
 let carTimer;
 
 function carInitDots() {
   if (!carDotsEl) return;
   carDotsEl.innerHTML = '';
-  carSlides.forEach((_, i) => {
+  carCards.forEach((_, i) => {
     const d = document.createElement('div');
     d.className = 'car-dot' + (i===0?' active':'');
     d.onclick = () => carGoTo(i);
@@ -2700,19 +2722,28 @@ function carInitDots() {
 }
 
 function carGoTo(n) {
-  carIdx = (n + carSlides.length) % carSlides.length;
-  document.getElementById('carTrack').style.transform = `translateX(-${carIdx*100}%)`;
+  carIdx = (n + carCards.length) % carCards.length;
+  const track = document.getElementById('carTrack');
+  const wrap  = track.parentElement;
+  const card  = carCards[carIdx];
+  /* centrar la tarjeta activa, sin dejar huecos en los extremos */
+  const target = card.offsetLeft + card.offsetWidth/2 - wrap.clientWidth/2;
+  const max    = Math.max(0, track.scrollWidth - wrap.clientWidth);
+  const x      = Math.max(0, Math.min(target, max));
+  track.style.transform = `translateX(-${x}px)`;
+  carCards.forEach((c,i) => c.classList.toggle('gal-active', i===carIdx));
   carDotsEl.querySelectorAll('.car-dot').forEach((d,i) => d.classList.toggle('active', i===carIdx));
   clearInterval(carTimer);
-  carTimer = setInterval(() => carGoTo(carIdx+1), 5000);
+  carTimer = setInterval(() => carGoTo(carIdx+1), 4500);
 }
 
 function carMove(dir) { carGoTo(carIdx + dir); }
 
 document.addEventListener('DOMContentLoaded', () => {
   carInitDots();
-  carTimer = setInterval(() => carGoTo(carIdx+1), 5000);
+  carGoTo(0);
 });
+window.addEventListener('resize', () => carGoTo(carIdx));
 
 /* ── HAMBURGER ── */
 function toggleMenu() {
