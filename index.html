@@ -710,6 +710,55 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .mc-chip:hover { border-color:var(--wine); background:var(--white); }
 .mc-chip .mci { font-size:1.2rem; }
 
+/* ── PLAN CARDS — CTA + ROW LABEL ── */
+.pagos-row-label {
+  grid-column:1/-1; font-family:'Playfair Display',serif;
+  font-size:.92rem; font-weight:700; color:var(--wine-d);
+  margin-top:14px; padding:2px 4px; letter-spacing:.3px;
+}
+.pagos-row-label:first-child { margin-top:0; }
+.pc-cta {
+  display:block; margin:0 22px 22px;
+  padding:11px 16px; border-radius:50px;
+  font-size:.8rem; font-weight:600; text-align:center;
+  transition:all .25s; cursor:pointer; text-decoration:none;
+  border:none; font-family:inherit;
+}
+.pc-cta-wa { background:var(--wa); color:#fff; box-shadow:0 4px 14px rgba(37,211,102,.28); }
+.pc-cta-wa:hover { background:#1DA851; transform:translateY(-2px); box-shadow:0 8px 20px rgba(37,211,102,.42); }
+.pc-cta-link { background:var(--wine-l); color:#fff; box-shadow:0 4px 14px rgba(107,23,40,.2); }
+.pc-cta-link:not(:disabled):hover { background:var(--wine-d); transform:translateY(-2px); }
+.pc-cta-link:disabled { opacity:.52; cursor:not-allowed; box-shadow:none; transform:none; }
+.pc-featured .pc-cta-wa {
+  background:rgba(255,255,255,.16); color:#fff;
+  border:1.5px solid rgba(255,255,255,.36); box-shadow:none;
+}
+.pc-featured .pc-cta-wa:hover { background:rgba(255,255,255,.28); transform:translateY(-2px); }
+.pc-featured .pc-cta-link { background:rgba(255,255,255,.18); border:1.5px solid rgba(255,255,255,.36); box-shadow:none; }
+.sa-pago-detalle { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; font-size:.69rem; color:var(--gray); }
+.sa-pago-detalle span { background:var(--cream); border-radius:6px; padding:2px 7px; }
+
+/* ── CUMPLEAÑOS EVENT CARD ── */
+.ev-cumple .ev-band { background:linear-gradient(135deg,var(--wine-d),#8B2035); }
+.ev-cumple .ev-fecha-box { justify-content:center; font-size:1.9rem; }
+.cumple-includes { display:grid; grid-template-columns:1fr 1fr; gap:4px 14px; margin:10px 0 14px; }
+.cumple-inc-item { font-size:.79rem; color:var(--text); padding:3px 0; }
+.cumple-picker { margin-bottom:12px; }
+.cumple-picker-lbl { font-size:.74rem; font-weight:600; color:var(--wine-d); margin-bottom:6px; letter-spacing:.3px; text-transform:uppercase; }
+.cumple-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.cumple-chip {
+  font-size:.72rem; font-weight:500; padding:5px 11px; border-radius:50px;
+  border:1.5px solid rgba(107,23,40,.15); background:var(--cream);
+  color:var(--text); cursor:pointer; transition:all .2s;
+}
+.cumple-chip:hover { border-color:var(--wine); }
+.cumple-chip.active { background:var(--wine); border-color:var(--wine); color:#fff; }
+.cumple-helio { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:.8rem; color:var(--text); margin:10px 0; }
+.cumple-helio input { cursor:pointer; accent-color:var(--wine); width:15px; height:15px; }
+.cumple-guest { display:flex; align-items:center; gap:10px; font-size:.8rem; color:var(--text); margin:8px 0 16px; }
+.cumple-guest select { padding:6px 12px; border-radius:8px; border:1.5px solid rgba(107,23,40,.15); background:var(--cream); color:var(--text); font-family:inherit; font-size:.8rem; cursor:pointer; }
+.btn-ev-cumple { background:linear-gradient(135deg,var(--wine),var(--wine-l)); margin-top:4px; }
+
 /* ── RESPONSIVE ── */
 @media(max-width:960px){
   nav { padding:0 24px; }
@@ -735,7 +784,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   .stat-item:nth-child(2n) { border-right:none; }
   .stat-item:nth-child(3),.stat-item:nth-child(4) { border-bottom:none; }
   .equipo-grid { grid-template-columns:1fr 1fr; gap:16px; }
-  .pagos-grid { grid-template-columns:1fr; max-width:400px; margin:0 auto 36px; }
+  .pagos-grid { grid-template-columns:1fr; max-width:480px; margin:0 auto 36px; }
   .car-slide-inner { grid-template-columns:1fr 1fr; height:320px; }
   .car-slide-inner .car-img:nth-child(3) { display:none; }
 }
@@ -753,7 +802,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   .stats-inner { grid-template-columns:repeat(2,1fr); }
   .car-slide-inner { grid-template-columns:1fr; height:260px; }
   .car-slide-inner .car-img:nth-child(2),.car-slide-inner .car-img:nth-child(3) { display:none; }
-  .pagos-grid { max-width:340px; }
+  .pagos-grid { max-width:380px; }
 }
 
 
@@ -2340,50 +2389,100 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 
     <div class="pagos-grid">
 
-      <!-- Clase suelta -->
+      <div class="pagos-row-label">🎟️ Paquetes de clases</div>
+
+      <!-- Clase Singular $12 -->
       <div class="pago-card r d1">
         <div class="pago-card-head">
           <div class="pc-icon">🎟️</div>
-          <p class="pc-name">Clase suelta</p>
-          <p class="pc-price">$15 <small>por clase · Barre & Pilates</small></p>
+          <p class="pc-name">Clase Singular</p>
+          <p class="pc-price">$12 <small>por clase · acceso único</small></p>
         </div>
         <div class="pc-perks">
           <div class="pc-perk"><span>✧</span> Acceso a 1 clase</div>
-          <div class="pc-perk"><span>✧</span> Cualquier horario disponible</div>
+          <div class="pc-perk"><span>✧</span> Cualquier disciplina disponible</div>
           <div class="pc-perk"><span>✧</span> Sin compromiso mensual</div>
-          <div class="pc-perk"><span>✧</span> Yoga desde $12</div>
         </div>
+        <button class="pc-cta pc-cta-link" disabled>🔗 Link de pago · Próximamente</button>
       </div>
 
-      <!-- Paquete 4 clases — destacado -->
+      <!-- 5 Clases $45 — destacado -->
       <div class="pago-card pc-featured r d2">
         <div class="pago-card-head">
           <span class="pc-badge">✧ Más popular</span>
           <div class="pc-icon">🌟</div>
-          <p class="pc-name">Paquete 4 clases</p>
-          <p class="pc-price">$52 <small>$13 por clase · ahorras $8</small></p>
+          <p class="pc-name">5 Clases</p>
+          <p class="pc-price">$45 <small>$9 por clase · ahorras $15</small></p>
         </div>
         <div class="pc-perks">
-          <div class="pc-perk"><span>✧</span> 4 clases de cualquier disciplina</div>
+          <div class="pc-perk"><span>✧</span> 5 clases de cualquier disciplina</div>
           <div class="pc-perk"><span>✧</span> Válido por 30 días</div>
-          <div class="pc-perk"><span>✧</span> Reserva en línea</div>
           <div class="pc-perk"><span>✧</span> Combina Barre, Pilates & Yoga</div>
         </div>
+        <button class="pc-cta pc-cta-link" disabled>🔗 Link de pago · Próximamente</button>
       </div>
 
-      <!-- Membresía mensual -->
+      <!-- 10 Clases $80 -->
+      <div class="pago-card r d3">
+        <div class="pago-card-head">
+          <div class="pc-icon">💫</div>
+          <p class="pc-name">10 Clases</p>
+          <p class="pc-price">$80 <small>$8 por clase · ahorras $40</small></p>
+        </div>
+        <div class="pc-perks">
+          <div class="pc-perk"><span>✧</span> 10 clases de cualquier disciplina</div>
+          <div class="pc-perk"><span>✧</span> Válido por 45 días</div>
+          <div class="pc-perk"><span>✧</span> Combina Barre, Pilates & Yoga</div>
+        </div>
+        <button class="pc-cta pc-cta-link" disabled>🔗 Link de pago · Próximamente</button>
+      </div>
+
+      <div class="pagos-row-label">♾️ Membresías ilimitadas</div>
+
+      <!-- Mensual Ilimitado $130 -->
+      <div class="pago-card r d1">
+        <div class="pago-card-head">
+          <div class="pc-icon">🗓️</div>
+          <p class="pc-name">Mensual Ilimitado</p>
+          <p class="pc-price">$130 <small>por mes · clases ilimitadas</small></p>
+        </div>
+        <div class="pc-perks">
+          <div class="pc-perk"><span>✧</span> Clases ilimitadas por 1 mes</div>
+          <div class="pc-perk"><span>✧</span> Acceso a todos los salones</div>
+          <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
+        </div>
+        <button class="pc-cta pc-cta-wa" onclick="planWA('Mensual Ilimitado','$130/mes')">💬 Contratar por WhatsApp →</button>
+      </div>
+
+      <!-- 3 Meses Ilimitado $115/mes — destacado -->
+      <div class="pago-card pc-featured r d2">
+        <div class="pago-card-head">
+          <span class="pc-badge">✧ Mejor valor</span>
+          <div class="pc-icon">⭐</div>
+          <p class="pc-name">3 Meses Ilimitado</p>
+          <p class="pc-price">$115 <small>/mes · total $345</small></p>
+        </div>
+        <div class="pc-perks">
+          <div class="pc-perk"><span>✧</span> Clases ilimitadas por 3 meses</div>
+          <div class="pc-perk"><span>✧</span> Acceso a todos los salones</div>
+          <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
+        </div>
+        <button class="pc-cta pc-cta-wa" onclick="planWA('3 Meses Ilimitado','$115/mes')">💬 Contratar por WhatsApp →</button>
+      </div>
+
+      <!-- 6 Meses Ilimitado $102/mes -->
       <div class="pago-card r d3">
         <div class="pago-card-head">
           <div class="pc-icon">♾️</div>
-          <p class="pc-name">Membresía mensual</p>
-          <p class="pc-price">$120 <small>por mes · clases ilimitadas</small></p>
+          <p class="pc-name">6 Meses Ilimitado</p>
+          <p class="pc-price">$102 <small>/mes · total $612</small></p>
         </div>
         <div class="pc-perks">
-          <div class="pc-perk"><span>✧</span> Clases ilimitadas todo el mes</div>
-          <div class="pc-perk"><span>✧</span> Acceso a los 2 salones</div>
-          <div class="pc-perks"><span>✧</span> Prioridad en reservas</div>
-          <div class="pc-perk"><span>✧</span> Descuento en talleres especiales</div>
+          <div class="pc-perk"><span>✧</span> Clases ilimitadas por 6 meses</div>
+          <div class="pc-perk"><span>✧</span> Acceso a todos los salones</div>
+          <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
         </div>
+        <button class="pc-cta pc-cta-wa" onclick="planWA('6 Meses Ilimitado','$102/mes')">💬 Contratar por WhatsApp →</button>
       </div>
 
     </div>
@@ -2839,6 +2938,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 ════════════════════════════════════════ */
 
 const WA = '50578359079';
+const LINK_PAGO = ''; // Llenar con URL cuando el link de pago esté disponible
 const DIAS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const MESES_ES  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
@@ -3779,15 +3879,22 @@ function buildSAdminHoy() {
   }
 
   /* ── Calcular pagos del día ── */
-  const pagos = { transfer:0, sub:0, cash:0 };
+  const pagos = { transfer:0, sub:0, cash:0, planDetalle:{} };
   let totalIngreso = 0;
   slots.forEach(({ clase, hora }) => {
     const info = INFO[clase];
     getClientes(clase, dateStr, hora).forEach(c => {
       const m = (c.metodo||'').toLowerCase();
-      if (m.includes('transfer'))   { pagos.transfer++; totalIngreso += info.precio; }
-      else if (m.includes('suscri'))  { pagos.sub++; }
-      else                            { pagos.cash++;    totalIngreso += info.precio; }
+      if (m.includes('transfer')) {
+        pagos.transfer++; totalIngreso += info.precio;
+      } else if (m.includes('suscri') || m.includes('💎')) {
+        pagos.sub++;
+        const match = (c.metodo||'').match(/·\s*(.+)$/);
+        const planNom = match ? match[1].trim() : 'Membresía';
+        pagos.planDetalle[planNom] = (pagos.planDetalle[planNom]||0) + 1;
+      } else {
+        pagos.cash++; totalIngreso += info.precio;
+      }
     });
   });
   const totalClientes = pagos.transfer + pagos.sub + pagos.cash;
@@ -3846,7 +3953,6 @@ function buildSAdminHoy() {
           <span class="sa-pago-icon">💳</span>
           <span class="sa-pago-label">Transferencia</span>
           <span class="sa-pago-cnt">${pagos.transfer}</span>
-          <span class="sa-pago-monto">$${pagos.transfer * 0}</span>
         </div>
         <div class="sa-pago-item">
           <span class="sa-pago-icon">💵</span>
@@ -3859,6 +3965,7 @@ function buildSAdminHoy() {
           <span class="sa-pago-cnt">${pagos.sub}</span>
         </div>
       </div>
+      ${Object.keys(pagos.planDetalle).length > 0 ? `<div class="sa-pago-detalle">${Object.entries(pagos.planDetalle).map(([k,v])=>`<span>💎 ${k}: ${v}</span>`).join('')}</div>` : ''}
       <div class="sa-pagos-total">Total cobrado: <strong>$${totalIngreso}</strong></div>
     </div>
     ${clasesHtml}`;
@@ -4254,6 +4361,37 @@ function buildAdminContent(customContainer) {
   });
 }
 
+/* ────────────────────────────────────────
+   PLANES — WhatsApp CTA
+──────────────────────────────────────── */
+function planWA(nombre, precio) {
+  const msg = `Hola Presenza ✧ Me interesa el plan ${nombre} (${precio}). ¿Cómo lo contrato?`;
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function toggleCumpleChip(btn, group) {
+  if (group === 'playlist') {
+    btn.closest('.cumple-chips').querySelectorAll('.cumple-chip').forEach(b => b.classList.remove('active'));
+  }
+  btn.classList.toggle('active');
+}
+
+function reservarCumple() {
+  const paleta = [...document.querySelectorAll('#cumplePaleta .cumple-chip.active')]
+    .map(b => b.textContent).join(', ') || 'sin especificar';
+  const playlist = [...document.querySelectorAll('#cumplePlaylist .cumple-chip.active')]
+    .map(b => b.textContent).join(', ') || 'sin especificar';
+  const helio = document.getElementById('cumpleHelio')?.checked;
+  const invitadas = document.getElementById('cumpleInvitadas')?.value || '5';
+  const msg = `Hola Presenza ✧ Quiero reservar mi *Paquete Cumpleaños* 🎂\n\n` +
+    `👯 Invitadas: ${invitadas} personas\n` +
+    `🎨 Paleta de colores: ${paleta}\n` +
+    `🎵 Playlist: ${playlist}\n` +
+    `🎈 Globos con helio: ${helio ? 'Sí (+$25)' : 'No'}\n\n` +
+    `Por favor indíquenme disponibilidad y próximos pasos. ¡Gracias!`;
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
 /* ════════════════════════════════════════
    EVENTOS DEL ESTUDIO
 ════════════════════════════════════════ */
@@ -4263,6 +4401,13 @@ const EVENTOS_DEFAULT = [
     fecha:'2026-06-27', hora:'09:00',
     precio:0, cupos:20,
     desc:'Ven a conocer el estudio, prueba una clase de barre sin costo y descubre la experiencia Presenza. Trae a una amiga.',
+  },
+  {
+    titulo:'Paquete Cumpleaños', emoji:'🎂',
+    tipo:'cumple',
+    fecha:'2099-12-31', hora:'A coordinar',
+    precio:0, cupos:12,
+    desc:'Celebra tu cumpleaños en Presenza con estilo. Para 5 a 12 personas — incluye letrero personalizado, globos, invitaciones digitales y mini cake. ¡Agenda tu fecha especial!',
   },
 ];
 
@@ -4275,13 +4420,60 @@ function saveEventos(arr) {
   localStorage.setItem('presenza_eventos', JSON.stringify(arr));
 }
 
+function renderCumpleCard(ev) {
+  const colores = ['Blanco','Amarillo','Rosa','Rojo','Azul','Morado','Dorado'];
+  const playlists = ['Pop','Latina · Reggaetón','House','Otro'];
+  return `<div class="evento-card ev-cumple r">
+    <div class="ev-band">
+      <div class="ev-fecha-box"><div class="ev-fecha-dia">🎂</div></div>
+      <div>
+        <div class="ev-band-tit">🎂 Paquete Cumpleaños</div>
+        <div class="ev-band-sub">Disponible todo el año · Agenda tu fecha</div>
+      </div>
+    </div>
+    <div class="ev-body">
+      <p class="ev-desc">${ev.desc||''}</p>
+      <div class="cumple-includes">
+        <div class="cumple-inc-item">✧ Letrero personalizado</div>
+        <div class="cumple-inc-item">✧ Globos decorativos</div>
+        <div class="cumple-inc-item">✧ Invitaciones digitales</div>
+        <div class="cumple-inc-item">✧ Mini cake 🎂 gratis</div>
+      </div>
+      <div class="cumple-picker">
+        <p class="cumple-picker-lbl">Paleta de colores</p>
+        <div class="cumple-chips" id="cumplePaleta">
+          ${colores.map(c=>`<button class="cumple-chip" onclick="toggleCumpleChip(this,'paleta')">${c}</button>`).join('')}
+        </div>
+      </div>
+      <div class="cumple-picker">
+        <p class="cumple-picker-lbl">Playlist</p>
+        <div class="cumple-chips" id="cumplePlaylist">
+          ${playlists.map(p=>`<button class="cumple-chip" onclick="toggleCumpleChip(this,'playlist')">${p}</button>`).join('')}
+        </div>
+      </div>
+      <label class="cumple-helio">
+        <input type="checkbox" id="cumpleHelio"/>
+        Globos con helio <strong>+$25</strong>
+      </label>
+      <div class="cumple-guest">
+        <span>Invitadas:</span>
+        <select id="cumpleInvitadas">
+          ${[5,6,7,8,9,10,11,12].map(n=>`<option value="${n}">${n} personas</option>`).join('')}
+        </select>
+      </div>
+      <button class="btn-ev btn-ev-cumple" onclick="reservarCumple()">🎂 Reservar mi Cumpleaños →</button>
+    </div>
+  </div>`;
+}
+
 function renderEventosPublic() {
   const grid = document.getElementById('eventosGrid');
   if (!grid) return;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const evs = getEventos()
-    .filter(ev => new Date(ev.fecha + 'T23:59:59') >= hoy)
-    .sort((a,b) => a.fecha.localeCompare(b.fecha));
+  const todos = getEventos().filter(ev => new Date(ev.fecha + 'T23:59:59') >= hoy);
+  const cumpleEvs  = todos.filter(ev => ev.tipo === 'cumple');
+  const regularEvs = todos.filter(ev => ev.tipo !== 'cumple').sort((a,b) => a.fecha.localeCompare(b.fecha));
+  const evs = [...regularEvs, ...cumpleEvs];
 
   if (evs.length === 0) {
     grid.innerHTML = '<div class="eventos-empty" style="grid-column:1/-1">Pronto anunciaremos nuevos eventos · síguenos en Instagram para enterarte ✧</div>';
@@ -4289,6 +4481,7 @@ function renderEventosPublic() {
   }
 
   grid.innerHTML = evs.map(ev => {
+    if (ev.tipo === 'cumple') return renderCumpleCard(ev);
     const d = new Date(ev.fecha + 'T12:00:00');
     const msgWA = encodeURIComponent(
       `Hola Presenza ✧ Quiero reservar mi cupo para el evento "${ev.titulo}" del ${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}.`
