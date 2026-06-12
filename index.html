@@ -673,15 +673,16 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .car-dot.active { background:var(--wine); width:22px; border-radius:4px; }
 
 /* ── MODALIDADES DE PAGO ── */
-.pagos { padding:112px 52px; background:var(--cream); }
+.pagos { padding:112px 52px; background:var(--white); }
 .pagos-inner { max-width:1100px; margin:0 auto; }
 .pagos-header { text-align:center; margin-bottom:60px; }
 .pagos-header .section-tag { justify-content:center; }
 .pagos-header .section-body { max-width:460px; margin:0 auto; }
 .pagos-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; margin-bottom:40px; }
 .pago-card {
-  border-radius:20px; border:1.5px solid rgba(107,23,40,.07);
+  border-radius:20px; border:1.5px solid rgba(107,23,40,.09);
   background:var(--white); overflow:hidden; transition:all .35s;
+  box-shadow:var(--sh);
 }
 .pago-card:hover:not(.pc-featured) { box-shadow:var(--sh-h); transform:translateY(-5px); border-color:rgba(107,23,40,.18); }
 .pago-card-head { padding:30px 24px 18px; text-align:center; }
@@ -698,16 +699,16 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .pc-featured .pc-price { color:var(--cream); }
 .pc-featured .pc-price small { color:rgba(245,237,227,.5); }
 .pc-featured .pc-perk { color:rgba(245,237,227,.78); border-bottom-color:rgba(255,255,255,.07); }
-.pagos-metodos { background:var(--white); border-radius:20px; padding:28px 32px; text-align:center; border:1px solid rgba(107,23,40,.07); }
+.pagos-metodos { background:var(--cream); border-radius:20px; padding:28px 32px; text-align:center; border:1px solid rgba(107,23,40,.07); }
 .pagos-metodos h4 { font-family:'Playfair Display',serif; font-size:1.05rem; font-weight:700; color:var(--wine-d); margin-bottom:18px; }
 .metodos-chips { display:flex; justify-content:center; gap:12px; flex-wrap:wrap; }
 .mc-chip {
   display:flex; align-items:center; gap:10px;
-  background:var(--cream); border:1.5px solid rgba(107,23,40,.08);
+  background:var(--white); border:1.5px solid rgba(107,23,40,.08);
   border-radius:14px; padding:12px 20px;
   font-size:.82rem; font-weight:500; color:var(--text); transition:all .25s;
 }
-.mc-chip:hover { border-color:var(--wine); background:var(--white); }
+.mc-chip:hover { border-color:var(--wine); }
 .mc-chip .mci { font-size:1.2rem; }
 
 /* ── PLAN CARDS — CTA + ROW LABEL ── */
@@ -1421,19 +1422,21 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 ════════════════════════════════════════ */
 .sadmin-backdrop {
   position:fixed; inset:0; z-index:2100;
-  background:rgba(20,5,10,.75); backdrop-filter:blur(6px);
-  display:none; align-items:flex-start; justify-content:center;
-  padding:20px 16px; overflow-y:auto;
+  background:rgba(20,5,10,.78); backdrop-filter:blur(8px);
+  display:none; align-items:center; justify-content:center;
+  padding:20px 16px;
 }
 .sadmin-backdrop.open { display:flex; }
 .sadmin-panel {
-  background:var(--cream); border-radius:24px; width:100%; max-width:800px;
-  overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,.4); margin:auto;
+  background:var(--cream); border-radius:24px; width:100%; max-width:860px;
+  overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,.45);
+  display:flex; flex-direction:column;
+  max-height:calc(100dvh - 40px);
 }
 .sadmin-hd {
   background:linear-gradient(135deg,#0d0305 0%,#1e0709 45%,#2a0c12 100%);
   padding:0; display:flex; flex-direction:column;
-  border-bottom:2px solid rgba(201,149,106,.2);
+  border-bottom:2px solid rgba(201,149,106,.2); flex-shrink:0;
 }
 .sadmin-hd-top {
   display:flex; align-items:center; justify-content:space-between;
@@ -1441,6 +1444,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 }
 .sadmin-hd-left p  { font-size:.58rem; letter-spacing:4px; color:rgba(201,149,106,.6); text-transform:uppercase; margin-bottom:3px; }
 .sadmin-hd-left h2 { font-family:'Playfair Display',serif; font-size:1.2rem; font-weight:900; color:var(--cream); letter-spacing:1px; }
+.sadmin-hd-fecha { font-size:.64rem; color:rgba(245,237,227,.4); margin-top:4px; letter-spacing:.5px; }
 .sadmin-close {
   cursor:pointer; width:32px; height:32px; border-radius:50%;
   background:rgba(245,237,227,.08); color:rgba(245,237,227,.45);
@@ -1452,31 +1456,85 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .sadmin-tabs {
   display:flex; background:var(--white);
   border-bottom:1.5px solid rgba(107,23,40,.1);
+  flex-shrink:0; overflow-x:auto;
+  scrollbar-width:none;
 }
+.sadmin-tabs::-webkit-scrollbar { display:none; }
 .sadmin-tab {
-  flex:1; padding:14px 8px; text-align:center;
+  flex:1; padding:14px 12px; text-align:center;
   font-size:.74rem; font-weight:600; cursor:pointer;
   color:var(--gray); letter-spacing:.3px; transition:all .2s;
   border-bottom:2.5px solid transparent; margin-bottom:-1.5px;
+  white-space:nowrap;
 }
 .sadmin-tab:hover { color:var(--wine); background:rgba(107,23,40,.03); }
 .sadmin-tab.active { color:var(--wine); border-bottom-color:var(--wine); background:rgba(107,23,40,.02); }
-.sadmin-body { padding:22px 26px; min-height:320px; }
+.sadmin-body {
+  padding:22px 26px; min-height:320px;
+  overflow-y:auto; flex:1;
+  scrollbar-width:thin; scrollbar-color:rgba(107,23,40,.25) transparent;
+}
 
 /* Tab Hoy */
-.sa-fecha { font-family:'Playfair Display',serif; font-size:1.05rem; color:var(--wine-d); margin-bottom:8px; }
-.sa-stats { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
-.sa-stat-chip {
-  background:rgba(107,23,40,.07); border:1px solid rgba(107,23,40,.12);
-  border-radius:50px; padding:5px 13px; font-size:.72rem; color:var(--wine-d); font-weight:600;
+.sa-fecha { font-family:'Playfair Display',serif; font-size:1.05rem; color:var(--wine-d); margin-bottom:14px; }
+.sa-kpi-grid {
+  display:grid; grid-template-columns:repeat(4,1fr);
+  gap:10px; margin-bottom:16px;
 }
-.sa-clase-blk { margin-bottom:18px; }
+.sa-kpi {
+  background:var(--white); border:1px solid rgba(107,23,40,.09);
+  border-radius:14px; padding:13px 14px; position:relative; overflow:hidden;
+}
+.sa-kpi::after {
+  content:''; position:absolute; top:0; left:0; right:0; height:2.5px;
+  background:linear-gradient(90deg,var(--wine),var(--blush));
+  opacity:.55;
+}
+.sa-kpi-ico { font-size:1.05rem; margin-bottom:5px; display:block; }
+.sa-kpi-num {
+  font-family:'Playfair Display',serif; font-size:1.45rem; font-weight:900;
+  color:var(--wine-d); line-height:1; display:block;
+}
+.sa-kpi-lbl { font-size:.62rem; font-weight:600; color:var(--gray); letter-spacing:.6px; text-transform:uppercase; margin-top:5px; display:block; }
+.sa-empty {
+  text-align:center; padding:48px 20px; color:var(--gray);
+}
+.sa-empty-ico { font-size:2.2rem; display:block; margin-bottom:12px; opacity:.5; }
+.sa-empty strong { display:block; font-family:'Playfair Display',serif; font-size:1rem; color:var(--wine-d); margin-bottom:5px; }
+.sa-empty span { font-size:.78rem; }
+.sa-clase-blk {
+  margin-bottom:14px; background:var(--white);
+  border:1px solid rgba(107,23,40,.08); border-radius:14px;
+  overflow:hidden;
+}
 .sa-clase-hd {
-  display:flex; align-items:center; gap:8px; padding:9px 12px;
-  background:rgba(107,23,40,.06); border-radius:10px; margin-bottom:6px;
+  display:flex; align-items:center; gap:8px; padding:11px 14px;
+  background:rgba(107,23,40,.05);
+  border-bottom:1px solid rgba(107,23,40,.06);
 }
 .sa-clase-hd strong { font-size:.84rem; color:var(--wine-d); }
-.sa-clase-hd span { font-size:.7rem; color:var(--gray); margin-left:auto; }
+.sa-clase-hd .sa-clase-meta { font-size:.7rem; color:var(--gray); margin-left:auto; text-align:right; }
+.sa-ocup-wrap { display:flex; align-items:center; gap:7px; margin-top:4px; justify-content:flex-end; }
+.sa-ocup-track {
+  width:64px; height:5px; border-radius:3px;
+  background:rgba(107,23,40,.1); overflow:hidden;
+}
+.sa-ocup-fill { height:100%; border-radius:3px; transition:width .3s; }
+.sa-ocup-ok   { background:#4a9d5f; }
+.sa-ocup-mid  { background:#d99a2b; }
+.sa-ocup-full { background:#c0392b; }
+.sa-ocup-pct  { font-size:.64rem; font-weight:700; color:var(--gray); }
+
+@media(max-width:620px){
+  .sadmin-backdrop { padding:10px 8px; }
+  .sadmin-panel { border-radius:18px; max-height:calc(100dvh - 20px); }
+  .sadmin-hd-top { padding:16px 18px 13px; }
+  .sadmin-body { padding:16px 14px; }
+  .sadmin-tab { flex:0 0 auto; padding:13px 16px; }
+  .sa-kpi-grid { grid-template-columns:repeat(2,1fr); }
+  .sa-alumna-row { grid-template-columns:1fr auto; row-gap:6px; padding-left:14px; }
+  .sa-alumna-row .sa-alumna-tel { grid-column:2; }
+}
 .sa-alumna-row {
   display:grid; grid-template-columns:1fr auto auto auto;
   align-items:center; gap:10px;
@@ -1772,7 +1830,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
    EVENTOS DEL ESTUDIO
 ════════════════════════════════════════ */
 .eventos {
-  padding:112px 52px; background:var(--white);
+  padding:112px 52px; background:var(--cream);
   position:relative; overflow:hidden;
 }
 .eventos-inner { max-width:1100px; margin:0 auto; }
@@ -1782,9 +1840,10 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   gap:20px;
 }
 .evento-card {
-  background:var(--cream); border-radius:20px; overflow:hidden;
+  background:var(--white); border-radius:20px; overflow:hidden;
   border:1.5px solid rgba(107,23,40,.08);
   display:flex; flex-direction:column; transition:all .3s;
+  box-shadow:var(--sh);
 }
 .evento-card:hover {
   transform:translateY(-5px);
@@ -2336,6 +2395,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
     <a href="#" target="_blank">@presenzastudio</a>
   </p>
 </section>
+
+<div class="sep"><span class="sep-dot"></span></div>
 
 <!-- ═══ NUESTROS HORARIOS — RESERVA SEMANAL ═══ -->
 <section class="reserva" id="reserva">
@@ -3838,6 +3899,9 @@ function checkSuperPin() {
     document.getElementById('superPinBackdrop').classList.remove('open');
     document.getElementById('sadminBackdrop').classList.add('open');
     document.body.style.overflow = 'hidden';
+    const h = new Date();
+    document.getElementById('sadminHdFecha').textContent =
+      `${DIAS_ES[h.getDay()]} ${h.getDate()} ${MESES_ES[h.getMonth()]} ${h.getFullYear()}`;
     sadminTab('hoy');
   } else {
     document.getElementById('superPinErr').textContent = 'Contraseña incorrecta, intenta de nuevo.';
@@ -3874,7 +3938,11 @@ function buildSAdminHoy() {
 
   if (slots.length === 0) {
     body.innerHTML = `<div class="sa-fecha">${diaStr}</div>
-      <p style="text-align:center;color:var(--gray);padding:32px">No hay clases programadas hoy.</p>`;
+      <div class="sa-empty">
+        <span class="sa-empty-ico">🌙</span>
+        <strong>Día de descanso</strong>
+        <span>No hay clases programadas para hoy.</span>
+      </div>`;
     return;
   }
 
@@ -3929,11 +3997,20 @@ function buildSAdminHoy() {
       </div>`;
     }).join('') || `<div style="padding:7px 20px;font-size:.76rem;color:var(--gray)">Sin inscripciones</div>`;
 
+    const pct      = Math.min(100, Math.round(clientes.length / info.cupos * 100));
+    const ocupCls  = pct >= 100 ? 'sa-ocup-full' : pct >= 70 ? 'sa-ocup-mid' : 'sa-ocup-ok';
+
     return `<div class="sa-clase-blk">
       <div class="sa-clase-hd">
         <span>${info.emoji}</span>
         <strong>${info.nombre}</strong>
-        <span>${instructor} · ${hora} hrs · ${clientes.length}/${info.cupos}</span>
+        <div class="sa-clase-meta">
+          ${instructor} · ${hora} hrs
+          <div class="sa-ocup-wrap">
+            <div class="sa-ocup-track"><div class="sa-ocup-fill ${ocupCls}" style="width:${pct}%"></div></div>
+            <span class="sa-ocup-pct">${clientes.length}/${info.cupos}</span>
+          </div>
+        </div>
       </div>
       ${filas}
     </div>`;
@@ -3941,10 +4018,27 @@ function buildSAdminHoy() {
 
   body.innerHTML = `
     <div class="sa-fecha">${diaStr}</div>
-    <div class="sa-stats">
-      <span class="sa-stat-chip">📅 ${slots.length} clases hoy</span>
-      <span class="sa-stat-chip">👥 ${totalClientes} alumnas</span>
-      <span class="sa-stat-chip">💎 ${totalSubs} suscriptoras</span>
+    <div class="sa-kpi-grid">
+      <div class="sa-kpi">
+        <span class="sa-kpi-ico">📅</span>
+        <span class="sa-kpi-num">${slots.length}</span>
+        <span class="sa-kpi-lbl">Clases hoy</span>
+      </div>
+      <div class="sa-kpi">
+        <span class="sa-kpi-ico">👥</span>
+        <span class="sa-kpi-num">${totalClientes}</span>
+        <span class="sa-kpi-lbl">Alumnas</span>
+      </div>
+      <div class="sa-kpi">
+        <span class="sa-kpi-ico">💎</span>
+        <span class="sa-kpi-num">${totalSubs}</span>
+        <span class="sa-kpi-lbl">Suscriptoras</span>
+      </div>
+      <div class="sa-kpi">
+        <span class="sa-kpi-ico">💰</span>
+        <span class="sa-kpi-num">$${totalIngreso}</span>
+        <span class="sa-kpi-lbl">Ingreso del día</span>
+      </div>
     </div>
     <div class="sa-pagos-hoy">
       <div class="sa-pagos-titulo">💰 Pagos de hoy</div>
@@ -3994,7 +4088,11 @@ function buildSAdminSubs() {
   const subs = getSuscriptoras();
 
   const cards = subs.length === 0
-    ? '<p style="text-align:center;color:var(--gray);padding:32px">Sin suscriptoras registradas.</p>'
+    ? `<div class="sa-empty">
+        <span class="sa-empty-ico">💎</span>
+        <strong>Sin suscriptoras aún</strong>
+        <span>Registra la primera con el botón "+ Nueva".</span>
+      </div>`
     : subs.map(sub => {
         const plan     = PLANES_SUB[sub.plan] || { nombre: sub.plan, clases: sub.clasesTotal || 1 };
         const pct      = Math.min(100, Math.round((sub.clasesRestantes / Math.max(1, plan.clases)) * 100));
@@ -4224,7 +4322,7 @@ function sadminVerDia(dateStr, el) {
     return `<div class="sa-clase-blk">
       <div class="sa-clase-hd">
         <span>${info.emoji}</span><strong>${info.nombre}</strong>
-        <span>${instructor} · ${hora} hrs · ${clientes.length}/${info.cupos}</span>
+        <span class="sa-clase-meta">${instructor} · ${hora} hrs · ${clientes.length}/${info.cupos}</span>
       </div>${filas}</div>`;
   }).join('');
 
@@ -4546,7 +4644,11 @@ function buildSAdminEventos() {
         <button class="btn-nueva-sub" onclick="evAdd()">+ Nuevo evento</button>
       </div>
     </div>
-    <div id="evAdmList">${cards || '<p style="text-align:center;color:var(--gray);padding:32px">Sin eventos — crea el primero.</p>'}</div>`;
+    <div id="evAdmList">${cards || `<div class="sa-empty">
+        <span class="sa-empty-ico">🎉</span>
+        <strong>Sin eventos aún</strong>
+        <span>Crea el primero con el botón "+ Nuevo evento".</span>
+      </div>`}</div>`;
 }
 
 function evCollect() {
@@ -4653,6 +4755,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="sadmin-hd-left">
           <p>✧ Presenza Studio</p>
           <h2>👑 Super Admin</h2>
+          <p class="sadmin-hd-fecha" id="sadminHdFecha"></p>
         </div>
         <div class="sadmin-close" onclick="closeSuperAdmin()">✕</div>
       </div>
