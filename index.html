@@ -1694,6 +1694,40 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 }
 .btn-sa-del:hover { background:rgba(220,53,69,.08); }
 
+/* Agendar suscriptora a clase */
+.btn-sa-agendar {
+  padding:7px 12px; border:1.5px solid rgba(107,23,40,.3);
+  background:rgba(107,23,40,.05); color:var(--wine); border-radius:8px;
+  font-size:.74rem; font-weight:600; cursor:pointer; transition:all .2s;
+}
+.btn-sa-agendar:hover { background:rgba(107,23,40,.12); }
+.sa-agendar-panel {
+  display:none; margin-top:10px; padding:12px 14px;
+  background:rgba(107,23,40,.04); border:1px solid rgba(107,23,40,.12);
+  border-radius:10px;
+}
+.sa-agendar-panel.open { display:block; }
+.agp-title { font-size:.74rem; font-weight:600; color:var(--wine-d); margin-bottom:8px; }
+.agp-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.agp-inp, .agp-sel {
+  padding:7px 10px; border:1.5px solid rgba(107,23,40,.18); border-radius:8px;
+  font-size:.76rem; color:var(--text); background:white; outline:none;
+}
+.agp-sel { flex:1; min-width:180px; }
+.agp-inp:focus, .agp-sel:focus { border-color:var(--wine); }
+.btn-agp {
+  padding:7px 16px; border:none; border-radius:8px;
+  background:var(--wine); color:white; font-size:.75rem; font-weight:600;
+  cursor:pointer; transition:all .2s; white-space:nowrap;
+}
+.btn-agp:hover { background:var(--wine-d); }
+.btn-agp:disabled { background:#c0b0a8; cursor:default; }
+.sa-agendar-inline {
+  display:flex; gap:8px; align-items:center;
+  padding:8px 12px 8px 20px; border-top:1px dashed rgba(107,23,40,.12);
+  margin-top:4px;
+}
+
 /* Tab Calendario */
 .cal-mes-hd { margin-bottom:12px; }
 .cal-mes-hd h3 { font-family:'Playfair Display',serif; font-size:1rem; color:var(--wine-d); }
@@ -4044,7 +4078,7 @@ function buildSAdminSubs() {
         <strong>Sin suscriptoras aún</strong>
         <span>Registra la primera con el botón "+ Nueva".</span>
       </div>`
-    : subs.map(sub => {
+    : subs.map((sub, si) => {
         const plan     = PLANES_SUB[sub.plan] || { nombre: sub.plan, clases: sub.clasesTotal || 1 };
         const pct      = Math.min(100, Math.round((sub.clasesRestantes / Math.max(1, plan.clases)) * 100));
         const cuposCls = sub.clasesRestantes <= 0 ? 'sa-cupos-out' : sub.clasesRestantes <= 3 ? 'sa-cupos-low' : 'sa-cupos-ok';
@@ -4077,9 +4111,18 @@ function buildSAdminSubs() {
             </div>
           </div>
           <div class="sa-sub-actions">
+            <button class="btn-sa-agendar" onclick="toggleAgendarSub(this)">📅 Agendar ▾</button>
             <button class="btn-sa-renovar" onclick="renovarSub('${sub.email}')">⟳ Renovar plan</button>
             <button class="btn-sa-historial" onclick="toggleHistSub(this)">Historial ▾</button>
             <button class="btn-sa-del" onclick="eliminarSub('${sub.email}')">🗑 Eliminar</button>
+          </div>
+          <div class="sa-agendar-panel">
+            <p class="agp-title">Agendar a ${sub.nombre.split(' ')[0]} en una clase:</p>
+            <div class="agp-row">
+              <input type="date" id="agpFecha_${si}" class="agp-inp" min="${new Date().toISOString().split('T')[0]}" onchange="agpLoadSlots(${si})"/>
+              <select id="agpSlot_${si}" class="agp-sel"><option value="">Elige una fecha</option></select>
+              <button class="btn-agp" onclick="agpConfirm(${si},'${sub.email}')">Agendar →</button>
+            </div>
           </div>
           <div class="sa-sub-historial">${histRows}</div>
         </div>`;
@@ -4195,6 +4238,81 @@ function eliminarSub(email) {
   buildSAdminSubs();
 }
 
+/* ── Agendar suscriptora a una clase futura ── */
+function agendarSubAClase(email, clase, dateStr, hora, instructor) {
+  const sub = getSuscriptoraByEmail(email);
+  if (!sub) { alert('Suscriptora no encontrada.'); return false; }
+  if (!sub.activa || sub.clasesRestantes <= 0) {
+    alert(`${sub.nombre} no tiene clases disponibles. Renueva su plan primero.`);
+    return false;
+  }
+  const info     = INFO[clase];
+  const clientes = getClientes(clase, dateStr, hora);
+  if (clientes.some(c => (c.email||'').toLowerCase() === email.toLowerCase())) {
+    alert(`${sub.nombre} ya está agendada en esta clase.`);
+    return false;
+  }
+  if (clientes.length >= info.cupos) { alert('Esta clase ya está llena.'); return false; }
+
+  const planN = PLANES_SUB[sub.plan]?.nombre || 'Membresía';
+  saveSlot(clase, dateStr, hora, {
+    nombre: sub.nombre, email: sub.email, tel: sub.tel||'',
+    nivel: '', notas: 'Agendada por admin',
+    metodo: `💎 Suscripción · ${planN}`, instructor
+  });
+  return true;
+}
+
+/* Panel "Agendar" en la card de cada suscriptora */
+function toggleAgendarSub(btn) {
+  const p = btn.closest('.sa-sub-card').querySelector('.sa-agendar-panel');
+  p.classList.toggle('open');
+  btn.textContent = p.classList.contains('open') ? '📅 Agendar ▴' : '📅 Agendar ▾';
+}
+
+function agpLoadSlots(i) {
+  const fecha = document.getElementById(`agpFecha_${i}`).value;
+  const sel   = document.getElementById(`agpSlot_${i}`);
+  if (!fecha) { sel.innerHTML = '<option value="">Elige una fecha</option>'; return; }
+  const dow   = new Date(fecha+'T12:00:00').getDay();
+  const slots = HORARIO[dow] || [];
+  if (slots.length === 0) {
+    sel.innerHTML = '<option value="">Sin clases ese día</option>';
+    return;
+  }
+  sel.innerHTML = slots.map(s => {
+    const info = INFO[s.clase];
+    const ocup = getClientes(s.clase, fecha, s.hora).length;
+    const full = ocup >= info.cupos;
+    return `<option value="${s.clase}|${s.hora}|${s.instructor}" ${full?'disabled':''}>
+      ${info.emoji} ${info.nombre} · ${s.hora} hrs · ${s.instructor} (${ocup}/${info.cupos}${full?' LLENA':''})
+    </option>`;
+  }).join('');
+}
+
+function agpConfirm(i, email) {
+  const fecha = document.getElementById(`agpFecha_${i}`).value;
+  const val   = document.getElementById(`agpSlot_${i}`).value;
+  if (!fecha || !val) { alert('Elige fecha y clase.'); return; }
+  const [clase, hora, instructor] = val.split('|');
+  if (agendarSubAClase(email, clase, fecha, hora, instructor)) {
+    const d = new Date(fecha+'T12:00:00');
+    alert(`✅ Agendada para ${INFO[clase].nombre} · ${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]} · ${hora} hrs`);
+    buildSAdminSubs();
+  }
+}
+
+/* Agendar desde el detalle de día del calendario */
+function calAgendar(clase, dateStr, hora, instructor, selId) {
+  const email = document.getElementById(selId).value;
+  if (!email) { alert('Elige una suscriptora.'); return; }
+  if (agendarSubAClase(email, clase, dateStr, hora, instructor)) {
+    buildSAdminCalendario();
+    const cell = document.querySelector(`.cal-cell[data-date="${dateStr}"]`);
+    sadminVerDia(dateStr, cell);
+  }
+}
+
 /* ── Tab: Calendario ── */
 function buildSAdminCalendario() {
   const body  = document.getElementById('sadminBody');
@@ -4225,7 +4343,7 @@ function buildSAdminCalendario() {
     const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const cnt     = dayCount[d] || 0;
     const isHoy   = d === todayDate;
-    cells += `<div class="cal-cell${isHoy?' cal-hoy':''}${cnt>0?' cal-has':''}" onclick="sadminVerDia('${dateStr}',this)">
+    cells += `<div class="cal-cell${isHoy?' cal-hoy':''}${cnt>0?' cal-has':''}" data-date="${dateStr}" onclick="sadminVerDia('${dateStr}',this)">
       <span class="cal-dn">${d}</span>
       ${cnt > 0 ? `<span class="cal-badge">${cnt}</span>` : ''}
     </div>`;
@@ -4257,7 +4375,8 @@ function sadminVerDia(dateStr, el) {
     return;
   }
 
-  const clasesHtml = slots.map(({ clase, hora, instructor }) => {
+  const subs = getSuscriptoras().filter(s => s.activa && s.clasesRestantes > 0);
+  const clasesHtml = slots.map(({ clase, hora, instructor }, idx) => {
     const info     = INFO[clase];
     const clientes = getClientes(clase, dateStr, hora);
     const filas    = clientes.map(c => `
@@ -4270,11 +4389,20 @@ function sadminVerDia(dateStr, el) {
         <span style="font-size:.7rem;color:var(--gray)">${(c.metodo||'').split('·')[0].trim()}</span>
         <span></span>
       </div>`).join('') || `<div style="padding:6px 20px;font-size:.75rem;color:var(--gray)">Sin reservas</div>`;
+    const llena = clientes.length >= info.cupos;
+    const agendarRow = subs.length === 0 ? '' : `
+      <div class="sa-agendar-inline">
+        <select id="calAg_${idx}" class="agp-sel">
+          <option value="">+ Agendar suscriptora…</option>
+          ${subs.map(s => `<option value="${s.email}">${s.nombre} (${s.clasesRestantes >= 9999 ? '∞' : s.clasesRestantes} clases)</option>`).join('')}
+        </select>
+        <button class="btn-agp" ${llena?'disabled':''} onclick="calAgendar('${clase}','${dateStr}','${hora}','${instructor}','calAg_${idx}')">${llena?'Llena':'Agendar →'}</button>
+      </div>`;
     return `<div class="sa-clase-blk">
       <div class="sa-clase-hd">
         <span>${info.emoji}</span><strong>${info.nombre}</strong>
         <span class="sa-clase-meta">${instructor} · ${hora} hrs · ${clientes.length}/${info.cupos}</span>
-      </div>${filas}</div>`;
+      </div>${filas}${agendarRow}</div>`;
   }).join('');
 
   detail.innerHTML = `<div class="cal-day-detail"><h4>${diaStr}</h4>${clasesHtml}</div>`;
