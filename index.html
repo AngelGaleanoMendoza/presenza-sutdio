@@ -3363,6 +3363,11 @@ function getMonday(off=0) {
   return d;
 }
 
+/* Fecha local YYYY-MM-DD (sin corrimiento por zona horaria de toISOString) */
+function fmtISO(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function schedWeek(dir) {
   schedWeekOff += dir;
   if (schedWeekOff < 0) schedWeekOff = 0;
@@ -3379,34 +3384,48 @@ function renderSched() {
   document.getElementById('schedWeekLabel').textContent =
     `${mon.getDate()} ${MESES_ES[mon.getMonth()]} — ${sun.getDate()} ${MESES_ES[sun.getMonth()]}`;
 
-  /* tabs de día */
-  const tabsEl = document.getElementById('schedDayTabs');
-  tabsEl.innerHTML = '';
   const today = new Date(); today.setHours(0,0,0,0);
 
+  /* construir los días de la semana (Lun..Sáb) con fecha LOCAL */
+  const dias = [];
   for (let i=0; i<6; i++) {
     const d = new Date(mon); d.setDate(d.getDate()+i);
-    const jsDay = d.getDay();
-    const dateStr = d.toISOString().split('T')[0];
-    const isPast  = d < today;
-    const isToday = d.getTime()===today.getTime();
-    const isSel   = schedSelDay===dateStr;
+    dias.push({
+      d,
+      jsDay:   d.getDay(),
+      dateStr: fmtISO(d),
+      isPast:  d < today,
+      isToday: d.getTime() === today.getTime(),
+      tieneClases: (HORARIO[d.getDay()] || []).length > 0
+    });
+  }
 
+  /* Si el día seleccionado no pertenece a esta semana, elegir automáticamente
+     el primer día seleccionable (no pasado) que tenga clases */
+  const selEnSemana = dias.some(x => x.dateStr === schedSelDay && !x.isPast);
+  if (!selEnSemana) {
+    const cand = dias.find(x => !x.isPast && x.tieneClases);
+    schedSelDay = cand ? cand.dateStr : null;
+  }
+
+  /* tabs de día (la selección ya está resuelta, así se resalta correctamente) */
+  const tabsEl = document.getElementById('schedDayTabs');
+  tabsEl.innerHTML = '';
+  dias.forEach(({ d, jsDay, dateStr, isPast, isToday }) => {
+    const isSel = schedSelDay === dateStr;
     const tab = document.createElement('div');
     tab.className = 'sched-day-tab' +
       (isSel   ? ' active' : '') +
       (isToday ? ' today'  : '') +
       (isPast  ? ' past'   : '');
     tab.innerHTML = `<span class="sdt-name">${DIAS_ES[jsDay]}</span><span class="sdt-num">${d.getDate()}</span>`;
-    if (!isPast) tab.onclick = () => { schedSelDay=dateStr; renderSched(); };
+    if (!isPast) tab.onclick = () => { schedSelDay = dateStr; renderSched(); };
     tabsEl.appendChild(tab);
-  }
+  });
 
-  /* auto-seleccionar hoy si está en semana actual */
-  if (!schedSelDay && schedWeekOff===0) {
-    const todayStr = today.toISOString().split('T')[0];
-    if (today.getDay()!==0 && today.getDay()!==0) schedSelDay = todayStr;
-  }
+  /* Seguro: la navegación de reserva nunca debe quedar invisible por el reveal */
+  document.querySelectorAll('#reserva .sched-nav, #reserva .sched-day-tabs')
+    .forEach(el => el.classList.add('on'));
 
   renderCards();
 }
@@ -4386,7 +4405,7 @@ function buildSAdminSubs() {
           <div class="sa-agendar-panel">
             <p class="agp-title">Agendar a ${sub.nombre.split(' ')[0]} en una clase:</p>
             <div class="agp-row">
-              <input type="date" id="agpFecha_${si}" class="agp-inp" min="${new Date().toISOString().split('T')[0]}" onchange="agpLoadSlots(${si})"/>
+              <input type="date" id="agpFecha_${si}" class="agp-inp" min="${fmtISO(new Date())}" onchange="agpLoadSlots(${si})"/>
               <select id="agpSlot_${si}" class="agp-sel"><option value="">Elige una fecha</option></select>
               <button class="btn-agp" onclick="agpConfirm(${si},'${sub.email}')">Agendar →</button>
             </div>
