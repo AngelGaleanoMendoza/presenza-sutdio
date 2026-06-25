@@ -719,6 +719,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .equipo-card {
   background:var(--white); border-radius:22px; overflow:hidden;
   box-shadow:var(--sh); transition:all .4s; text-align:center;
+  position:relative;
 }
 .equipo-card:hover { box-shadow:var(--sh-h); transform:translateY(-6px); }
 .equipo-avatar { aspect-ratio:3/4; overflow:hidden; position:relative; }
@@ -727,23 +728,25 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .equipo-info h3 { font-family:'Playfair Display',serif; font-size:1.15rem; font-weight:900; color:var(--wine-d); margin-bottom:4px; }
 .eq-rol { font-size:.68rem; font-weight:600; color:var(--blush); text-transform:uppercase; letter-spacing:2px; margin-bottom:12px; display:block; }
 .equipo-info p { font-size:.81rem; color:var(--gray); line-height:1.75; }
-/* bio que aparece sobre la foto */
+/* bio que cubre toda la card */
 .eq-bio {
-  position:absolute; inset:0; z-index:3;
-  background:linear-gradient(to top, rgba(74,15,26,.95) 40%, rgba(74,15,26,.78));
-  color:var(--cream); padding:24px 20px;
-  display:flex; flex-direction:column; justify-content:center;
-  opacity:0; transition:opacity .4s ease; cursor:default;
+  position:absolute; inset:0; z-index:4;
+  background:linear-gradient(160deg, rgba(107,23,40,.97), rgba(74,15,26,.98));
+  color:var(--cream); padding:22px 20px;
+  display:flex; flex-direction:column; justify-content:safe center; gap:9px;
+  opacity:0; visibility:hidden; transition:opacity .4s ease, visibility .4s ease;
+  overflow-y:auto; -webkit-overflow-scrolling:touch; text-align:left;
 }
-.equipo-card:hover .eq-bio, .equipo-card.bio-open .eq-bio { opacity:1; }
-.eq-bio p { color:var(--cream); font-size:.79rem; line-height:1.7; margin:0; }
-.eq-bio p + p { margin-top:8px; }
-.eq-bio-flag { font-size:1rem; margin-top:10px; letter-spacing:2px; }
+.equipo-card:hover .eq-bio, .equipo-card.bio-open .eq-bio { opacity:1; visibility:visible; }
+.eq-bio p { color:rgba(245,237,227,.93); font-size:clamp(.72rem, .42rem + .55vw, .84rem); line-height:1.6; margin:0; }
+.eq-bio-flag { color:var(--cream)!important; font-weight:600; margin-top:2px; }
+.eq-bio::-webkit-scrollbar { width:4px; }
+.eq-bio::-webkit-scrollbar-thumb { background:rgba(245,237,227,.3); border-radius:4px; }
 .equipo-card.has-bio { cursor:pointer; }
 .eq-bio-hint {
-  position:absolute; top:12px; right:12px; z-index:2;
+  position:absolute; top:12px; right:12px; z-index:3;
   width:26px; height:26px; border-radius:50%;
-  background:rgba(255,255,255,.85); color:var(--wine);
+  background:rgba(255,255,255,.88); color:var(--wine);
   display:flex; align-items:center; justify-content:center;
   font-size:.8rem; font-weight:700; box-shadow:0 4px 12px rgba(74,15,26,.2);
   transition:opacity .3s;
@@ -2371,11 +2374,6 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
         <div class="equipo-avatar">
           <img src="assets/meetyourcoachs/Coach Ale.jpg" alt="Coach Ale">
           <div class="eq-bio-hint">+</div>
-          <div class="eq-bio">
-            <p>¡Hola! Soy Alejandra. Desde súper pequeña pasaba horas bailando ballet, jazz, contemporáneo, folklore… de todo. Mi gran sueño era ser bailarina profesional, y hoy la barra sigue siendo mi lugar feliz.</p>
-            <p>Cuando no estoy en la barra, trabajo como productora creativa en una tienda de ropa deportiva… así que la vida wellness me sigue a todas partes. Mi essential para dar una buena clase: un cute outfit que me haga sentir invencible y un iced latte en mano.</p>
-            <p class="eq-bio-flag">¿Mi ejercicio favorito? Anything glutes! 🍑🔥 ¡Te veo en la barra!</p>
-          </div>
         </div>
         <div class="equipo-info">
           <h3>Coach Ale</h3>
@@ -2383,6 +2381,11 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="eq-tags">
             <span class="eq-tag">Barre</span>
           </div>
+        </div>
+        <div class="eq-bio">
+          <p>¡Hola! Soy Alejandra. Desde súper pequeña pasaba horas bailando ballet, jazz, contemporáneo, folklore… de todo. Mi gran sueño era ser bailarina profesional, y hoy la barra sigue siendo mi lugar feliz.</p>
+          <p>Cuando no estoy en la barra, trabajo como productora creativa en una tienda de ropa deportiva… la vida wellness me sigue a todas partes. Mi essential para dar una buena clase: un cute outfit que me haga sentir invencible y un iced latte en mano.</p>
+          <p class="eq-bio-flag">¿Mi ejercicio favorito? Anything glutes! 🍑🔥 ¡Te veo en la barra!</p>
         </div>
       </div>
 
@@ -2404,10 +2407,6 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
         <div class="equipo-avatar">
           <img src="assets/meetyourcoachs/Coach Maria del Carmen.jpg" alt="Coach Maria del Carmen">
           <div class="eq-bio-hint">+</div>
-          <div class="eq-bio">
-            <p>María del Carmen es Coach de Barre en Presenza. Le apasiona el movimiento, correr, disfrutar la naturaleza y practicar journaling. Su fe en Dios, la gratitud y el tiempo en familia son pilares importantes en su vida.</p>
-            <p>Como coach, busca que cada clase sea un espacio para sentirse fuerte, presente y capaz, ayudando a descubrir fortalezas que quizá no sabías que tenías. Sus ejercicios favoritos: espalda, hombros y variaciones de reverse planks.</p>
-          </div>
         </div>
         <div class="equipo-info">
           <h3>Coach María del Carmen</h3>
@@ -2416,17 +2415,16 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
             <span class="eq-tag">Barre</span>
           </div>
         </div>
+        <div class="eq-bio">
+          <p>María del Carmen es Coach de Barre en Presenza. Le apasiona el movimiento, correr, disfrutar la naturaleza y practicar journaling. Su fe en Dios, la gratitud y el tiempo en familia son pilares importantes en su vida.</p>
+          <p>Como coach, busca que cada clase sea un espacio para sentirse fuerte, presente y capaz, ayudando a descubrir fortalezas que quizá no sabías que tenías. Sus ejercicios favoritos: espalda, hombros y reverse planks.</p>
+        </div>
       </div>
 
       <div class="equipo-card rr has-bio" onclick="this.classList.toggle('bio-open')">
         <div class="equipo-avatar">
           <img src="assets/meetyourcoachs/Coach Yeni undwing yoga.jpg" alt="Coach Yeni">
           <div class="eq-bio-hint">+</div>
-          <div class="eq-bio">
-            <p>Soy Yeni Noreña, instructora de yoga, enamorada del bienestar consciente. Me gusta trotar, hacer pesas y llevar una vida equilibrada como esposa y madre.</p>
-            <p>Me gusta cocinar, leer, conectar con la naturaleza y aprender de diversos temas.</p>
-            <p class="eq-bio-flag">Orgullosamente colombiana 💛💙❤️</p>
-          </div>
         </div>
         <div class="equipo-info">
           <h3>Coach Yeni</h3>
@@ -2435,6 +2433,11 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
             <span class="eq-tag">Yoga</span>
             <span class="eq-tag">Mindfulness</span>
           </div>
+        </div>
+        <div class="eq-bio">
+          <p>Soy Yeni Noreña, instructora de yoga, enamorada del bienestar consciente. Me gusta trotar, hacer pesas y llevar una vida equilibrada como esposa y madre.</p>
+          <p>Me gusta cocinar, leer, conectar con la naturaleza y aprender de diversos temas.</p>
+          <p class="eq-bio-flag">Orgullosamente colombiana 💛💙❤️</p>
         </div>
       </div>
 
