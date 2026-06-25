@@ -721,12 +721,34 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   box-shadow:var(--sh); transition:all .4s; text-align:center;
 }
 .equipo-card:hover { box-shadow:var(--sh-h); transform:translateY(-6px); }
-.equipo-avatar { aspect-ratio:3/4; overflow:hidden; }
+.equipo-avatar { aspect-ratio:3/4; overflow:hidden; position:relative; }
 .equipo-avatar img { width:100%; height:100%; object-fit:cover; object-position:top center; display:block; }
 .equipo-info { padding:22px 20px 24px; }
 .equipo-info h3 { font-family:'Playfair Display',serif; font-size:1.15rem; font-weight:900; color:var(--wine-d); margin-bottom:4px; }
 .eq-rol { font-size:.68rem; font-weight:600; color:var(--blush); text-transform:uppercase; letter-spacing:2px; margin-bottom:12px; display:block; }
 .equipo-info p { font-size:.81rem; color:var(--gray); line-height:1.75; }
+/* bio que aparece sobre la foto */
+.eq-bio {
+  position:absolute; inset:0; z-index:3;
+  background:linear-gradient(to top, rgba(74,15,26,.95) 40%, rgba(74,15,26,.78));
+  color:var(--cream); padding:24px 20px;
+  display:flex; flex-direction:column; justify-content:center;
+  opacity:0; transition:opacity .4s ease; cursor:default;
+}
+.equipo-card:hover .eq-bio, .equipo-card.bio-open .eq-bio { opacity:1; }
+.eq-bio p { color:var(--cream); font-size:.79rem; line-height:1.7; margin:0; }
+.eq-bio p + p { margin-top:8px; }
+.eq-bio-flag { font-size:1rem; margin-top:10px; letter-spacing:2px; }
+.equipo-card.has-bio { cursor:pointer; }
+.eq-bio-hint {
+  position:absolute; top:12px; right:12px; z-index:2;
+  width:26px; height:26px; border-radius:50%;
+  background:rgba(255,255,255,.85); color:var(--wine);
+  display:flex; align-items:center; justify-content:center;
+  font-size:.8rem; font-weight:700; box-shadow:0 4px 12px rgba(74,15,26,.2);
+  transition:opacity .3s;
+}
+.equipo-card:hover .eq-bio-hint, .equipo-card.bio-open .eq-bio-hint { opacity:0; }
 .eq-tags { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:14px; }
 .eq-tag { font-size:.63rem; font-weight:600; padding:3px 10px; border-radius:50px; background:var(--cream); color:var(--wine); letter-spacing:.5px; }
 
@@ -2372,9 +2394,14 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
         </div>
       </div>
 
-      <div class="equipo-card r d2">
+      <div class="equipo-card r d2 has-bio" onclick="this.classList.toggle('bio-open')">
         <div class="equipo-avatar">
           <img src="assets/meetyourcoachs/Coach Maria del Carmen.jpg" alt="Coach Maria del Carmen">
+          <div class="eq-bio-hint">+</div>
+          <div class="eq-bio">
+            <p>María del Carmen es Coach de Barre en Presenza. Le apasiona el movimiento, correr, disfrutar la naturaleza y practicar journaling. Su fe en Dios, la gratitud y el tiempo en familia son pilares importantes en su vida.</p>
+            <p>Como coach, busca que cada clase sea un espacio para sentirse fuerte, presente y capaz, ayudando a descubrir fortalezas que quizá no sabías que tenías. Sus ejercicios favoritos: espalda, hombros y variaciones de reverse planks.</p>
+          </div>
         </div>
         <div class="equipo-info">
           <h3>Coach María del Carmen</h3>
@@ -2385,9 +2412,15 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
         </div>
       </div>
 
-      <div class="equipo-card rr">
+      <div class="equipo-card rr has-bio" onclick="this.classList.toggle('bio-open')">
         <div class="equipo-avatar">
           <img src="assets/meetyourcoachs/Coach Yeni undwing yoga.jpg" alt="Coach Yeni">
+          <div class="eq-bio-hint">+</div>
+          <div class="eq-bio">
+            <p>Soy Yeni Noreña, instructora de yoga, enamorada del bienestar consciente. Me gusta trotar, hacer pesas y llevar una vida equilibrada como esposa y madre.</p>
+            <p>Me gusta cocinar, leer, conectar con la naturaleza y aprender de diversos temas.</p>
+            <p class="eq-bio-flag">Orgullosamente colombiana 💛💙❤️</p>
+          </div>
         </div>
         <div class="equipo-info">
           <h3>Coach Yeni</h3>
