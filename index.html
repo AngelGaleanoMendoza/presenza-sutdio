@@ -1189,6 +1189,52 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .mpanel { display:none; }
 .mpanel.active { display:block; }
 
+/* ── SELECTOR DE LUGAR (mats) ── */
+.lugar-intro { text-align:center; margin-bottom:14px; }
+.lugar-intro h4 { font-family:'Playfair Display',serif; font-size:1.05rem; color:var(--wine-d); margin-bottom:4px; }
+.lugar-intro p  { font-size:.76rem; color:var(--gray); }
+.lugar-frente {
+  text-align:center; font-size:.62rem; letter-spacing:3px; text-transform:uppercase;
+  color:var(--blush); font-weight:700; margin-bottom:12px; position:relative;
+}
+.lugar-frente::before, .lugar-frente::after {
+  content:''; position:absolute; top:50%; width:24%; height:1px; background:rgba(107,23,40,.18);
+}
+.lugar-frente::before { left:6%; } .lugar-frente::after { right:6%; }
+.lugar-grid {
+  display:grid; grid-template-columns:repeat(5,1fr); gap:9px;
+  max-width:330px; margin:0 auto 18px;
+}
+.lugar-seat {
+  aspect-ratio:1; border-radius:13px; border:1.5px solid rgba(107,23,40,.18);
+  background:var(--white); display:flex; flex-direction:column; align-items:center; justify-content:center;
+  cursor:pointer; transition:all .18s; gap:1px;
+}
+.lugar-seat .ls-ico { font-size:.95rem; line-height:1; opacity:.55; }
+.lugar-seat .ls-num { font-size:.72rem; font-weight:700; color:var(--wine-d); }
+.lugar-seat.disponible:hover { border-color:var(--wine); background:rgba(107,23,40,.05); transform:translateY(-2px); }
+.lugar-seat.reservado {
+  background:#ece6e0; border-color:transparent; cursor:not-allowed; opacity:.7;
+}
+.lugar-seat.reservado .ls-num, .lugar-seat.reservado .ls-ico { color:#a89a92; opacity:.6; }
+.lugar-seat.sel {
+  background:linear-gradient(145deg,var(--wine),var(--wine-d)); border-color:var(--wine);
+  box-shadow:0 6px 16px rgba(107,23,40,.3); transform:translateY(-2px);
+}
+.lugar-seat.sel .ls-num { color:#fff; }
+.lugar-seat.sel .ls-ico { opacity:1; }
+.lugar-legend {
+  display:flex; justify-content:center; gap:16px; flex-wrap:wrap; margin-bottom:18px;
+}
+.lugar-legend span { display:flex; align-items:center; gap:6px; font-size:.72rem; color:var(--gray); }
+.ll-dot { width:11px; height:11px; border-radius:4px; }
+.ll-disp { background:var(--white); border:1.5px solid rgba(107,23,40,.25); }
+.ll-resv { background:#dcd2ca; }
+.ll-tu   { background:var(--wine); }
+.lugar-sel-info {
+  text-align:center; font-size:.8rem; color:var(--wine-d); font-weight:600; margin-bottom:14px; min-height:20px;
+}
+
 /* formulario */
 .mfg { margin-bottom:14px; }
 .mfg label {
@@ -1680,6 +1726,10 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 }
 .sa-alumna-row:last-child { border-bottom:none; }
 .sa-alumna-nombre { font-weight:600; color:var(--text); }
+.sa-lugar-badge {
+  display:inline-block; font-size:.62rem; font-weight:700; color:var(--wine);
+  background:rgba(107,23,40,.1); border-radius:50px; padding:1px 7px; margin-left:4px; vertical-align:middle;
+}
 .sa-alumna-sub    { font-size:.7rem; color:var(--gray); }
 .sa-cupos-left {
   font-size:.71rem; font-weight:700; padding:3px 9px;
@@ -3187,16 +3237,18 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
       <span class="ms-time" id="mSelHora"></span>
     </div>
 
-    <!-- steps bar — 3 pasos -->
+    <!-- steps bar — 4 pasos -->
     <div class="modal-steps">
       <div class="ms-dot active" id="msd1">1</div>
       <div class="ms-line" id="msl1"></div>
       <div class="ms-dot" id="msd2">2</div>
       <div class="ms-line" id="msl2"></div>
       <div class="ms-dot" id="msd3">3</div>
+      <div class="ms-line" id="msl3"></div>
+      <div class="ms-dot" id="msd4">4</div>
     </div>
     <div class="modal-steps-lbl">
-      <span>Mis datos</span><span>Pago</span><span>Confirmación</span>
+      <span>Datos</span><span>Lugar</span><span>Pago</span><span>Confirmación</span>
     </div>
 
     <div class="modal-body">
@@ -3230,11 +3282,30 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
           <textarea id="mNotas" placeholder="Lesiones, condiciones de salud, expectativas o cualquier detalle que quieras compartir con tu instructora..."></textarea>
         </div>
         <button class="btn-confirmar" id="btnConfirmar" onclick="submitR()" disabled>
+          Elegir mi lugar →
+        </button>
+      </div>
+
+      <!-- PASO 2: elegir lugar (mat) -->
+      <div class="mpanel" id="mpLugar">
+        <div class="lugar-intro">
+          <h4>Elige tu lugar</h4>
+          <p>Selecciona el mat disponible donde quieres tu clase.</p>
+        </div>
+        <div class="lugar-frente">🪞 Frente · Instructora</div>
+        <div class="lugar-grid" id="lugarGrid"></div>
+        <div class="lugar-legend">
+          <span><span class="ll-dot ll-disp"></span> Disponible</span>
+          <span><span class="ll-dot ll-resv"></span> Reservado</span>
+          <span><span class="ll-dot ll-tu"></span> Tu lugar</span>
+        </div>
+        <div class="lugar-sel-info" id="lugarSelInfo">Toca un mat para reservarlo</div>
+        <button class="btn-confirmar" id="btnLugar" onclick="confirmLugar()" disabled>
           Continuar al pago →
         </button>
       </div>
 
-      <!-- PASO 2: método de pago -->
+      <!-- PASO 3: método de pago -->
       <div class="mpanel" id="mp2">
         <p class="pago-panel-title">¿Cómo deseas pagar?</p>
         <div class="pago-summary">
@@ -3597,14 +3668,18 @@ function closeModal() {
 function bdClick(e) { if(e.target===document.getElementById('modalBackdrop')) closeModal(); }
 
 function mGoStep(n) {
+  /* 1=Datos(mp1)  2=Lugar(mpLugar)  3=Pago(mp2)  4=Confirmación(mp3) */
   document.getElementById('mp1').classList.toggle('active', n===1);
-  document.getElementById('mp2').classList.toggle('active', n===2);
-  document.getElementById('mp3').classList.toggle('active', n===3);
+  document.getElementById('mpLugar').classList.toggle('active', n===2);
+  document.getElementById('mp2').classList.toggle('active', n===3);
+  document.getElementById('mp3').classList.toggle('active', n===4);
   document.getElementById('msd1').className = 'ms-dot' + (n===1?' active':' done');
   document.getElementById('msl1').className = 'ms-line' + (n>=2?' done':'');
   document.getElementById('msd2').className = 'ms-dot' + (n===2?' active':(n>2?' done':''));
-  document.getElementById('msl2').className = 'ms-line' + (n===3?' done':'');
-  document.getElementById('msd3').className = 'ms-dot' + (n===3?' active':'');
+  document.getElementById('msl2').className = 'ms-line' + (n>=3?' done':'');
+  document.getElementById('msd3').className = 'ms-dot' + (n===3?' active':(n>3?' done':''));
+  document.getElementById('msl3').className = 'ms-line' + (n===4?' done':'');
+  document.getElementById('msd4').className = 'ms-dot' + (n===4?' active':'');
 }
 
 function checkMForm() {
@@ -3615,7 +3690,47 @@ function checkMForm() {
   document.getElementById('btnConfirmar').disabled = !ok;
 }
 
+/* PASO 1 → 2 : datos listos, mostrar selector de lugar */
 function submitR() {
+  renderLugares();
+  mGoStep(2);
+}
+
+/* Render del grid de mats según los lugares ya reservados */
+function renderLugares() {
+  const { clase, dateStr, hora } = booking;
+  const info     = INFO[clase];
+  const total    = info.cupos || 15;
+  const clientes = getClientes(clase, dateStr, hora);
+  const ocupados = new Set(clientes.filter(c => c.lugar).map(c => Number(c.lugar)));
+
+  booking.lugar = null;
+  document.getElementById('btnLugar').disabled = true;
+  document.getElementById('lugarSelInfo').textContent = 'Toca un mat para reservarlo';
+
+  let html = '';
+  for (let i = 1; i <= total; i++) {
+    const reservado = ocupados.has(i);
+    html += `<div class="lugar-seat ${reservado?'reservado':'disponible'}" data-n="${i}"
+      ${reservado ? '' : `onclick="selectLugar(${i})"`}>
+      <span class="ls-ico">🧘</span>
+      <span class="ls-num">${i}</span>
+    </div>`;
+  }
+  document.getElementById('lugarGrid').innerHTML = html;
+}
+
+function selectLugar(n) {
+  booking.lugar = n;
+  document.querySelectorAll('.lugar-seat').forEach(el =>
+    el.classList.toggle('sel', Number(el.dataset.n) === n && !el.classList.contains('reservado')));
+  document.getElementById('lugarSelInfo').textContent = `Lugar ${n} seleccionado ✓`;
+  document.getElementById('btnLugar').disabled = false;
+}
+
+/* PASO 2 → 3 : lugar elegido, preparar pago */
+function confirmLugar() {
+  if (!booking.lugar) return;
   const { clase, dateStr, hora, instructor } = booking;
   const info   = INFO[clase];
   const d      = new Date(dateStr+'T12:00:00');
@@ -3623,7 +3738,7 @@ function submitR() {
 
   document.getElementById('psIcon').textContent   = info.emoji;
   document.getElementById('psNombre').textContent = info.nombre;
-  document.getElementById('psDia').textContent    = `${diaStr} · ${hora} hrs · ${instructor}`;
+  document.getElementById('psDia').textContent    = `${diaStr} · ${hora} hrs · Lugar ${booking.lugar}`;
   document.getElementById('psPrice').textContent  = `$${info.precio}`;
 
   pagoMetodo      = null;
@@ -3636,7 +3751,7 @@ function submitR() {
   document.getElementById('subCheckBox').classList.remove('visible');
   document.getElementById('btnPagar').disabled = true;
 
-  mGoStep(2);
+  mGoStep(3);
 }
 
 function selectMetodo(tipo) {
@@ -3803,7 +3918,16 @@ function proceedToConfirm() {
     booking.subAlerta = null;
   }
 
-  saveSlot(clase, dateStr, hora, { nombre, email, tel, nivel, notas, metodo: metodoDtxt, instructor });
+  /* Seguridad: verificar que el lugar siga libre antes de guardar */
+  const yaOcupado = getClientes(clase, dateStr, hora).some(c => Number(c.lugar) === Number(booking.lugar));
+  if (booking.lugar && yaOcupado) {
+    alert(`El lugar ${booking.lugar} acaba de ser reservado por alguien más. Por favor elige otro.`);
+    renderLugares();
+    mGoStep(2);
+    return;
+  }
+
+  saveSlot(clase, dateStr, hora, { nombre, email, tel, nivel, notas, lugar: booking.lugar, metodo: metodoDtxt, instructor });
 
   /* ── Verificar umbral y mostrar alerta admin ── */
   const ocupNuevo  = getOcupados(clase, dateStr, hora);
@@ -3822,6 +3946,7 @@ function proceedToConfirm() {
     <div class="cr-row"><span class="cr-icon">${info.emoji}</span><span class="cr-text"><strong>${info.nombre}</strong></span></div>
     <div class="cr-row"><span class="cr-icon">📅</span><span class="cr-text">${diaStr}</span></div>
     <div class="cr-row"><span class="cr-icon">⏰</span><span class="cr-text">${hora} hrs · $${info.precio}</span></div>
+    ${booking.lugar ? `<div class="cr-row"><span class="cr-icon">📍</span><span class="cr-text">Lugar ${booking.lugar}</span></div>` : ''}
     <div class="cr-row"><span class="cr-icon">🎽</span><span class="cr-text">Instructora: ${instructor}</span></div>
     <div class="cr-row"><span class="cr-icon">👤</span><span class="cr-text">${nombre} · ${nivel}</span></div>
     <div class="cr-row"><span class="cr-icon">📱</span><span class="cr-text">${tel}</span></div>
@@ -3837,6 +3962,7 @@ function proceedToConfirm() {
     `${info.emoji} Clase: ${info.nombre}\n` +
     `📅 Fecha: ${diaStr}\n` +
     `⏰ Hora: ${hora} hrs\n` +
+    (booking.lugar ? `📍 Lugar: ${booking.lugar}\n` : ``) +
     `🎽 Instructora: ${instructor}\n` +
     `💰 Monto: $${info.precio}\n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
@@ -3887,7 +4013,8 @@ function proceedToConfirm() {
   btnDl.textContent = '↓ Descargar comprobante';
   btnDl.disabled = false;
 
-  mGoStep(3);
+  booking.lugarFinal = booking.lugar;
+  mGoStep(4);
   renderCards();
 }
 
@@ -4172,6 +4299,7 @@ function downloadVoucher() {
       <table>
         <tr><td class="lbl">📅 Fecha</td><td><strong>${b.diaStr}</strong></td></tr>
         <tr><td class="lbl">⏰ Hora</td><td>${b.hora} hrs</td></tr>
+        ${b.lugar ? `<tr><td class="lbl">📍 Lugar</td><td><strong>Mat ${b.lugar}</strong></td></tr>` : ''}
         <tr><td class="lbl">👤 Cliente</td><td>${b.nombre}</td></tr>
         <tr><td class="lbl">📧 Email</td><td>${b.email}</td></tr>
         <tr><td class="lbl">📱 Teléfono</td><td>${b.tel||'—'}</td></tr>
@@ -4318,7 +4446,7 @@ function buildSAdminHoy() {
 
       return `<div class="sa-alumna-row">
         <div class="sa-alumna-info">
-          <div class="sa-alumna-nombre">${c.nombre}</div>
+          <div class="sa-alumna-nombre">${c.nombre} ${c.lugar ? `<span class="sa-lugar-badge">📍 ${c.lugar}</span>` : ''}</div>
           <div class="sa-alumna-email">${c.email||'—'}</div>
           <div class="sa-alumna-sub">${esSub ? '💎 Suscriptora' : (c.metodo||'—').split('·')[0].trim()}</div>
         </div>
@@ -4732,7 +4860,7 @@ function sadminVerDia(dateStr, el) {
     const filas    = clientes.map(c => `
       <div class="sa-alumna-row">
         <div class="sa-alumna-info">
-          <div class="sa-alumna-nombre">${c.nombre}</div>
+          <div class="sa-alumna-nombre">${c.nombre} ${c.lugar ? `<span class="sa-lugar-badge">📍 ${c.lugar}</span>` : ''}</div>
           <div class="sa-alumna-email">${c.email||'—'}</div>
         </div>
         <span class="sa-alumna-tel">${c.tel||'—'}</span>
