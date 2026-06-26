@@ -474,16 +474,15 @@ nav.scrolled .hamburger span { background:var(--wine); }
 .nosotros-header .section-body { max-width:520px; margin:14px auto 0; }
 .nos-grid { display:grid; grid-template-columns:0.95fr 1.05fr; gap:60px; align-items:center; }
 /* composición de fotos editorial */
-.nos-imgs { display:grid; grid-template-columns:1fr 0.78fr; gap:16px; align-items:start; }
-.nos-img { border-radius:22px; overflow:hidden; position:relative; box-shadow:0 18px 44px rgba(74,15,26,.16); }
+.nos-imgs { display:flex; justify-content:center; }
+.nos-img { border-radius:22px; overflow:hidden; position:relative; box-shadow:0 26px 60px rgba(74,15,26,.2); }
 .nos-img::after {
   content:''; position:absolute; inset:0; border-radius:22px; pointer-events:none;
   border:1px solid rgba(255,255,255,.25); box-shadow:inset 0 -60px 60px -50px rgba(74,15,26,.30);
 }
 .nos-img img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .6s ease; }
 .nos-img:hover img { transform:scale(1.05); }
-.nos-img-founder { aspect-ratio:3/4; }
-.nos-img-team    { aspect-ratio:3/4; margin-top:44px; }
+.nos-img-founder { aspect-ratio:3/4; width:100%; max-width:380px; }
 .nos-founder-badge {
   position:absolute; left:14px; bottom:14px; z-index:2;
   background:rgba(255,255,255,.92); backdrop-filter:blur(4px);
@@ -2509,7 +2508,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
     </div>
 
     <div class="nos-grid">
-      <!-- composición de fotos editorial (estilo carrusel) -->
+      <!-- foto de la fundadora -->
       <div class="nos-imgs rl">
         <div class="nos-img nos-img-founder">
           <img src="assets/meetyourcoachs/Coach Jimena.jpg" alt="Jimena Moreno, fundadora de Presenza"
@@ -2518,10 +2517,6 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
             <strong>Jimena Moreno</strong>
             <span>Fundadora</span>
           </div>
-        </div>
-        <div class="nos-img nos-img-team">
-          <img src="assets/galeria/comunidad.jpeg" alt="Equipo y comunidad Presenza"
-            onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,var(--blush),#D4A891)&quot;>💃</div>'">
         </div>
       </div>
 
@@ -2588,42 +2583,50 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 
       <figure class="gal-card">
         <div class="gal-img">
-          <img src="assets/galeria/barre-clase.jpeg" alt="Clase de Barre en Presenza"
+          <img src="assets/galeria/carrusel images/536c8bcf-8118-4b50-a881-163eb826534a.jpg" alt="Presenza Studio"
             onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,#7B1A2E,var(--wine))&quot;>🩰</div>'">
         </div>
-        <figcaption class="gal-caption"><span class="gal-num">01</span><span class="gal-cap">Barre Burn</span></figcaption>
+        <figcaption class="gal-caption"><span class="gal-num">01</span><span class="gal-cap">Presenza</span></figcaption>
       </figure>
 
       <figure class="gal-card">
         <div class="gal-img">
-          <img src="assets/galeria/pilates-ball.jpeg" alt="Presence Pilates"
+          <img src="assets/galeria/carrusel images/8f1e7c92-3136-4412-a678-816d8d8b1711.jpg" alt="Movimiento en Presenza"
             onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,var(--blush),#B8785A)&quot;>🌿</div>'">
         </div>
-        <figcaption class="gal-caption"><span class="gal-num">02</span><span class="gal-cap">Presence Pilates</span></figcaption>
+        <figcaption class="gal-caption"><span class="gal-num">02</span><span class="gal-cap">Movimiento</span></figcaption>
       </figure>
 
       <figure class="gal-card">
         <div class="gal-img">
-          <img src="assets/galeria/warrior-pose.jpeg" alt="Movimiento con intención"
-            onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,var(--cream-d),var(--cream))&quot;>🧘</div>'">
+          <img src="assets/galeria/carrusel images/98940821-e02c-4ca6-a1a8-a7af0837bd37.jpg" alt="Barre en Presenza"
+            onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,var(--cream-d),var(--cream))&quot;>🩰</div>'">
         </div>
-        <figcaption class="gal-caption"><span class="gal-num">03</span><span class="gal-cap">Movimiento con intención</span></figcaption>
+        <figcaption class="gal-caption"><span class="gal-num">03</span><span class="gal-cap">Barre</span></figcaption>
       </figure>
 
       <figure class="gal-card">
         <div class="gal-img">
-          <img src="assets/galeria/estudio-fachada.jpeg" alt="Nuestro estudio en TerraPlaza"
-            onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,#8B9E7A,#C5D4B8)&quot;>🏠</div>'">
+          <img src="assets/galeria/carrusel images/bf020fff-63e0-46e1-ba7c-c1ffa6c1902e.jpg" alt="Pilates en Presenza"
+            onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,#8B9E7A,#C5D4B8)&quot;>🌿</div>'">
         </div>
-        <figcaption class="gal-caption"><span class="gal-num">04</span><span class="gal-cap">Nuestro estudio</span></figcaption>
+        <figcaption class="gal-caption"><span class="gal-num">04</span><span class="gal-cap">Pilates</span></figcaption>
       </figure>
 
       <figure class="gal-card">
         <div class="gal-img">
-          <img src="assets/galeria/comunidad.jpeg" alt="Comunidad Presenza"
+          <img src="assets/galeria/carrusel images/f4f2c1f8-0666-4573-b5ed-a14dc7c5334f.jpg" alt="Bienestar en Presenza"
+            onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,var(--blush),#D4A891)&quot;>✧</div>'">
+        </div>
+        <figcaption class="gal-caption"><span class="gal-num">05</span><span class="gal-cap">Bienestar</span></figcaption>
+      </figure>
+
+      <figure class="gal-card">
+        <div class="gal-img">
+          <img src="assets/galeria/carrusel images/comunidad.jpeg" alt="Comunidad Presenza"
             onerror="this.outerHTML='<div class=car-img-ph style=&quot;background:linear-gradient(145deg,var(--wine-d),#9B2B42)&quot;>💃</div>'">
         </div>
-        <figcaption class="gal-caption"><span class="gal-num">05</span><span class="gal-cap">Comunidad que eleva</span></figcaption>
+        <figcaption class="gal-caption"><span class="gal-num">06</span><span class="gal-cap">Comunidad</span></figcaption>
       </figure>
 
     </div>
