@@ -1189,48 +1189,43 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .mpanel { display:none; }
 .mpanel.active { display:block; }
 
-/* ── SELECTOR DE LUGAR (mats) ── */
-.lugar-intro { text-align:center; margin-bottom:14px; }
+/* ── SELECTOR DE LUGAR (mats estilo sala de Pilates) ── */
+.lugar-intro { text-align:center; margin-bottom:16px; }
 .lugar-intro h4 { font-family:'Playfair Display',serif; font-size:1.05rem; color:var(--wine-d); margin-bottom:4px; }
 .lugar-intro p  { font-size:.76rem; color:var(--gray); }
-.lugar-frente {
-  text-align:center; font-size:.62rem; letter-spacing:3px; text-transform:uppercase;
-  color:var(--blush); font-weight:700; margin-bottom:12px; position:relative;
-}
-.lugar-frente::before, .lugar-frente::after {
-  content:''; position:absolute; top:50%; width:24%; height:1px; background:rgba(107,23,40,.18);
-}
-.lugar-frente::before { left:6%; } .lugar-frente::after { right:6%; }
 .lugar-grid {
-  display:grid; grid-template-columns:repeat(5,1fr); gap:9px;
-  max-width:330px; margin:0 auto 18px;
+  display:grid; grid-template-columns:repeat(6,1fr); gap:10px;
+  max-width:380px; margin:0 auto 18px;
 }
-.lugar-seat {
-  aspect-ratio:1; border-radius:13px; border:1.5px solid rgba(107,23,40,.18);
-  background:var(--white); display:flex; flex-direction:column; align-items:center; justify-content:center;
-  cursor:pointer; transition:all .18s; gap:1px;
+.mat {
+  aspect-ratio:1/1.75; border-radius:60px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:all .18s ease; user-select:none;
 }
-.lugar-seat .ls-ico { font-size:.95rem; line-height:1; opacity:.55; }
-.lugar-seat .ls-num { font-size:.72rem; font-weight:700; color:var(--wine-d); }
-.lugar-seat.disponible:hover { border-color:var(--wine); background:rgba(107,23,40,.05); transform:translateY(-2px); }
-.lugar-seat.reservado {
-  background:#ece6e0; border-color:transparent; cursor:not-allowed; opacity:.7;
+.mat-lbl {
+  transform:rotate(-90deg); white-space:nowrap;
+  font-size:.82rem; font-weight:600; letter-spacing:.5px;
 }
-.lugar-seat.reservado .ls-num, .lugar-seat.reservado .ls-ico { color:#a89a92; opacity:.6; }
-.lugar-seat.sel {
-  background:linear-gradient(145deg,var(--wine),var(--wine-d)); border-color:var(--wine);
-  box-shadow:0 6px 16px rgba(107,23,40,.3); transform:translateY(-2px);
+.mat.disponible { background:var(--wine-d); color:var(--cream); }
+.mat.disponible:hover { background:var(--wine); transform:translateY(-3px); box-shadow:0 8px 20px rgba(107,23,40,.32); }
+.mat.reservado { background:#dcd2ca; color:#a8998f; cursor:not-allowed; }
+.mat.sel {
+  background:var(--wine); color:#fff;
+  box-shadow:0 0 0 3px #E0A93B, 0 8px 22px rgba(107,23,40,.42); transform:translateY(-3px);
 }
-.lugar-seat.sel .ls-num { color:#fff; }
-.lugar-seat.sel .ls-ico { opacity:1; }
+.mat.coach {
+  background:var(--cream); color:var(--blush); cursor:default;
+  border:1px dashed rgba(107,23,40,.25);
+}
+.mat.coach .mat-lbl { font-size:.7rem; text-transform:lowercase; letter-spacing:1.5px; }
 .lugar-legend {
-  display:flex; justify-content:center; gap:16px; flex-wrap:wrap; margin-bottom:18px;
+  display:flex; justify-content:center; gap:16px; flex-wrap:wrap; margin-bottom:14px;
 }
 .lugar-legend span { display:flex; align-items:center; gap:6px; font-size:.72rem; color:var(--gray); }
-.ll-dot { width:11px; height:11px; border-radius:4px; }
-.ll-disp { background:var(--white); border:1.5px solid rgba(107,23,40,.25); }
+.ll-dot { width:13px; height:13px; border-radius:50px; }
+.ll-disp { background:var(--wine-d); }
 .ll-resv { background:#dcd2ca; }
-.ll-tu   { background:var(--wine); }
+.ll-tu   { background:var(--wine); box-shadow:0 0 0 2px #E0A93B; }
 .lugar-sel-info {
   text-align:center; font-size:.8rem; color:var(--wine-d); font-weight:600; margin-bottom:14px; min-height:20px;
 }
@@ -3290,9 +3285,8 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
       <div class="mpanel" id="mpLugar">
         <div class="lugar-intro">
           <h4>Elige tu lugar</h4>
-          <p>Selecciona el mat disponible donde quieres tu clase.</p>
+          <p>Selecciona el mat donde quieres tu clase.</p>
         </div>
-        <div class="lugar-frente">🪞 Frente · Instructora</div>
         <div class="lugar-grid" id="lugarGrid"></div>
         <div class="lugar-legend">
           <span><span class="ll-dot ll-disp"></span> Disponible</span>
@@ -3405,7 +3399,7 @@ const PLANES_SUB = {
 const INFO = {
   burn:    { nombre:'Barre Burn',       emoji:'🔥', tag:'Alta energía',  cupos:15, precio:15 },
   essenza: { nombre:'Barre Essenza',    emoji:'🩰', tag:'Barre clásico', cupos:15, precio:15 },
-  pilates: { nombre:'Presence Pilates', emoji:'🌿', tag:'Core & fuerza', cupos:15, precio:15 },
+  pilates: { nombre:'Presence Pilates', emoji:'🌿', tag:'Core & fuerza', cupos:11, precio:15 },
   yoga:    { nombre:'Unwind Yoga',      emoji:'🧘', tag:'Restaurativo',  cupos:15, precio:12 },
 };
 
@@ -3721,11 +3715,12 @@ function submitR() {
   mGoStep(2);
 }
 
+/* Layout de la sala de Pilates: fila 1 = 1,2,3,coach,4,5 · fila 2 = 6..11 */
+const PILATES_LAYOUT = [1, 2, 3, 'coach', 4, 5, 6, 7, 8, 9, 10, 11];
+
 /* Render del grid de mats según los lugares ya reservados */
 function renderLugares() {
   const { clase, dateStr, hora } = booking;
-  const info     = INFO[clase];
-  const total    = info.cupos || 15;
   const clientes = getClientes(clase, dateStr, hora);
   const ocupados = new Set(clientes.filter(c => c.lugar).map(c => Number(c.lugar)));
 
@@ -3733,21 +3728,22 @@ function renderLugares() {
   document.getElementById('btnLugar').disabled = true;
   document.getElementById('lugarSelInfo').textContent = 'Toca un mat para reservarlo';
 
-  let html = '';
-  for (let i = 1; i <= total; i++) {
-    const reservado = ocupados.has(i);
-    html += `<div class="lugar-seat ${reservado?'reservado':'disponible'}" data-n="${i}"
-      ${reservado ? '' : `onclick="selectLugar(${i})"`}>
-      <span class="ls-ico">🧘</span>
-      <span class="ls-num">${i}</span>
+  const html = PILATES_LAYOUT.map(cell => {
+    if (cell === 'coach') {
+      return `<div class="mat coach"><span class="mat-lbl">coach</span></div>`;
+    }
+    const reservado = ocupados.has(cell);
+    return `<div class="mat ${reservado?'reservado':'disponible'}" data-n="${cell}"
+      ${reservado ? '' : `onclick="selectLugar(${cell})"`}>
+      <span class="mat-lbl">${cell}</span>
     </div>`;
-  }
+  }).join('');
   document.getElementById('lugarGrid').innerHTML = html;
 }
 
 function selectLugar(n) {
   booking.lugar = n;
-  document.querySelectorAll('.lugar-seat').forEach(el =>
+  document.querySelectorAll('.mat').forEach(el =>
     el.classList.toggle('sel', Number(el.dataset.n) === n && !el.classList.contains('reservado')));
   document.getElementById('lugarSelInfo').textContent = `Lugar ${n} seleccionado ✓`;
   document.getElementById('btnLugar').disabled = false;
