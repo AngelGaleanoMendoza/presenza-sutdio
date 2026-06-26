@@ -3655,6 +3655,8 @@ function openBooking(clase, dateStr, hora, instructor) {
   document.getElementById('btnConfirmar').disabled = true;
   pagoMetodo      = null;
   selectedSubPlan = null;
+  booking.lugar   = null;
+  setupFlow(clase);
   mGoStep(1);
 
   document.getElementById('modalBackdrop').classList.add('open');
@@ -3667,19 +3669,37 @@ function closeModal() {
 }
 function bdClick(e) { if(e.target===document.getElementById('modalBackdrop')) closeModal(); }
 
+/* Flujo dinámico: Pilates lleva paso "Lugar", el resto no */
+let mFlow = [];
+function setupFlow(clase) {
+  mFlow = (clase === 'pilates')
+    ? [ {panel:'mp1',label:'Datos'}, {panel:'mpLugar',label:'Lugar'}, {panel:'mp2',label:'Pago'}, {panel:'mp3',label:'Confirmación'} ]
+    : [ {panel:'mp1',label:'Datos'}, {panel:'mp2',label:'Pago'}, {panel:'mp3',label:'Confirmación'} ];
+  buildStepBar();
+}
+function buildStepBar() {
+  let s = '', l = '';
+  mFlow.forEach((step, i) => {
+    if (i>0) s += `<div class="ms-line" id="msl${i}"></div>`;
+    s += `<div class="ms-dot${i===0?' active':''}" id="msd${i+1}">${i+1}</div>`;
+    l += `<span>${step.label}</span>`;
+  });
+  document.querySelector('.modal-steps').innerHTML = s;
+  document.querySelector('.modal-steps-lbl').innerHTML = l;
+}
 function mGoStep(n) {
-  /* 1=Datos(mp1)  2=Lugar(mpLugar)  3=Pago(mp2)  4=Confirmación(mp3) */
-  document.getElementById('mp1').classList.toggle('active', n===1);
-  document.getElementById('mpLugar').classList.toggle('active', n===2);
-  document.getElementById('mp2').classList.toggle('active', n===3);
-  document.getElementById('mp3').classList.toggle('active', n===4);
-  document.getElementById('msd1').className = 'ms-dot' + (n===1?' active':' done');
-  document.getElementById('msl1').className = 'ms-line' + (n>=2?' done':'');
-  document.getElementById('msd2').className = 'ms-dot' + (n===2?' active':(n>2?' done':''));
-  document.getElementById('msl2').className = 'ms-line' + (n>=3?' done':'');
-  document.getElementById('msd3').className = 'ms-dot' + (n===3?' active':(n>3?' done':''));
-  document.getElementById('msl3').className = 'ms-line' + (n===4?' done':'');
-  document.getElementById('msd4').className = 'ms-dot' + (n===4?' active':'');
+  ['mp1','mpLugar','mp2','mp3'].forEach(id => { const e=document.getElementById(id); if(e) e.classList.remove('active'); });
+  const cur = mFlow[n-1];
+  if (cur) document.getElementById(cur.panel).classList.add('active');
+  mFlow.forEach((_, i) => {
+    const idx = i+1;
+    const dot = document.getElementById('msd'+idx);
+    if (dot) dot.className = 'ms-dot' + (idx===n ? ' active' : (idx<n ? ' done' : ''));
+    if (i>0) {
+      const line = document.getElementById('msl'+i);
+      if (line) line.className = 'ms-line' + (n>=idx ? ' done' : '');
+    }
+  });
 }
 
 function checkMForm() {
@@ -3690,9 +3710,14 @@ function checkMForm() {
   document.getElementById('btnConfirmar').disabled = !ok;
 }
 
-/* PASO 1 → 2 : datos listos, mostrar selector de lugar */
+/* PASO 1 → 2 : Pilates va a "Lugar"; el resto va directo a "Pago" */
 function submitR() {
-  renderLugares();
+  if (booking.clase === 'pilates') {
+    renderLugares();
+  } else {
+    booking.lugar = null;
+    setupPago();
+  }
   mGoStep(2);
 }
 
@@ -3728,17 +3753,17 @@ function selectLugar(n) {
   document.getElementById('btnLugar').disabled = false;
 }
 
-/* PASO 2 → 3 : lugar elegido, preparar pago */
-function confirmLugar() {
-  if (!booking.lugar) return;
+/* Prepara la pantalla de pago (resumen + reset de métodos) */
+function setupPago() {
   const { clase, dateStr, hora, instructor } = booking;
   const info   = INFO[clase];
   const d      = new Date(dateStr+'T12:00:00');
   const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
+  const lugarTxt = booking.lugar ? ` · Lugar ${booking.lugar}` : '';
 
   document.getElementById('psIcon').textContent   = info.emoji;
   document.getElementById('psNombre').textContent = info.nombre;
-  document.getElementById('psDia').textContent    = `${diaStr} · ${hora} hrs · Lugar ${booking.lugar}`;
+  document.getElementById('psDia').textContent    = `${diaStr} · ${hora} hrs${lugarTxt}`;
   document.getElementById('psPrice').textContent  = `$${info.precio}`;
 
   pagoMetodo      = null;
@@ -3750,7 +3775,12 @@ function confirmLugar() {
   document.getElementById('cashNote').style.display = 'none';
   document.getElementById('subCheckBox').classList.remove('visible');
   document.getElementById('btnPagar').disabled = true;
+}
 
+/* PASO Lugar → Pago (solo Pilates) */
+function confirmLugar() {
+  if (!booking.lugar) return;
+  setupPago();
   mGoStep(3);
 }
 
@@ -4014,7 +4044,7 @@ function proceedToConfirm() {
   btnDl.disabled = false;
 
   booking.lugarFinal = booking.lugar;
-  mGoStep(4);
+  mGoStep(mFlow.length);
   renderCards();
 }
 
