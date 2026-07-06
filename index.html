@@ -1362,6 +1362,16 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   color:var(--wine); letter-spacing:2px;
 }
 .tb-bank { font-size:.72rem; color:var(--gray); margin-top:2px; }
+.btn-pay-link {
+  display:block; width:100%; margin-top:12px; padding:11px;
+  background:var(--wine); color:#fff; border:none; border-radius:10px;
+  font-family:'Poppins',sans-serif; font-size:.82rem; font-weight:600;
+  cursor:pointer; transition:all .25s;
+}
+.btn-pay-link:hover { background:var(--wine-d); transform:translateY(-2px); box-shadow:0 8px 22px rgba(107,23,40,.3); }
+.tb-nota { font-size:.68rem; color:var(--gray); margin-top:8px; }
+.sub-pay-link { margin-top:10px; }
+.sub-pay-link .btn-pay-link { margin-top:0; }
 
 @media(max-width:520px){
   .reserva { padding:70px 18px; }
@@ -2771,7 +2781,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Cualquier disciplina disponible</div>
           <div class="pc-perk"><span>✧</span> Sin compromiso mensual</div>
         </div>
-        <button class="pc-cta pc-cta-link" disabled>🔗 Link de pago · Próximamente</button>
+        <button class="pc-cta pc-cta-link" onclick="payLink('Clase Singular', 440)">🔗 Pagar con link BAC →</button>
       </div>
 
       <!-- 5 Clases $45 — destacado -->
@@ -2787,7 +2797,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Válido por 30 días</div>
           <div class="pc-perk"><span>✧</span> Combina Barre, Pilates & Yoga</div>
         </div>
-        <button class="pc-cta pc-cta-link" disabled>🔗 Link de pago · Próximamente</button>
+        <button class="pc-cta pc-cta-link" onclick="payLink('el Paquete de 5 Clases', 1650)">🔗 Pagar con link BAC →</button>
       </div>
 
       <!-- 10 Clases $80 -->
@@ -2802,7 +2812,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Válido por 45 días</div>
           <div class="pc-perk"><span>✧</span> Combina Barre, Pilates & Yoga</div>
         </div>
-        <button class="pc-cta pc-cta-link" disabled>🔗 Link de pago · Próximamente</button>
+        <button class="pc-cta pc-cta-link" onclick="payLink('el Paquete de 10 Clases', 2930)">🔗 Pagar con link BAC →</button>
       </div>
 
       <div class="pagos-row-label">♾️ Membresías ilimitadas</div>
@@ -2858,6 +2868,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
     <div class="pagos-metodos r d1">
       <h4>Métodos de pago aceptados</h4>
       <div class="metodos-chips">
+        <div class="mc-chip"><span class="mci">🔗</span> Link de pago BAC</div>
         <div class="mc-chip"><span class="mci">💵</span> Efectivo en el estudio</div>
         <div class="mc-chip"><span class="mci">💬</span> Coordinar por WhatsApp</div>
       </div>
@@ -3253,8 +3264,8 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
           <span class="metodo-sel-lbl">Selecciona un método</span>
           <div class="metodo-sel-btns">
             <div class="msb" id="msbTransfer" onclick="selectMetodo('transfer')">
-              <span class="msb-icon">🏦</span>
-              Transferencia BAC
+              <span class="msb-icon">🔗</span>
+              Link de pago BAC
             </div>
             <div class="msb" id="msbCash" onclick="selectMetodo('cash')">
               <span class="msb-icon">💵</span>
@@ -3267,9 +3278,11 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
           </div>
         </div>
         <div class="transfer-box" id="transferBox">
-          <p class="tb-label">Número de cuenta · Ahorro a la Mano BAC</p>
-          <p class="tb-num">373845890</p>
-          <p class="tb-bank">BAC Nicaragua · Presenza Studio</p>
+          <p class="tb-label">Monto a pagar</p>
+          <p class="tb-num" id="linkMonto">C$440</p>
+          <p class="tb-bank">Link de pago BAC · Presenza Studio</p>
+          <button class="btn-pay-link" onclick="payBookingLink()">🔗 Pagar ahora →</button>
+          <p class="tb-nota">Si prefieres, también podemos coordinar el pago por WhatsApp.</p>
         </div>
         <div class="pago-note" id="cashNote" style="display:none">
           <strong>💵 Pago en el estudio</strong>
@@ -3318,7 +3331,18 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 ════════════════════════════════════════ */
 
 const WA = '50578359079';
-const LINK_PAGO = ''; // Llenar con URL cuando el link de pago esté disponible
+const LINK_PAGO = ''; // ← pega aquí tu link de pago BAC (Compra Click) cuando lo tengas
+
+/* Pagar con link BAC: abre el link con el monto cargado; si aún no hay link,
+   coordina por WhatsApp indicando concepto y monto exacto */
+function payLink(nombre, monto) {
+  if (LINK_PAGO) {
+    window.open(LINK_PAGO, '_blank');
+    return;
+  }
+  const txt = `Hola Presenza ✧ Quiero pagar ${nombre} — Monto: ${fmtC(monto)}. ¿Me envían el link de pago BAC?`;
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(txt)}`, '_blank');
+}
 const DIAS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const MESES_ES  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
@@ -3701,6 +3725,7 @@ function setupPago() {
   document.getElementById('psNombre').textContent = info.nombre;
   document.getElementById('psDia').textContent    = `${diaStr} · ${hora} hrs${lugarTxt}`;
   document.getElementById('psPrice').textContent  = `${fmtC(info.precio)}`;
+  document.getElementById('linkMonto').textContent = fmtC(info.precio);
 
   pagoMetodo      = null;
   selectedSubPlan = null;
@@ -3718,6 +3743,12 @@ function confirmLugar() {
   if (!booking.lugar) return;
   setupPago();
   mGoStep(3);
+}
+
+/* Pagar la clase actual con link BAC (monto cargado automáticamente) */
+function payBookingLink() {
+  const info = INFO[booking.clase];
+  payLink(`mi clase de ${info.nombre}`, info.precio);
 }
 
 function selectMetodo(tipo) {
@@ -3781,6 +3812,7 @@ function verifySub() {
     <div class="sub-plan-new">
       <p>${esRenovacion ? '⟳ Tus clases se agotaron. Elige un plan para renovar:' : '¡Únete! Elige tu plan de suscripción:'}</p>
       <div class="sub-planes">${planesHtml}</div>
+      <div class="sub-pay-link" id="subPayLink"></div>
     </div>`;
   selectedSubPlan = null;
   document.getElementById('btnPagar').disabled = true;
@@ -3790,6 +3822,14 @@ function selectSubPlan(planKey) {
   selectedSubPlan = planKey;
   document.querySelectorAll('.sub-plane').forEach(el =>
     el.classList.toggle('sel', el.dataset.plan === planKey));
+  /* Botón de pago con link BAC con el monto del plan cargado */
+  const pd  = PLANES_SUB[planKey];
+  const box = document.getElementById('subPayLink');
+  if (box && pd) {
+    box.innerHTML = `<button class="btn-pay-link" onclick="payLink('el plan ${pd.nombre}', ${pd.precio})">
+      🔗 Pagar ${pd.nombre} · ${fmtC(pd.precio)} →
+    </button>`;
+  }
   document.getElementById('btnPagar').disabled = false;
 }
 
@@ -3842,7 +3882,7 @@ function proceedToConfirm() {
   const subActiva  = pagoMetodo==='sub' ? getSuscriptoraByEmail(email) : null;
   const planUsado  = subActiva?.plan || selectedSubPlan;
   const metodoDtxt = pagoMetodo==='transfer'
-    ? 'Transferencia BAC · 373845890'
+    ? '🔗 Link de pago BAC'
     : pagoMetodo==='sub'
     ? `💎 Suscripción · ${PLANES_SUB[planUsado]?.nombre || 'Membresía'}`
     : 'Efectivo en el estudio';
