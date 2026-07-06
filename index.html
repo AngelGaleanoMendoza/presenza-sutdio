@@ -2764,7 +2764,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
         <div class="pago-card-head">
           <div class="pc-icon">🎟️</div>
           <p class="pc-name">Clase Singular</p>
-          <p class="pc-price">$12 <small>por clase · acceso único</small></p>
+          <p class="pc-price">C$440 <small>por clase · acceso único</small></p>
         </div>
         <div class="pc-perks">
           <div class="pc-perk"><span>✧</span> Acceso a 1 clase</div>
@@ -2780,7 +2780,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <span class="pc-badge">✧ Más popular</span>
           <div class="pc-icon">🌟</div>
           <p class="pc-name">5 Clases</p>
-          <p class="pc-price">$45 <small>$9 por clase · ahorras $15</small></p>
+          <p class="pc-price">C$1,650 <small>C$330 por clase · ahorras C$550</small></p>
         </div>
         <div class="pc-perks">
           <div class="pc-perk"><span>✧</span> 5 clases de cualquier disciplina</div>
@@ -2795,7 +2795,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
         <div class="pago-card-head">
           <div class="pc-icon">💫</div>
           <p class="pc-name">10 Clases</p>
-          <p class="pc-price">$80 <small>$8 por clase · ahorras $40</small></p>
+          <p class="pc-price">C$2,930 <small>C$293 por clase · ahorras C$1,470</small></p>
         </div>
         <div class="pc-perks">
           <div class="pc-perk"><span>✧</span> 10 clases de cualquier disciplina</div>
@@ -2812,14 +2812,14 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
         <div class="pago-card-head">
           <div class="pc-icon">🗓️</div>
           <p class="pc-name">Mensual Ilimitado</p>
-          <p class="pc-price">$130 <small>por mes · clases ilimitadas</small></p>
+          <p class="pc-price">C$4,760 <small>por mes · clases ilimitadas</small></p>
         </div>
         <div class="pc-perks">
           <div class="pc-perk"><span>✧</span> Clases ilimitadas por 1 mes</div>
           <div class="pc-perk"><span>✧</span> Acceso a todas las disciplinas</div>
           <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
         </div>
-        <button class="pc-cta pc-cta-wa" onclick="planWA('Mensual Ilimitado','$130/mes')">💬 Contratar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-wa" onclick="planWA('Mensual Ilimitado','C$4,760/mes')">💬 Contratar por WhatsApp →</button>
       </div>
 
       <!-- 3 Meses Ilimitado $115/mes — destacado -->
@@ -2828,14 +2828,14 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <span class="pc-badge">✧ Mejor valor</span>
           <div class="pc-icon">⭐</div>
           <p class="pc-name">3 Meses Ilimitado</p>
-          <p class="pc-price">$115 <small>/mes · total $345</small></p>
+          <p class="pc-price">C$4,210 <small>/mes · total C$12,630</small></p>
         </div>
         <div class="pc-perks">
           <div class="pc-perk"><span>✧</span> Clases ilimitadas por 3 meses</div>
           <div class="pc-perk"><span>✧</span> Acceso a todas las disciplinas</div>
           <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
         </div>
-        <button class="pc-cta pc-cta-wa" onclick="planWA('3 Meses Ilimitado','$115/mes')">💬 Contratar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-wa" onclick="planWA('3 Meses Ilimitado','C$4,210/mes')">💬 Contratar por WhatsApp →</button>
       </div>
 
       <!-- 6 Meses Ilimitado $102/mes -->
@@ -2843,14 +2843,14 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
         <div class="pago-card-head">
           <div class="pc-icon">♾️</div>
           <p class="pc-name">6 Meses Ilimitado</p>
-          <p class="pc-price">$102 <small>/mes · total $612</small></p>
+          <p class="pc-price">C$3,734 <small>/mes · total C$22,404</small></p>
         </div>
         <div class="pc-perks">
           <div class="pc-perk"><span>✧</span> Clases ilimitadas por 6 meses</div>
           <div class="pc-perk"><span>✧</span> Acceso a todas las disciplinas</div>
           <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
         </div>
-        <button class="pc-cta pc-cta-wa" onclick="planWA('6 Meses Ilimitado','$102/mes')">💬 Contratar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-wa" onclick="planWA('6 Meses Ilimitado','C$3,734/mes')">💬 Contratar por WhatsApp →</button>
       </div>
 
     </div>
@@ -3327,20 +3327,23 @@ const ADMIN_PIN  = '7835';
 const SUPER_PIN  = 'pre12345';
 
 const PLANES_SUB = {
-  singular: { nombre:'Clase singular',        clases:1,    precio:12,  tag:'Single',   meses:1 },
-  plan5:    { nombre:'Paquete 5 clases',       clases:5,    precio:45,  tag:'Básico',   meses:1 },
-  plan10:   { nombre:'Paquete 10 clases',      clases:10,   precio:80,  tag:'Regular',  meses:1 },
-  ilimit1:  { nombre:'Mensual ilimitado',      clases:9999, precio:130, tag:'Mensual',  meses:1 },
-  ilimit3:  { nombre:'Trimestral ilimitado',   clases:9999, precio:115, tag:'3 meses',  meses:3 },
-  ilimit6:  { nombre:'Semestral ilimitado',    clases:9999, precio:102, tag:'6 meses',  meses:6 },
+  singular: { nombre:'Clase singular',        clases:1,    precio:440,  tag:'Single',   meses:1 },
+  plan5:    { nombre:'Paquete 5 clases',       clases:5,    precio:1650, tag:'Básico',   meses:1 },
+  plan10:   { nombre:'Paquete 10 clases',      clases:10,   precio:2930, tag:'Regular',  meses:1 },
+  ilimit1:  { nombre:'Mensual ilimitado',      clases:9999, precio:4760, tag:'Mensual',  meses:1 },
+  ilimit3:  { nombre:'Trimestral ilimitado',   clases:9999, precio:4210, tag:'3 meses',  meses:3 },
+  ilimit6:  { nombre:'Semestral ilimitado',    clases:9999, precio:3734, tag:'6 meses',  meses:6 },
 };
+
+/* Formato córdobas: C$1,650 */
+function fmtC(n) { return 'C$' + Number(n||0).toLocaleString('en-US'); }
 
 /* ── Definición de clases — máximo 15 cupos ── */
 const INFO = {
-  burn:    { nombre:'Barre Burn',       emoji:'🔥', tag:'Alta energía',  cupos:15, precio:15 },
-  essenza: { nombre:'Barre Essenza',    emoji:'🩰', tag:'Barre clásico', cupos:15, precio:15 },
-  pilates: { nombre:'Presence Pilates', emoji:'🌿', tag:'Core & fuerza', cupos:15, precio:15 },
-  yoga:    { nombre:'Unwind Yoga',      emoji:'🧘', tag:'Restaurativo',  cupos:15, precio:12 },
+  burn:    { nombre:'Barre Burn',       emoji:'🔥', tag:'Alta energía',  cupos:15, precio:440 },
+  essenza: { nombre:'Barre Essenza',    emoji:'🩰', tag:'Barre clásico', cupos:15, precio:440 },
+  pilates: { nombre:'Presence Pilates', emoji:'🌿', tag:'Core & fuerza', cupos:15, precio:440 },
+  yoga:    { nombre:'Unwind Yoga',      emoji:'🧘', tag:'Restaurativo',  cupos:15, precio:440 },
 };
 
 /* ── Horario semanal (jsDay: 1=Lun … 5=Vie) ── */
@@ -3552,7 +3555,7 @@ function renderCards() {
         </div>
         <div class="sc-instructor">👤 ${instructor}</div>
         <div class="sc-cupos-row">
-          <span class="sc-cupos-txt"><strong>${libres}</strong> / ${info.cupos} cupos libres · $${info.precio}</span>
+          <span class="sc-cupos-txt"><strong>${libres}</strong> / ${info.cupos} cupos libres · ${fmtC(info.precio)}</span>
           <div class="sc-progress">
             <div class="sc-progress-fill" style="width:${fillPct}%"></div>
           </div>
@@ -3698,7 +3701,7 @@ function setupPago() {
   document.getElementById('psIcon').textContent   = info.emoji;
   document.getElementById('psNombre').textContent = info.nombre;
   document.getElementById('psDia').textContent    = `${diaStr} · ${hora} hrs${lugarTxt}`;
-  document.getElementById('psPrice').textContent  = `$${info.precio}`;
+  document.getElementById('psPrice').textContent  = `${fmtC(info.precio)}`;
 
   pagoMetodo      = null;
   selectedSubPlan = null;
@@ -3771,7 +3774,7 @@ function verifySub() {
     <div class="sub-plane" data-plan="${k}" onclick="selectSubPlan('${k}')">
       <span class="sub-plane-tag">${v.tag}</span>
       <span class="sub-plane-name">${v.nombre}</span>
-      <span class="sub-plane-price">$${v.precio}</span>
+      <span class="sub-plane-price">${fmtC(v.precio)}</span>
       <span class="sub-plane-clases">${v.clases >= 9999 ? '∞ ilimitado' : v.clases + ' clases'}</span>
     </div>`).join('');
 
@@ -3873,7 +3876,7 @@ function proceedToConfirm() {
         <div class="ssa-info">
           <strong>${pd.nombre} activada</strong>
           <span>📅 Del ${booking.subAlerta.inicio} al ${booking.subAlerta.fin}</span>
-          <span class="ssa-price">$${pd.precio}${pd.meses > 1 ? '/mes · ' + pd.meses + ' meses' : '/mes'}</span>
+          <span class="ssa-price">${fmtC(pd.precio)}${pd.meses > 1 ? '/mes · ' + pd.meses + ' meses' : '/mes'}</span>
         </div>
       </div>`;
     subAlertEl.style.display = 'block';
@@ -3909,7 +3912,7 @@ function proceedToConfirm() {
   document.getElementById('confirmCard').innerHTML = `
     <div class="cr-row"><span class="cr-icon">${info.emoji}</span><span class="cr-text"><strong>${info.nombre}</strong></span></div>
     <div class="cr-row"><span class="cr-icon">📅</span><span class="cr-text">${diaStr}</span></div>
-    <div class="cr-row"><span class="cr-icon">⏰</span><span class="cr-text">${hora} hrs · $${info.precio}</span></div>
+    <div class="cr-row"><span class="cr-icon">⏰</span><span class="cr-text">${hora} hrs · ${fmtC(info.precio)}</span></div>
     ${booking.lugar ? `<div class="cr-row"><span class="cr-icon">📍</span><span class="cr-text">Lugar ${booking.lugar}</span></div>` : ''}
     <div class="cr-row"><span class="cr-icon">🎽</span><span class="cr-text">Instructora: ${instructor}</span></div>
     <div class="cr-row"><span class="cr-icon">👤</span><span class="cr-text">${nombre} · ${nivel}</span></div>
@@ -3928,7 +3931,7 @@ function proceedToConfirm() {
     `⏰ Hora: ${hora} hrs\n` +
     (booking.lugar ? `📍 Lugar: ${booking.lugar}\n` : ``) +
     `🎽 Instructora: ${instructor}\n` +
-    `💰 Monto: $${info.precio}\n` +
+    `💰 Monto: ${fmtC(info.precio)}\n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
     `👤 Cliente: ${nombre}\n` +
     `   Nivel: ${nivel}\n` +
@@ -3946,7 +3949,7 @@ function proceedToConfirm() {
   document.getElementById('vouEmoji').textContent      = info.emoji;
   document.getElementById('vouClase').textContent      = info.nombre;
   document.getElementById('vouInstructor').textContent = `Instructora: ${instructor}`;
-  document.getElementById('vouPrice').textContent      = `$${info.precio}`;
+  document.getElementById('vouPrice').textContent      = `${fmtC(info.precio)}`;
   document.getElementById('vouFecha').textContent      = diaStr;
   document.getElementById('vouHora').textContent       = `${hora} hrs`;
   document.getElementById('vouNombre').textContent     = nombre;
@@ -4212,7 +4215,7 @@ function downloadVoucher() {
         <div style="font-size:.68rem;color:#9A8880;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">✦ Membresía activa</div>
         <div style="font-weight:700;color:#4A0F1A;font-size:.93rem">${b.subAlerta.planNombre}</div>
         <div style="font-size:.79rem;color:#6B1728;margin-top:5px">📅 Del ${b.subAlerta.inicio} al ${b.subAlerta.fin}</div>
-        <div style="font-size:.74rem;color:#9A8880;margin-top:3px">$${b.subAlerta.precio}${b.subAlerta.meses > 1 ? '/mes · ' + b.subAlerta.meses + ' meses' : ' / mes'}</div>
+        <div style="font-size:.74rem;color:#9A8880;margin-top:3px">${fmtC(b.subAlerta.precio)}${b.subAlerta.meses > 1 ? '/mes · ' + b.subAlerta.meses + ' meses' : ' / mes'}</div>
       </div>
     </td></tr>` : '';
 
@@ -4463,7 +4466,7 @@ function buildSAdminHoy() {
       </div>
       <div class="sa-kpi">
         <span class="sa-kpi-ico">💰</span>
-        <span class="sa-kpi-num">$${totalIngreso}</span>
+        <span class="sa-kpi-num">${fmtC(totalIngreso)}</span>
         <span class="sa-kpi-lbl">Ingreso del día</span>
       </div>
     </div>
@@ -4487,7 +4490,7 @@ function buildSAdminHoy() {
         </div>
       </div>
       ${Object.keys(pagos.planDetalle).length > 0 ? `<div class="sa-pago-detalle">${Object.entries(pagos.planDetalle).map(([k,v])=>`<span>💎 ${k}: ${v}</span>`).join('')}</div>` : ''}
-      <div class="sa-pagos-total">Total cobrado: <strong>$${totalIngreso}</strong></div>
+      <div class="sa-pagos-total">Total cobrado: <strong>${fmtC(totalIngreso)}</strong></div>
     </div>
     ${clasesHtml}`;
 }
@@ -4583,7 +4586,7 @@ function buildSAdminSubs() {
         <div class="nsm-field"><label>Teléfono</label><input id="nsTel" placeholder="8888-1234"/></div>
         <div class="nsm-field"><label>Plan</label>
           <select id="nsPlan">
-            ${Object.entries(PLANES_SUB).map(([k,v])=>`<option value="${k}">${v.nombre} — $${v.precio}</option>`).join('')}
+            ${Object.entries(PLANES_SUB).map(([k,v])=>`<option value="${k}">${v.nombre} — ${fmtC(v.precio)}</option>`).join('')}
           </select>
         </div>
         <div class="nsm-field full"><label>Notas (opcional)</label><input id="nsNotas" placeholder="Nivel, preferencias..."/></div>
@@ -4651,7 +4654,7 @@ function guardarNuevaSub() {
 }
 
 function renovarSub(email) {
-  const opciones = Object.entries(PLANES_SUB).map(([k,v])=>`${k} → ${v.nombre} ($${v.precio})`).join('\n');
+  const opciones = Object.entries(PLANES_SUB).map(([k,v])=>`${k} → ${v.nombre} (${fmtC(v.precio)})`).join('\n');
   const choice   = prompt(`Renovar suscripción de ${email}\n\nEscribe el código del plan:\n${opciones}`);
   if (choice === null) return;
   if (!PLANES_SUB[choice]) { alert('Código de plan no válido.'); return; }
@@ -5009,7 +5012,7 @@ function buildSAdminReportes() {
       <div class="sa-kpi"><span class="sa-kpi-ico">📅</span><span class="sa-kpi-num">${ag.sessions.size}</span><span class="sa-kpi-lbl">Clases dadas</span></div>
       <div class="sa-kpi"><span class="sa-kpi-ico">👥</span><span class="sa-kpi-num">${regs.length}</span><span class="sa-kpi-lbl">Asistencias</span></div>
       <div class="sa-kpi"><span class="sa-kpi-ico">🧍</span><span class="sa-kpi-num">${personas.length}</span><span class="sa-kpi-lbl">Personas únicas</span></div>
-      <div class="sa-kpi"><span class="sa-kpi-ico">💰</span><span class="sa-kpi-num">$${ag.ingresoTotal}</span><span class="sa-kpi-lbl">Ingreso pago único</span></div>
+      <div class="sa-kpi"><span class="sa-kpi-ico">💰</span><span class="sa-kpi-num">${fmtC(ag.ingresoTotal)}</span><span class="sa-kpi-lbl">Ingreso pago único</span></div>
     </div>`;
 
   /* Por clase + PDF por clase */
@@ -5020,7 +5023,7 @@ function buildSAdminReportes() {
       <span class="rep-cl-emoji">${info.emoji}</span>
       <div class="rep-cl-info">
         <strong>${info.nombre}</strong>
-        <span>${d.sesiones.size} ${d.sesiones.size===1?'sesión':'sesiones'} · 💎 ${d.sub} · 💵 $${d.ingreso}</span>
+        <span>${d.sesiones.size} ${d.sesiones.size===1?'sesión':'sesiones'} · 💎 ${d.sub} · 💵 ${fmtC(d.ingreso)}</span>
       </div>
       <div class="rep-cl-num">${d.count}<small>asist.</small></div>
       <button class="btn-rep-pdf" onclick="printReporteClase('${clase}')">📄 PDF</button>
@@ -5134,7 +5137,7 @@ function printReportePeriodo() {
 
   const claseRows = Object.entries(ag.byClase).sort((a,b)=>b[1].count-a[1].count).map(([clase,d]) => {
     const info = INFO[clase] || { nombre:clase, emoji:'📋' };
-    return `<tr><td>${info.emoji} ${info.nombre}</td><td>${d.sesiones.size}</td><td>${d.count}</td><td>${d.sub}</td><td>$${d.ingreso}</td></tr>`;
+    return `<tr><td>${info.emoji} ${info.nombre}</td><td>${d.sesiones.size}</td><td>${d.count}</td><td>${d.sub}</td><td>${fmtC(d.ingreso)}</td></tr>`;
   }).join('');
 
   const rankRows = personas.map((p,i) => {
@@ -5178,7 +5181,7 @@ function printReportePeriodo() {
     <div class="kpi"><span class="n">${regs.length}</span><span class="l">Asistencias</span></div>
     <div class="kpi"><span class="n">${personas.length}</span><span class="l">Personas únicas</span></div>
     <div class="kpi"><span class="n">${nuevos}</span><span class="l">Primera vez</span></div>
-    <div class="kpi"><span class="n">$${ag.ingresoTotal}</span><span class="l">Ingreso pago único</span></div>
+    <div class="kpi"><span class="n">${fmtC(ag.ingresoTotal)}</span><span class="l">Ingreso pago único</span></div>
   </div>
   <h2>📚 Asistencia por clase</h2>
   <table>
@@ -5425,7 +5428,7 @@ function renderCumpleCard(ev) {
       </div>
       <label class="cumple-helio">
         <input type="checkbox" id="cumpleHelio"/>
-        Globos con helio <strong>+$25</strong>
+        Globos con helio <strong>+C$920</strong>
       </label>
       <div class="cumple-guest">
         <span>Invitadas:</span>
@@ -5472,7 +5475,7 @@ function renderEventosPublic() {
       <div class="ev-body">
         <p class="ev-desc">${ev.desc||''}</p>
         <div class="ev-meta">
-          <span class="ev-chip">${ev.precio > 0 ? '$'+ev.precio : 'Gratis'}</span>
+          <span class="ev-chip">${ev.precio > 0 ? fmtC(ev.precio) : 'Gratis'}</span>
           ${ev.cupos ? `<span class="ev-chip">👥 ${ev.cupos} cupos</span>` : ''}
           <span class="ev-chip">⏰ ${ev.hora} hrs</span>
         </div>
