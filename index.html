@@ -1858,6 +1858,39 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .sa-pagos-total { margin-top:10px; font-size:.78rem; color:var(--gray); }
 .sa-pagos-total strong { color:var(--wine-d); }
 
+/* Pendientes de confirmación de pago */
+.sa-pend-blk {
+  background:linear-gradient(135deg,rgba(224,169,59,.1),rgba(224,169,59,.04));
+  border:1.5px solid rgba(224,169,59,.4); border-radius:14px;
+  padding:14px 16px; margin-bottom:18px;
+}
+.sa-pend-title { font-size:.8rem; font-weight:700; color:#7a5200; margin-bottom:10px; letter-spacing:.3px; }
+.sa-pend-card {
+  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  background:white; border:1px solid rgba(224,169,59,.25); border-radius:10px;
+  padding:10px 14px; margin-bottom:8px;
+}
+.sa-pend-card:last-child { margin-bottom:0; }
+.sa-pend-info { display:flex; flex-direction:column; gap:1px; }
+.sa-pend-info strong { font-size:.85rem; color:var(--text); }
+.sa-pend-info span { font-size:.72rem; color:var(--gray); }
+.sa-pend-plan { color:#7a5200!important; }
+.sa-pend-btns { display:flex; gap:8px; }
+.btn-pend-ok {
+  padding:8px 14px; border:none; border-radius:8px; cursor:pointer;
+  background:#2e7d32; color:white; font-size:.75rem; font-weight:700; transition:all .2s;
+}
+.btn-pend-ok:hover { background:#1b5e20; }
+.btn-pend-no {
+  padding:8px 12px; border:1.5px solid rgba(220,53,69,.3); border-radius:8px; cursor:pointer;
+  background:transparent; color:#c0392b; font-size:.75rem; font-weight:600; transition:all .2s;
+}
+.btn-pend-no:hover { background:rgba(220,53,69,.08); }
+.sa-pend-chip {
+  display:inline-block; font-size:.6rem; font-weight:700; letter-spacing:.4px;
+  background:rgba(224,169,59,.18); color:#7a5200; border-radius:50px; padding:2px 8px;
+}
+
 /* Botón eliminar suscriptora */
 .btn-sa-del {
   padding:7px 12px; border:1.5px solid rgba(220,53,69,.3);
@@ -3844,6 +3877,18 @@ function verifySub() {
     return;
   }
 
+  /* Plan pendiente de confirmación de pago → no puede usarlo aún */
+  if (sub && sub.pendiente) {
+    const pd = PLANES_SUB[sub.pendiente.plan];
+    result.innerHTML = `
+      <div class="sub-err" style="background:rgba(224,169,59,.1);border-color:rgba(224,169,59,.35);color:#7a5200">
+        ⏳ Tu plan <strong>${pd?.nombre||''}</strong> está pendiente de confirmación de pago.
+        Te avisaremos al activarlo. Mientras tanto puedes pagar esta clase con otro método.
+      </div>`;
+    document.getElementById('btnPagar').disabled = true;
+    return;
+  }
+
   /* Sin suscripción o agotada → mostrar selector de plan */
   const esRenovacion = sub && sub.clasesRestantes <= 0;
   const planesHtml = Object.entries(PLANES_SUB).map(([k, v]) => `
@@ -3879,40 +3924,73 @@ function selectSubPlan(planKey) {
   document.getElementById('btnPagar').disabled = false;
 }
 
+/* La alumna elige plan → queda PENDIENTE hasta que el admin confirme el pago.
+   Las clases del plan NO se pueden usar hasta la confirmación. */
 function autoRegisterSub(nombre, email, tel, nivel, planKey) {
-  const arr  = getSuscriptoras();
-  const idx  = arr.findIndex(s => s.email.toLowerCase() === email.toLowerCase());
-  const pd   = PLANES_SUB[planKey];
-  const now  = new Date();
-  const venc = new Date(now.getFullYear(), now.getMonth()+(pd.meses||1), now.getDate()).toISOString().split('T')[0];
+  const arr = getSuscriptoras();
+  const idx = arr.findIndex(s => s.email.toLowerCase() === email.toLowerCase());
+  const hoy = new Date().toISOString().split('T')[0];
 
   if (idx >= 0) {
-    arr[idx].clasesRestantes += pd.clases;
-    arr[idx].clasesTotal      = pd.clases;
-    arr[idx].plan             = planKey;
-    arr[idx].fechaVence       = venc;
-    arr[idx].activa           = true;
-    arr[idx].nombre           = nombre || arr[idx].nombre;
-    arr[idx].tel              = tel    || arr[idx].tel;
-    (arr[idx].renovaciones = arr[idx].renovaciones||[]).push({
-      fecha: now.toISOString().split('T')[0], plan: planKey, clases: pd.clases
-    });
+    /* Renovación solicitada: no tocar su plan actual, solo marcar pendiente */
+    arr[idx].pendiente = { plan: planKey, fecha: hoy };
+    arr[idx].nombre    = nombre || arr[idx].nombre;
+    arr[idx].tel       = tel    || arr[idx].tel;
   } else {
     arr.push({
       id:              'SUB-'+Date.now().toString(36).toUpperCase().slice(-6),
       nombre, email, tel: tel||'', notas: nivel||'',
       plan:            planKey,
-      clasesTotal:     pd.clases,
-      clasesRestantes: pd.clases,
+      clasesTotal:     0,
+      clasesRestantes: 0,
       clasesUsadas:    0,
-      activa:          true,
-      fechaInicio:     now.toISOString().split('T')[0],
-      fechaVence:      venc,
+      activa:          false,
+      pendiente:       { plan: planKey, fecha: hoy },
       historial:       [],
-      renovaciones:    [{ fecha: now.toISOString().split('T')[0], plan: planKey, clases: pd.clases }]
+      renovaciones:    []
     });
   }
   saveSuscriptoras(arr);
+}
+
+/* ── Confirmación de pago (Super Admin) ── */
+function confirmarPagoSub(email) {
+  const arr = getSuscriptoras();
+  const idx = arr.findIndex(s => s.email.toLowerCase() === email.toLowerCase());
+  if (idx < 0 || !arr[idx].pendiente) return;
+  const planKey = arr[idx].pendiente.plan;
+  const pd      = PLANES_SUB[planKey];
+  if (!pd) { alert('Plan no válido.'); return; }
+  const now  = new Date();
+  const hoy  = now.toISOString().split('T')[0];
+  const venc = new Date(now.getFullYear(), now.getMonth()+(pd.meses||1), now.getDate()).toISOString().split('T')[0];
+
+  arr[idx].clasesRestantes = Math.max(0, arr[idx].clasesRestantes) + pd.clases;
+  arr[idx].clasesTotal     = pd.clases;
+  arr[idx].plan            = planKey;
+  arr[idx].fechaVence      = venc;
+  arr[idx].activa          = true;
+  if (!arr[idx].fechaInicio) arr[idx].fechaInicio = hoy;
+  (arr[idx].renovaciones = arr[idx].renovaciones||[]).push({ fecha: hoy, plan: planKey, clases: pd.clases });
+  delete arr[idx].pendiente;
+  saveSuscriptoras(arr);
+  buildSAdminSubs();
+}
+
+function rechazarPagoSub(email) {
+  if (!confirm(`¿Rechazar la solicitud de ${email}? No se activará ningún plan.`)) return;
+  const arr = getSuscriptoras();
+  const idx = arr.findIndex(s => s.email.toLowerCase() === email.toLowerCase());
+  if (idx < 0) return;
+  const s = arr[idx];
+  /* Si nunca tuvo plan activo ni historial, eliminar el registro completo */
+  if (!s.activa && (s.clasesUsadas||0) === 0 && (s.historial||[]).length === 0) {
+    arr.splice(idx, 1);
+  } else {
+    delete arr[idx].pendiente;
+  }
+  saveSuscriptoras(arr);
+  buildSAdminSubs();
 }
 
 function proceedToConfirm() {
@@ -3926,18 +4004,17 @@ function proceedToConfirm() {
   const d      = new Date(dateStr+'T12:00:00');
   const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
   const subActiva  = pagoMetodo==='sub' ? getSuscriptoraByEmail(email) : null;
-  const planUsado  = subActiva?.plan || selectedSubPlan;
+  const usaSubActiva = !!(subActiva && subActiva.activa && subActiva.clasesRestantes > 0);
+  const planUsado  = usaSubActiva ? subActiva.plan : selectedSubPlan;
+  const esPlanPendiente = pagoMetodo==='sub' && !usaSubActiva && !!selectedSubPlan;
   const metodoDtxt = pagoMetodo==='transfer'
     ? '🔗 Link de pago BAC'
     : pagoMetodo==='sub'
-    ? `💎 Suscripción · ${PLANES_SUB[planUsado]?.nombre || 'Membresía'}`
+    ? `💎 Suscripción · ${PLANES_SUB[planUsado]?.nombre || 'Membresía'}${esPlanPendiente ? ' (pago pendiente)' : ''}`
     : 'Efectivo en el estudio';
 
-  /* Auto-registrar como suscriptora si eligió plan nuevo o renovación */
-  if (pagoMetodo === 'sub' && selectedSubPlan) {
-    const yaTiene = subActiva && subActiva.clasesRestantes > 0;
-    if (!yaTiene) autoRegisterSub(nombre, email, tel, nivel, selectedSubPlan);
-  }
+  /* Plan nuevo o renovación → registrar como PENDIENTE (el admin confirma el pago) */
+  if (esPlanPendiente) autoRegisterSub(nombre, email, tel, nivel, selectedSubPlan);
 
   /* ── Alerta de membresía ilimitada activada ── */
   const subAlertEl = document.getElementById('subAlertContainer');
@@ -3950,20 +4027,29 @@ function proceedToConfirm() {
     const finS    = subReg?.fechaVence  || '';
     booking.subAlerta = {
       planNombre: pd.nombre,
-      inicio: fmtD(inicioS),
-      fin: finS ? fmtD(finS) : '—',
+      inicio: esPlanPendiente ? '—' : fmtD(inicioS),
+      fin: esPlanPendiente || !finS ? '—' : fmtD(finS),
       precio: pd.precio,
-      meses: pd.meses
+      meses: pd.meses,
+      pendiente: esPlanPendiente
     };
-    subAlertEl.innerHTML = `
-      <div class="sub-start-alert">
-        <span class="ssa-icon">💎</span>
-        <div class="ssa-info">
-          <strong>${pd.nombre} activada</strong>
-          <span>📅 Del ${booking.subAlerta.inicio} al ${booking.subAlerta.fin}</span>
-          <span class="ssa-price">${fmtC(pd.precio)}${pd.meses > 1 ? '/mes · ' + pd.meses + ' meses' : '/mes'}</span>
-        </div>
-      </div>`;
+    subAlertEl.innerHTML = esPlanPendiente
+      ? `<div class="sub-start-alert">
+          <span class="ssa-icon">⏳</span>
+          <div class="ssa-info">
+            <strong>${pd.nombre} — pendiente de pago</strong>
+            <span>Tu membresía se activará cuando el estudio confirme tu pago.</span>
+            <span class="ssa-price">${fmtC(pd.precio)}${pd.meses > 1 ? '/mes · ' + pd.meses + ' meses' : '/mes'}</span>
+          </div>
+        </div>`
+      : `<div class="sub-start-alert">
+          <span class="ssa-icon">💎</span>
+          <div class="ssa-info">
+            <strong>${pd.nombre} activada</strong>
+            <span>📅 Del ${booking.subAlerta.inicio} al ${booking.subAlerta.fin}</span>
+            <span class="ssa-price">${fmtC(pd.precio)}${pd.meses > 1 ? '/mes · ' + pd.meses + ' meses' : '/mes'}</span>
+          </div>
+        </div>`;
     subAlertEl.style.display = 'block';
   } else {
     subAlertEl.style.display = 'none';
@@ -4500,7 +4586,7 @@ function buildSAdminHoy() {
         <div class="sa-alumna-info">
           <div class="sa-alumna-nombre">${c.nombre} ${c.lugar ? `<span class="sa-lugar-badge">📍 ${c.lugar}</span>` : ''}</div>
           <div class="sa-alumna-email">${c.email||'—'}</div>
-          <div class="sa-alumna-sub">${esSub ? '💎 Suscriptora' : (c.metodo||'—').split('·')[0].trim()}</div>
+          <div class="sa-alumna-sub">${esSub ? '💎 Suscriptora' : (sub && sub.pendiente) ? '⏳ Sub pendiente de pago' : (c.metodo||'—').split('·')[0].trim()}</div>
         </div>
         <span class="sa-alumna-tel">${c.tel||'—'}</span>
         ${esSub
@@ -4602,6 +4688,27 @@ function buildSAdminSubs() {
   const body = document.getElementById('sadminBody');
   const subs = getSuscriptoras();
 
+  /* ── Solicitudes pendientes de confirmación de pago ── */
+  const pendientes = subs.filter(s => s.pendiente);
+  const pendHtml = pendientes.length === 0 ? '' : `
+    <div class="sa-pend-blk">
+      <div class="sa-pend-title">⏳ Pendientes de confirmación de pago (${pendientes.length})</div>
+      ${pendientes.map(s => {
+        const pd = PLANES_SUB[s.pendiente.plan] || { nombre: s.pendiente.plan, precio: 0 };
+        return `<div class="sa-pend-card">
+          <div class="sa-pend-info">
+            <strong>${s.nombre}</strong>
+            <span>${s.email} · ${s.tel||'—'}</span>
+            <span class="sa-pend-plan">${pd.nombre} · <strong>${fmtC(pd.precio)}</strong> · solicitado ${s.pendiente.fecha}</span>
+          </div>
+          <div class="sa-pend-btns">
+            <button class="btn-pend-ok" onclick="confirmarPagoSub('${s.email}')">✓ Confirmar pago</button>
+            <button class="btn-pend-no" onclick="rechazarPagoSub('${s.email}')">✕ Rechazar</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
   const cards = subs.length === 0
     ? `<div class="sa-empty">
         <span class="sa-empty-ico">💎</span>
@@ -4632,12 +4739,12 @@ function buildSAdminSubs() {
               <span class="sa-sub-tel">${sub.tel||'Sin teléfono'}</span>
             </div>
             <div class="sa-sub-card-meta">
-              <div><span class="sa-sub-plan-tag">${plan.nombre}</span></div>
+              <div><span class="sa-sub-plan-tag">${plan.nombre}</span>${sub.pendiente ? ' <span class="sa-pend-chip">⏳ pendiente</span>' : ''}</div>
               <div class="sa-clases-bar">
                 <span class="sa-clases-num sa-cupos-left ${cuposCls}">${sub.clasesRestantes} clases</span>
                 <div class="sa-clases-track"><div class="sa-clases-fill" style="width:${pct}%"></div></div>
               </div>
-              <div class="sa-vence">Vence: ${sub.fechaVence}</div>
+              <div class="sa-vence">Vence: ${sub.fechaVence||'—'}</div>
             </div>
           </div>
           <div class="sa-sub-actions">
@@ -4659,6 +4766,7 @@ function buildSAdminSubs() {
       }).join('');
 
   body.innerHTML = `
+    ${pendHtml}
     <div class="sa-subs-toolbar">
       <h3>Suscriptoras (${subs.length})</h3>
       <button class="btn-nueva-sub" onclick="toggleNuevaSub()">+ Nueva suscriptora</button>
