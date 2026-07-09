@@ -1771,6 +1771,23 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .btn-sa-alumna-del:hover { background:rgba(220,53,69,.1); }
 
 /* Tab Suscriptoras */
+.sa-subs-seccion { margin-bottom:22px; }
+.sa-subs-seccion-hd {
+  display:flex; align-items:center; gap:8px;
+  font-family:'Playfair Display',serif; font-size:.98rem; color:var(--wine-d);
+  padding:8px 4px 10px; margin-bottom:10px;
+  border-bottom:2px solid rgba(107,23,40,.12);
+}
+.sa-subs-count {
+  margin-left:auto; font-family:'Poppins',sans-serif; font-size:.68rem; font-weight:700;
+  background:rgba(107,23,40,.1); color:var(--wine-d);
+  border-radius:50px; padding:2px 10px; min-width:22px; text-align:center;
+}
+.sa-subs-empty-mini {
+  font-size:.76rem; color:var(--gray); text-align:center;
+  padding:14px; background:rgba(107,23,40,.03);
+  border:1px dashed rgba(107,23,40,.14); border-radius:12px;
+}
 .sa-subs-toolbar {
   display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;
 }
@@ -4721,30 +4738,103 @@ function eliminarReserva(clase, dateStr, hora, ts, origen) {
   }
 }
 
+/* Clasificación: la clase singular = "primera vez"; el resto = paquete de suscripción */
+function esPrimeraVez(planKey) { return planKey === 'singular'; }
+
 /* ── Tab: Suscriptoras ── */
 function buildSAdminSubs() {
   const body = document.getElementById('sadminBody');
   const subs = getSuscriptoras();
 
-  /* ── Solicitudes pendientes de confirmación de pago ── */
-  const pendientes = subs.filter(s => s.pendiente);
-  const pendHtml = pendientes.length === 0 ? '' : `
+  /* ── Solicitudes pendientes de confirmación de pago (separadas) ── */
+  const pendientes  = subs.filter(s => s.pendiente);
+  const pendPrimera = pendientes.filter(s => esPrimeraVez(s.pendiente.plan));
+  const pendPaquete = pendientes.filter(s => !esPrimeraVez(s.pendiente.plan));
+
+  const renderPendCard = (s) => {
+    const pd = PLANES_SUB[s.pendiente.plan] || { nombre: s.pendiente.plan, precio: 0 };
+    return `<div class="sa-pend-card">
+      <div class="sa-pend-info">
+        <strong>${s.nombre}</strong>
+        <span>${s.email} · ${s.tel||'—'}</span>
+        <span class="sa-pend-plan">${pd.nombre} · <strong>${fmtC(pd.precio)}</strong> · solicitado ${s.pendiente.fecha}</span>
+      </div>
+      <div class="sa-pend-btns">
+        <button class="btn-pend-ok" onclick="confirmarPagoSub('${s.email}')">✓ Confirmar pago</button>
+        <button class="btn-pend-no" onclick="rechazarPagoSub('${s.email}')">✕ Rechazar</button>
+      </div>
+    </div>`;
+  };
+  const renderPendBlock = (titulo, lista) => lista.length === 0 ? '' : `
     <div class="sa-pend-blk">
-      <div class="sa-pend-title">⏳ Pendientes de confirmación de pago (${pendientes.length})</div>
-      ${pendientes.map(s => {
-        const pd = PLANES_SUB[s.pendiente.plan] || { nombre: s.pendiente.plan, precio: 0 };
-        return `<div class="sa-pend-card">
-          <div class="sa-pend-info">
-            <strong>${s.nombre}</strong>
-            <span>${s.email} · ${s.tel||'—'}</span>
-            <span class="sa-pend-plan">${pd.nombre} · <strong>${fmtC(pd.precio)}</strong> · solicitado ${s.pendiente.fecha}</span>
+      <div class="sa-pend-title">${titulo} (${lista.length})</div>
+      ${lista.map(renderPendCard).join('')}
+    </div>`;
+  const pendHtml = renderPendBlock('⏳ Primera vez · pendientes de confirmar', pendPrimera)
+                 + renderPendBlock('⏳ Suscripción (paquete) · pendientes de confirmar', pendPaquete);
+
+  /* Render de una tarjeta de suscriptora (si = índice global para IDs únicos) */
+  const renderCard = (sub, si) => {
+    const plan     = PLANES_SUB[sub.plan] || { nombre: sub.plan, clases: sub.clasesTotal || 1 };
+    const pct      = Math.min(100, Math.round((sub.clasesRestantes / Math.max(1, plan.clases)) * 100));
+    const cuposCls = sub.clasesRestantes <= 0 ? 'sa-cupos-out' : sub.clasesRestantes <= 3 ? 'sa-cupos-low' : 'sa-cupos-ok';
+    const initials = sub.nombre.split(' ').slice(0,2).map(w => w[0]||'').join('').toUpperCase();
+    const histRows = (sub.historial||[]).slice(-5).reverse().map(h => {
+      const inf = INFO[h.clase] || { emoji:'📋', nombre: h.clase };
+      const d   = new Date(h.fecha+'T12:00:00');
+      return `<div class="sa-hist-row">
+        <span>${inf.emoji} ${inf.nombre}</span>
+        <span>${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}</span>
+        <span>${h.hora} hrs</span>
+      </div>`;
+    }).join('') || '<div style="color:var(--gray);font-size:.74rem;padding:6px 0">Sin asistencias aún</div>';
+
+    return `<div class="sa-sub-card">
+      <div class="sa-sub-card-hd">
+        <div class="sa-sub-avatar">${initials}</div>
+        <div class="sa-sub-card-info">
+          <strong>${sub.nombre}</strong>
+          <span>${sub.email}</span>
+          <span class="sa-sub-tel">${sub.tel||'Sin teléfono'}</span>
+        </div>
+        <div class="sa-sub-card-meta">
+          <div><span class="sa-sub-plan-tag">${plan.nombre}</span>${sub.pendiente ? ' <span class="sa-pend-chip">⏳ pendiente</span>' : ''}</div>
+          <div class="sa-clases-bar">
+            <span class="sa-clases-num sa-cupos-left ${cuposCls}">${sub.clasesRestantes} clases</span>
+            <div class="sa-clases-track"><div class="sa-clases-fill" style="width:${pct}%"></div></div>
           </div>
-          <div class="sa-pend-btns">
-            <button class="btn-pend-ok" onclick="confirmarPagoSub('${s.email}')">✓ Confirmar pago</button>
-            <button class="btn-pend-no" onclick="rechazarPagoSub('${s.email}')">✕ Rechazar</button>
-          </div>
-        </div>`;
-      }).join('')}
+          <div class="sa-vence">Vence: ${sub.fechaVence||'—'}</div>
+        </div>
+      </div>
+      <div class="sa-sub-actions">
+        <button class="btn-sa-agendar" onclick="toggleAgendarSub(this)">📅 Agendar ▾</button>
+        <button class="btn-sa-renovar" onclick="renovarSub('${sub.email}')">⟳ Renovar plan</button>
+        <button class="btn-sa-historial" onclick="toggleHistSub(this)">Historial ▾</button>
+        <button class="btn-sa-del" onclick="eliminarSub('${sub.email}')">🗑 Eliminar</button>
+      </div>
+      <div class="sa-agendar-panel">
+        <p class="agp-title">Agendar a ${sub.nombre.split(' ')[0]} en una clase:</p>
+        <div class="agp-row">
+          <input type="date" id="agpFecha_${si}" class="agp-inp" min="${fmtISO(new Date())}" onchange="agpLoadSlots(${si})"/>
+          <select id="agpSlot_${si}" class="agp-sel"><option value="">Elige una fecha</option></select>
+          <button class="btn-agp" onclick="agpConfirm(${si},'${sub.email}')">Agendar →</button>
+        </div>
+      </div>
+      <div class="sa-sub-historial">${histRows}</div>
+    </div>`;
+  };
+
+  /* Separar tarjetas en dos apartados, conservando el índice global */
+  const conIdx        = subs.map((s, i) => [s, i]);
+  const cardsPrimera  = conIdx.filter(([s]) => esPrimeraVez(s.plan));
+  const cardsPaquete  = conIdx.filter(([s]) => !esPrimeraVez(s.plan));
+
+  const renderSeccion = (titulo, icono, lista, emptyMsg) => `
+    <div class="sa-subs-seccion">
+      <div class="sa-subs-seccion-hd">${icono} ${titulo} <span class="sa-subs-count">${lista.length}</span></div>
+      ${lista.length === 0
+        ? `<div class="sa-subs-empty-mini">${emptyMsg}</div>`
+        : lista.map(([s, i]) => renderCard(s, i)).join('')}
     </div>`;
 
   const cards = subs.length === 0
@@ -4753,55 +4843,8 @@ function buildSAdminSubs() {
         <strong>Sin suscriptoras aún</strong>
         <span>Registra la primera con el botón "+ Nueva".</span>
       </div>`
-    : subs.map((sub, si) => {
-        const plan     = PLANES_SUB[sub.plan] || { nombre: sub.plan, clases: sub.clasesTotal || 1 };
-        const pct      = Math.min(100, Math.round((sub.clasesRestantes / Math.max(1, plan.clases)) * 100));
-        const cuposCls = sub.clasesRestantes <= 0 ? 'sa-cupos-out' : sub.clasesRestantes <= 3 ? 'sa-cupos-low' : 'sa-cupos-ok';
-        const initials = sub.nombre.split(' ').slice(0,2).map(w => w[0]||'').join('').toUpperCase();
-        const histRows = (sub.historial||[]).slice(-5).reverse().map(h => {
-          const inf = INFO[h.clase] || { emoji:'📋', nombre: h.clase };
-          const d   = new Date(h.fecha+'T12:00:00');
-          return `<div class="sa-hist-row">
-            <span>${inf.emoji} ${inf.nombre}</span>
-            <span>${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}</span>
-            <span>${h.hora} hrs</span>
-          </div>`;
-        }).join('') || '<div style="color:var(--gray);font-size:.74rem;padding:6px 0">Sin asistencias aún</div>';
-
-        return `<div class="sa-sub-card">
-          <div class="sa-sub-card-hd">
-            <div class="sa-sub-avatar">${initials}</div>
-            <div class="sa-sub-card-info">
-              <strong>${sub.nombre}</strong>
-              <span>${sub.email}</span>
-              <span class="sa-sub-tel">${sub.tel||'Sin teléfono'}</span>
-            </div>
-            <div class="sa-sub-card-meta">
-              <div><span class="sa-sub-plan-tag">${plan.nombre}</span>${sub.pendiente ? ' <span class="sa-pend-chip">⏳ pendiente</span>' : ''}</div>
-              <div class="sa-clases-bar">
-                <span class="sa-clases-num sa-cupos-left ${cuposCls}">${sub.clasesRestantes} clases</span>
-                <div class="sa-clases-track"><div class="sa-clases-fill" style="width:${pct}%"></div></div>
-              </div>
-              <div class="sa-vence">Vence: ${sub.fechaVence||'—'}</div>
-            </div>
-          </div>
-          <div class="sa-sub-actions">
-            <button class="btn-sa-agendar" onclick="toggleAgendarSub(this)">📅 Agendar ▾</button>
-            <button class="btn-sa-renovar" onclick="renovarSub('${sub.email}')">⟳ Renovar plan</button>
-            <button class="btn-sa-historial" onclick="toggleHistSub(this)">Historial ▾</button>
-            <button class="btn-sa-del" onclick="eliminarSub('${sub.email}')">🗑 Eliminar</button>
-          </div>
-          <div class="sa-agendar-panel">
-            <p class="agp-title">Agendar a ${sub.nombre.split(' ')[0]} en una clase:</p>
-            <div class="agp-row">
-              <input type="date" id="agpFecha_${si}" class="agp-inp" min="${fmtISO(new Date())}" onchange="agpLoadSlots(${si})"/>
-              <select id="agpSlot_${si}" class="agp-sel"><option value="">Elige una fecha</option></select>
-              <button class="btn-agp" onclick="agpConfirm(${si},'${sub.email}')">Agendar →</button>
-            </div>
-          </div>
-          <div class="sa-sub-historial">${histRows}</div>
-        </div>`;
-      }).join('');
+    : renderSeccion('Primera vez', '🌱', cardsPrimera, 'Aún no hay clientas de primera vez (clase singular).')
+    + renderSeccion('Suscripción · paquetes', '💎', cardsPaquete, 'Aún no hay suscriptoras con paquete.');
 
   body.innerHTML = `
     ${pendHtml}
