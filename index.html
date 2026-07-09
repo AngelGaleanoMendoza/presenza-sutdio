@@ -1661,6 +1661,14 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 }
 .sadmin-tab:hover { color:var(--wine); background:rgba(107,23,40,.03); }
 .sadmin-tab.active { color:var(--wine); border-bottom-color:var(--wine); background:rgba(107,23,40,.02); }
+.sadmin-badge {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:17px; height:17px; padding:0 4px; margin-left:5px;
+  background:#dc3545; color:#fff; border-radius:50px;
+  font-size:.6rem; font-weight:800; vertical-align:middle; line-height:1;
+  animation:badgePulse 1.6s ease-in-out infinite;
+}
+@keyframes badgePulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.14)} }
 .sadmin-body {
   padding:22px 26px; min-height:320px;
   overflow-y:auto; flex:1;
@@ -3975,6 +3983,7 @@ function confirmarPagoSub(email) {
   delete arr[idx].pendiente;
   saveSuscriptoras(arr);
   buildSAdminSubs();
+  updateSubsBadge();
 }
 
 function rechazarPagoSub(email) {
@@ -3991,6 +4000,7 @@ function rechazarPagoSub(email) {
   }
   saveSuscriptoras(arr);
   buildSAdminSubs();
+  updateSubsBadge();
 }
 
 function proceedToConfirm() {
@@ -4526,6 +4536,16 @@ function sadminTab(tab) {
   if (tab === 'horarios')   buildSAdminHorarios();
   if (tab === 'subs')       buildSAdminSubs();
   if (tab === 'eventos')    buildSAdminEventos();
+  updateSubsBadge();
+}
+
+/* Contador de solicitudes pendientes en la pestaña Suscriptoras */
+function updateSubsBadge() {
+  const badge = document.getElementById('subsBadge');
+  if (!badge) return;
+  const n = getSuscriptoras().filter(s => s.pendiente).length;
+  badge.textContent = n;
+  badge.style.display = n > 0 ? 'inline-flex' : 'none';
 }
 
 /* ── Tab: Hoy ── */
@@ -5836,7 +5856,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="sadmin-tab"        data-tab="calendario" onclick="sadminTab('calendario')">📆 Calendario</div>
       <div class="sadmin-tab"        data-tab="reportes"   onclick="sadminTab('reportes')">📊 Reportes</div>
       <div class="sadmin-tab"        data-tab="horarios"   onclick="sadminTab('horarios')">🗓 Horarios</div>
-      <div class="sadmin-tab"        data-tab="subs"       onclick="sadminTab('subs')">💎 Suscriptoras</div>
+      <div class="sadmin-tab"        data-tab="subs"       onclick="sadminTab('subs')">💎 Suscriptoras<span class="sadmin-badge" id="subsBadge" style="display:none">0</span></div>
       <div class="sadmin-tab"        data-tab="eventos"    onclick="sadminTab('eventos')">🎉 Eventos</div>
     </div>
     <div class="sadmin-body" id="sadminBody"></div>
