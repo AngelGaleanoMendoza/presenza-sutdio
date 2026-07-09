@@ -1736,7 +1736,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   .sa-alumna-row .sa-alumna-tel { grid-column:2; }
 }
 .sa-alumna-row {
-  display:grid; grid-template-columns:1fr auto auto auto;
+  display:grid; grid-template-columns:1fr auto auto auto auto;
   align-items:center; gap:10px;
   padding:9px 12px 9px 20px; font-size:.79rem;
   border-bottom:1px solid rgba(107,23,40,.05);
@@ -1762,6 +1762,13 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 }
 .btn-sa-asist:hover { background:var(--wine-d); }
 .btn-sa-asist:disabled { background:#c0b0a8; cursor:default; }
+.btn-sa-alumna-del {
+  width:26px; height:26px; border:1.5px solid rgba(220,53,69,.3);
+  background:transparent; color:#c0392b; border-radius:50%;
+  font-size:.75rem; cursor:pointer; transition:all .2s;
+  display:flex; align-items:center; justify-content:center;
+}
+.btn-sa-alumna-del:hover { background:rgba(220,53,69,.1); }
 
 /* Tab Suscriptoras */
 .sa-subs-toolbar {
@@ -4608,6 +4615,7 @@ function buildSAdminHoy() {
                ${yaAsistio ? '✓ Asistió' : 'Marcar ✓'}
              </button>`
           : `<span></span><span></span>`}
+        <button class="btn-sa-alumna-del" title="Eliminar reserva" onclick="eliminarReserva('${clase}','${dateStr}','${hora}',${c.ts},'hoy')">🗑</button>
       </div>`;
     }).join('') || `<div style="padding:7px 20px;font-size:.76rem;color:var(--gray)">Sin inscripciones</div>`;
 
@@ -4694,6 +4702,23 @@ function registrarAsistencia(email, clase, dateStr, hora, asistKey) {
   saveSuscriptoras(subs);
   localStorage.setItem(asistKey, '1');
   buildSAdminHoy(); /* Refrescar */
+}
+
+/* Elimina una reservación (ej. no pagó / no se concretó el contacto) */
+function eliminarReserva(clase, dateStr, hora, ts, origen) {
+  if (!confirm('¿Eliminar esta reservación? Se liberará el cupo. Esta acción no se puede deshacer.')) return;
+  const key = slotKey(clase, dateStr, hora);
+  const arr = JSON.parse(localStorage.getItem(key) || '[]').filter(c => c.ts !== ts);
+  if (arr.length) localStorage.setItem(key, JSON.stringify(arr));
+  else localStorage.removeItem(key);
+
+  if (origen === 'cal') {
+    buildSAdminCalendario();
+    const cell = document.querySelector(`.cal-cell[data-date="${dateStr}"]`);
+    sadminVerDia(dateStr, cell);
+  } else {
+    buildSAdminHoy();
+  }
 }
 
 /* ── Tab: Suscriptoras ── */
@@ -5039,6 +5064,7 @@ function sadminVerDia(dateStr, el) {
         <span class="sa-alumna-tel">${c.tel||'—'}</span>
         <span style="font-size:.7rem;color:var(--gray)">${(c.metodo||'').split('·')[0].trim()}</span>
         <span></span>
+        <button class="btn-sa-alumna-del" title="Eliminar reserva" onclick="eliminarReserva('${clase}','${dateStr}','${hora}',${c.ts},'cal')">🗑</button>
       </div>`).join('') || `<div style="padding:6px 20px;font-size:.75rem;color:var(--gray)">Sin reservas</div>`;
     const llena = clientes.length >= info.cupos;
     const agendarRow = subs.length === 0 ? '' : `
