@@ -3367,7 +3367,6 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
           <p class="tb-label">Monto a pagar</p>
           <p class="tb-num" id="linkMonto">C$440</p>
           <p class="tb-bank">Transferencia bancaria · Presenza Studio</p>
-          <button class="btn-pay-link" onclick="payBookingLink()">📲 Contactar por WhatsApp →</button>
           <p class="tb-nota">Te enviamos los datos de la cuenta por WhatsApp. Envíanos tu comprobante para confirmar tu reserva.</p>
         </div>
         <div class="pago-note" id="cashNote" style="display:none">
@@ -3378,7 +3377,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
           <div id="subCheckResult"></div>
         </div>
         <button class="btn-confirmar" id="btnPagar" onclick="proceedToConfirm()" disabled>
-          Continuar por WhatsApp →
+          Continuar reservación →
         </button>
       </div>
 
@@ -3836,12 +3835,6 @@ function confirmLugar() {
   mGoStep(3);
 }
 
-/* Pagar la clase actual con link BAC (monto cargado automáticamente) */
-function payBookingLink() {
-  const info = INFO[booking.clase];
-  payLink(`mi clase de ${info.nombre}`, info.precio);
-}
-
 function selectMetodo(tipo) {
   pagoMetodo = tipo;
   document.getElementById('msbTransfer').classList.toggle('sel', tipo==='transfer');
@@ -3916,7 +3909,6 @@ function verifySub() {
     <div class="sub-plan-new">
       <p>${esRenovacion ? '⟳ Tus clases se agotaron. Renueva tu primera clase:' : 'Tu primera clase con nosotras:'}</p>
       <div class="sub-planes">${planesHtml}</div>
-      <div class="sub-pay-link" id="subPayLink"></div>
     </div>`;
   selectedSubPlan = null;
   document.getElementById('btnPagar').disabled = true;
@@ -3926,14 +3918,6 @@ function selectSubPlan(planKey) {
   selectedSubPlan = planKey;
   document.querySelectorAll('.sub-plane').forEach(el =>
     el.classList.toggle('sel', el.dataset.plan === planKey));
-  /* Botón de pago con link BAC con el monto del plan cargado */
-  const pd  = PLANES_SUB[planKey];
-  const box = document.getElementById('subPayLink');
-  if (box && pd) {
-    box.innerHTML = `<button class="btn-pay-link" onclick="payLink('el plan ${pd.nombre}', ${pd.precio})">
-      📲 Contactar por WhatsApp · ${fmtC(pd.precio)} →
-    </button>`;
-  }
   document.getElementById('btnPagar').disabled = false;
 }
 
