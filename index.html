@@ -2955,8 +2955,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
     <div class="pagos-metodos r d1">
       <h4>Métodos de pago aceptados</h4>
       <div class="metodos-chips">
-        <div class="mc-chip"><span class="mci">🔗</span> Link de pago BAC</div>
-        <div class="mc-chip"><span class="mci">💵</span> Efectivo en el estudio</div>
+        <div class="mc-chip"><span class="mci">🏦</span> Transferencia bancaria</div>
         <div class="mc-chip"><span class="mci">💬</span> Coordinar por WhatsApp</div>
       </div>
     </div>
@@ -3351,10 +3350,10 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
           <span class="metodo-sel-lbl">Selecciona un método</span>
           <div class="metodo-sel-btns">
             <div class="msb" id="msbTransfer" onclick="selectMetodo('transfer')">
-              <span class="msb-icon">🔗</span>
-              Link de pago BAC
+              <span class="msb-icon">🏦</span>
+              Transferencia
             </div>
-            <div class="msb" id="msbCash" onclick="selectMetodo('cash')">
+            <div class="msb" id="msbCash" onclick="selectMetodo('cash')" style="display:none">
               <span class="msb-icon">💵</span>
               Efectivo en estudio
             </div>
@@ -3367,9 +3366,9 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
         <div class="transfer-box" id="transferBox">
           <p class="tb-label">Monto a pagar</p>
           <p class="tb-num" id="linkMonto">C$440</p>
-          <p class="tb-bank">Link de pago BAC · Presenza Studio</p>
-          <button class="btn-pay-link" onclick="payBookingLink()">🔗 Pagar ahora →</button>
-          <p class="tb-nota">Si prefieres, también podemos coordinar el pago por WhatsApp.</p>
+          <p class="tb-bank">Transferencia bancaria · Presenza Studio</p>
+          <button class="btn-pay-link" onclick="payBookingLink()">📲 Contactar por WhatsApp →</button>
+          <p class="tb-nota">Te enviamos los datos de la cuenta por WhatsApp. Envíanos tu comprobante para confirmar tu reserva.</p>
         </div>
         <div class="pago-note" id="cashNote" style="display:none">
           <strong>💵 Pago en el estudio</strong>
@@ -3427,7 +3426,7 @@ function payLink(nombre, monto) {
     window.open(LINK_PAGO, '_blank');
     return;
   }
-  const txt = `Hola Presenza ✧ Quiero pagar ${nombre} — Monto: ${fmtC(monto)}. ¿Me envían el link de pago BAC?`;
+  const txt = `Hola Presenza ✧ Quiero pagar ${nombre} — Monto: ${fmtC(monto)}. ¿Me envían los datos de la cuenta para hacer la transferencia?`;
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(txt)}`, '_blank');
 }
 const DIAS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
@@ -3444,6 +3443,11 @@ const PLANES_SUB = {
   ilimit3:  { nombre:'Trimestral ilimitado',   clases:9999, precio:4210, tag:'3 meses',  meses:3 },
   ilimit6:  { nombre:'Semestral ilimitado',    clases:9999, precio:3734, tag:'6 meses',  meses:6 },
 };
+
+/* Mientras no tengamos el link de pago BAC activo, en la reserva solo
+   ofrecemos la clase singular (primera clase). Para reactivar los demás
+   paquetes, agregar sus claves aquí. */
+const PLANES_BOOKING_VISIBLE = ['singular'];
 
 /* Formato córdobas: C$1,650 */
 function fmtC(n) { return 'C$' + Number(n||0).toLocaleString('en-US'); }
@@ -3897,10 +3901,11 @@ function verifySub() {
     return;
   }
 
-  /* Sin suscripción o agotada → mostrar selector de plan */
+  /* Sin suscripción o agotada → mostrar selector de plan
+     (de momento solo la clase singular, ver PLANES_BOOKING_VISIBLE) */
   const esRenovacion = sub && sub.clasesRestantes <= 0;
-  const planesHtml = Object.entries(PLANES_SUB).map(([k, v]) => `
-    <div class="sub-plane" data-plan="${k}" onclick="selectSubPlan('${k}')">
+  const planesHtml = PLANES_BOOKING_VISIBLE.map(k => PLANES_SUB[k]).map((v, i) => `
+    <div class="sub-plane" data-plan="${PLANES_BOOKING_VISIBLE[i]}" onclick="selectSubPlan('${PLANES_BOOKING_VISIBLE[i]}')">
       <span class="sub-plane-tag">${v.tag}</span>
       <span class="sub-plane-name">${v.nombre}</span>
       <span class="sub-plane-price">${fmtC(v.precio)}</span>
@@ -3909,7 +3914,7 @@ function verifySub() {
 
   result.innerHTML = `
     <div class="sub-plan-new">
-      <p>${esRenovacion ? '⟳ Tus clases se agotaron. Elige un plan para renovar:' : '¡Únete! Elige tu plan de suscripción:'}</p>
+      <p>${esRenovacion ? '⟳ Tus clases se agotaron. Renueva tu primera clase:' : 'Tu primera clase con nosotras:'}</p>
       <div class="sub-planes">${planesHtml}</div>
       <div class="sub-pay-link" id="subPayLink"></div>
     </div>`;
@@ -3926,7 +3931,7 @@ function selectSubPlan(planKey) {
   const box = document.getElementById('subPayLink');
   if (box && pd) {
     box.innerHTML = `<button class="btn-pay-link" onclick="payLink('el plan ${pd.nombre}', ${pd.precio})">
-      🔗 Pagar ${pd.nombre} · ${fmtC(pd.precio)} →
+      📲 Contactar por WhatsApp · ${fmtC(pd.precio)} →
     </button>`;
   }
   document.getElementById('btnPagar').disabled = false;
@@ -4018,7 +4023,7 @@ function proceedToConfirm() {
   const planUsado  = usaSubActiva ? subActiva.plan : selectedSubPlan;
   const esPlanPendiente = pagoMetodo==='sub' && !usaSubActiva && !!selectedSubPlan;
   const metodoDtxt = pagoMetodo==='transfer'
-    ? '🔗 Link de pago BAC'
+    ? '🏦 Transferencia'
     : pagoMetodo==='sub'
     ? `💎 Suscripción · ${PLANES_SUB[planUsado]?.nombre || 'Membresía'}${esPlanPendiente ? ' (pago pendiente)' : ''}`
     : 'Efectivo en el estudio';
