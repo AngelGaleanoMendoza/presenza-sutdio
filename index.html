@@ -4078,6 +4078,15 @@ function proceedToConfirm() {
     ? `💎 Suscripción · ${PLANES_SUB[planUsado]?.nombre || 'Membresía'}${esPlanPendiente ? ' (pago pendiente)' : ''}`
     : 'Efectivo en el estudio';
 
+  /* Monto real a pagar: el del plan elegido si pide un paquete;
+     "incluida" si usa suscripción activa; el de la clase en pago único */
+  const planPend = esPlanPendiente ? PLANES_SUB[selectedSubPlan] : null;
+  const montoTxt = usaSubActiva
+    ? 'Incluida en tu plan 💎'
+    : planPend
+    ? `${fmtC(planPend.precio)} (${planPend.nombre})`
+    : fmtC(info.precio);
+
   /* Plan nuevo o renovación → registrar como PENDIENTE (el admin confirma el pago) */
   if (esPlanPendiente) autoRegisterSub(nombre, email, tel, nivel, selectedSubPlan);
 
@@ -4148,7 +4157,7 @@ function proceedToConfirm() {
   document.getElementById('confirmCard').innerHTML = `
     <div class="cr-row"><span class="cr-icon">${info.emoji}</span><span class="cr-text"><strong>${info.nombre}</strong></span></div>
     <div class="cr-row"><span class="cr-icon">📅</span><span class="cr-text">${diaStr}</span></div>
-    <div class="cr-row"><span class="cr-icon">⏰</span><span class="cr-text">${hora} hrs · ${fmtC(info.precio)}</span></div>
+    <div class="cr-row"><span class="cr-icon">⏰</span><span class="cr-text">${hora} hrs · ${montoTxt}</span></div>
     ${booking.lugar ? `<div class="cr-row"><span class="cr-icon">📍</span><span class="cr-text">Lugar ${booking.lugar}</span></div>` : ''}
     <div class="cr-row"><span class="cr-icon">🎽</span><span class="cr-text">Instructora: ${instructor}</span></div>
     <div class="cr-row"><span class="cr-icon">👤</span><span class="cr-text">${nombre} · ${nivel}</span></div>
@@ -4167,7 +4176,7 @@ function proceedToConfirm() {
     `⏰ Hora: ${hora} hrs\n` +
     (booking.lugar ? `📍 Lugar: ${booking.lugar}\n` : ``) +
     `🎽 Instructora: ${instructor}\n` +
-    `💰 Monto: ${fmtC(info.precio)}\n` +
+    `💰 Monto: ${montoTxt}\n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
     `👤 Cliente: ${nombre}\n` +
     `   Nivel: ${nivel}\n` +
@@ -4189,7 +4198,7 @@ function proceedToConfirm() {
   document.getElementById('vouEmoji').textContent      = info.emoji;
   document.getElementById('vouClase').textContent      = info.nombre;
   document.getElementById('vouInstructor').textContent = `Instructora: ${instructor}`;
-  document.getElementById('vouPrice').textContent      = `${fmtC(info.precio)}`;
+  document.getElementById('vouPrice').textContent      = montoTxt;
   document.getElementById('vouFecha').textContent      = diaStr;
   document.getElementById('vouHora').textContent       = `${hora} hrs`;
   document.getElementById('vouNombre').textContent     = nombre;
@@ -4288,7 +4297,7 @@ function closeAdmin() {
   history.replaceState(null, '', window.location.pathname + window.location.search);
 }
 
-function buildAdminContent() {
+function buildAdminContentMain() {
   const body = document.getElementById('adminBody');
   body.innerHTML = '';
 
@@ -5602,9 +5611,8 @@ function resetHorarios() {
 }
 
 /* Extender buildAdminContent para aceptar un contenedor externo */
-const _origBuildAdmin = buildAdminContent;
 function buildAdminContent(customContainer) {
-  if (!customContainer) { _origBuildAdmin(); return; }
+  if (!customContainer) { buildAdminContentMain(); return; }
   /* Versión compacta para el tab Reservas del super admin */
   const body = customContainer;
   body.innerHTML = '';
