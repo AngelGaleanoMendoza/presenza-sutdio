@@ -1598,6 +1598,23 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .sub-plane-name  { display:block; font-size:.76rem; font-weight:600; color:var(--text); margin-bottom:2px; }
 .sub-plane-price { display:block; font-size:1rem; font-weight:800; color:var(--wine); }
 .sub-plane-clases{ display:block; font-size:.67rem; color:var(--gray); margin-top:2px; }
+.sub-contacto-directo {
+  width:100%; margin-top:10px; padding:10px;
+  border:1.5px solid rgba(107,23,40,.25); border-radius:12px;
+  background:transparent; color:var(--wine); font-size:.78rem; font-weight:600;
+  cursor:pointer; transition:all .2s;
+}
+.sub-contacto-directo:hover { background:rgba(107,23,40,.05); border-color:var(--wine); }
+.sub-ilimit-box {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  margin-top:10px; padding:12px 14px; cursor:pointer;
+  background:linear-gradient(135deg, rgba(107,23,40,.06), rgba(224,169,59,.08));
+  border:1px solid rgba(107,23,40,.14); border-radius:12px; transition:all .2s;
+}
+.sub-ilimit-box:hover { border-color:var(--wine); transform:translateY(-1px); }
+.sub-ilimit-txt strong { display:block; font-size:.78rem; color:var(--wine-d); }
+.sub-ilimit-txt span   { display:block; font-size:.68rem; color:var(--gray); margin-top:2px; }
+.sub-ilimit-cta { font-size:.7rem; font-weight:700; color:var(--wine); white-space:nowrap; }
 .sub-start-alert {
   display:flex; align-items:center; gap:14px;
   background:linear-gradient(135deg,rgba(107,23,40,.11),rgba(107,23,40,.05));
@@ -2714,7 +2731,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   </div>
   <p class="galeria-ig r" style="text-align:center;padding-bottom:52px;margin-top:-20px">
     Síguenos para más contenido →
-    <a href="#" target="_blank">@presenzastudio</a>
+    <a href="https://www.instagram.com/presenza.studio/" target="_blank">@presenza.studio</a>
   </p>
 </section>
 
@@ -2892,7 +2909,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Cualquier disciplina disponible</div>
           <div class="pc-perk"><span>✧</span> Sin compromiso mensual</div>
         </div>
-        <button class="pc-cta pc-cta-link" onclick="payLink('Clase Singular', 440)">🔗 Pagar con link BAC →</button>
+        <button class="pc-cta pc-cta-link" onclick="payLink('Clase Singular', 440)">💬 Reservar por WhatsApp →</button>
       </div>
 
       <!-- 5 Clases $45 — destacado -->
@@ -2908,7 +2925,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Válido por 30 días</div>
           <div class="pc-perk"><span>✧</span> Combina Barre, Pilates & Yoga</div>
         </div>
-        <button class="pc-cta pc-cta-link" onclick="payLink('el Paquete de 5 Clases', 1650)">🔗 Pagar con link BAC →</button>
+        <button class="pc-cta pc-cta-link" onclick="payLink('el Paquete de 5 Clases', 1650)">💬 Reservar por WhatsApp →</button>
       </div>
 
       <!-- 10 Clases $80 -->
@@ -2923,7 +2940,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Válido por 45 días</div>
           <div class="pc-perk"><span>✧</span> Combina Barre, Pilates & Yoga</div>
         </div>
-        <button class="pc-cta pc-cta-link" onclick="payLink('el Paquete de 10 Clases', 2930)">🔗 Pagar con link BAC →</button>
+        <button class="pc-cta pc-cta-link" onclick="payLink('el Paquete de 10 Clases', 2930)">💬 Reservar por WhatsApp →</button>
       </div>
 
       <div class="pagos-row-label">♾️ Membresías ilimitadas</div>
@@ -2940,7 +2957,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Acceso a todas las disciplinas</div>
           <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
         </div>
-        <button class="pc-cta pc-cta-wa" onclick="planWA('Mensual Ilimitado','C$4,760/mes')">💬 Contratar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-wa" onclick="planWA('Mensual Ilimitado','C$4,760/mes')">ℹ️ Click para más información →</button>
       </div>
 
       <!-- 3 Meses Ilimitado $115/mes — destacado -->
@@ -2956,7 +2973,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Acceso a todas las disciplinas</div>
           <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
         </div>
-        <button class="pc-cta pc-cta-wa" onclick="planWA('3 Meses Ilimitado','C$4,210/mes')">💬 Contratar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-wa" onclick="planWA('3 Meses Ilimitado','C$4,210/mes')">ℹ️ Click para más información →</button>
       </div>
 
       <!-- 6 Meses Ilimitado $102/mes -->
@@ -2971,7 +2988,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Acceso a todas las disciplinas</div>
           <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
         </div>
-        <button class="pc-cta pc-cta-wa" onclick="planWA('6 Meses Ilimitado','C$3,734/mes')">💬 Contratar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-wa" onclick="planWA('6 Meses Ilimitado','C$3,734/mes')">ℹ️ Click para más información →</button>
       </div>
 
     </div>
@@ -3017,7 +3034,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="loc-icon">📸</div>
           <div>
             <h4>Instagram</h4>
-            <p><a href="#" target="_blank">@presenzastudio</a></p>
+            <p><a href="https://www.instagram.com/presenza.studio/" target="_blank">@presenza.studio</a></p>
           </div>
         </div>
         <div class="loc-card">
@@ -3467,10 +3484,24 @@ const PLANES_SUB = {
   ilimit6:  { nombre:'Semestral ilimitado',    clases:9999, precio:3734, tag:'6 meses',  meses:6 },
 };
 
-/* Mientras no tengamos el link de pago BAC activo, en la reserva solo
-   ofrecemos la clase singular (primera clase). Para reactivar los demás
-   paquetes, agregar sus claves aquí. */
-const PLANES_BOOKING_VISIBLE = ['singular'];
+/* En la reserva se ofrecen los 3 paquetes de clases. Las membresías
+   ilimitadas (mensual/3/6 meses) solo se muestran como "más información"
+   y se contratan por contacto directo. */
+const PLANES_BOOKING_VISIBLE = ['singular', 'plan5', 'plan10'];
+const PLANES_ILIMITADOS      = ['ilimit1', 'ilimit3', 'ilimit6'];
+
+/* Más información sobre las membresías ilimitadas → WhatsApp directo */
+function infoIlimitados() {
+  const txt = `Hola Presenza ✧ Quiero más información sobre las membresías ilimitadas:\n` +
+    PLANES_ILIMITADOS.map(k => `• ${PLANES_SUB[k].nombre} — ${fmtC(PLANES_SUB[k].precio)}/mes`).join('\n');
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(txt)}`, '_blank');
+}
+
+/* Contacto directo con el estudio desde el flujo de reserva */
+function contactoDirecto() {
+  const txt = 'Hola Presenza ✧ Quiero reservar mi clase y coordinar el pago directamente con ustedes.';
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(txt)}`, '_blank');
+}
 
 /* Formato córdobas: C$1,650 */
 function fmtC(n) { return 'C$' + Number(n||0).toLocaleString('en-US'); }
@@ -3919,20 +3950,31 @@ function verifySub() {
   }
 
   /* Sin suscripción o agotada → mostrar selector de plan
-     (de momento solo la clase singular, ver PLANES_BOOKING_VISIBLE) */
+     (paquetes de clases; las ilimitadas solo como "más información") */
   const esRenovacion = sub && sub.clasesRestantes <= 0;
-  const planesHtml = PLANES_BOOKING_VISIBLE.map(k => PLANES_SUB[k]).map((v, i) => `
-    <div class="sub-plane" data-plan="${PLANES_BOOKING_VISIBLE[i]}" onclick="selectSubPlan('${PLANES_BOOKING_VISIBLE[i]}')">
+  const planesHtml = PLANES_BOOKING_VISIBLE.map(k => {
+    const v = PLANES_SUB[k];
+    return `
+    <div class="sub-plane" data-plan="${k}" onclick="selectSubPlan('${k}')">
       <span class="sub-plane-tag">${v.tag}</span>
       <span class="sub-plane-name">${v.nombre}</span>
       <span class="sub-plane-price">${fmtC(v.precio)}</span>
       <span class="sub-plane-clases">${v.clases >= 9999 ? '∞ ilimitado' : v.clases + ' clases'}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   result.innerHTML = `
     <div class="sub-plan-new">
-      <p>${esRenovacion ? '⟳ Tus clases se agotaron. Renueva tu primera clase:' : 'Tu primera clase con nosotras:'}</p>
+      <p>${esRenovacion ? '⟳ Tus clases se agotaron. Elige tu paquete para renovar:' : '🎟️ Elige tu paquete de clases:'}</p>
       <div class="sub-planes">${planesHtml}</div>
+      <button type="button" class="sub-contacto-directo" onclick="contactoDirecto()">💬 Contacto directo con el estudio</button>
+      <div class="sub-ilimit-box" onclick="infoIlimitados()">
+        <div class="sub-ilimit-txt">
+          <strong>♾️ Suscripciones ilimitadas</strong>
+          <span>Mensual · 3 meses · 6 meses — clases sin límite</span>
+        </div>
+        <span class="sub-ilimit-cta">Click para más información →</span>
+      </div>
     </div>`;
   selectedSubPlan = null;
   document.getElementById('btnPagar').disabled = true;
@@ -5615,7 +5657,7 @@ function buildAdminContent(customContainer) {
    PLANES — WhatsApp CTA
 ──────────────────────────────────────── */
 function planWA(nombre, precio) {
-  const msg = `Hola Presenza ✧ Me interesa el plan ${nombre} (${precio}). ¿Cómo lo contrato?`;
+  const msg = `Hola Presenza ✧ Quiero más información sobre la suscripción ${nombre} (${precio}).`;
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
