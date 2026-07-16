@@ -3470,6 +3470,23 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 
 const WA = '50578359079';
 const LINK_PAGO = ''; // ← pega aquí tu link de pago BAC (Compra Click) cuando lo tengas
+const EMAIL_NOTIF = 'sebasgale65@gmail.com'; // ← correo donde llegan las solicitudes de suscripción
+
+/* Envía la solicitud de suscripción por correo (vía FormSubmit, gratis).
+   Si falla (sin internet, bloqueado) no interrumpe la reserva. */
+function notificarSolicitudCorreo(datos) {
+  if (!EMAIL_NOTIF) return;
+  fetch('https://formsubmit.co/ajax/' + EMAIL_NOTIF, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({
+      _subject: '💎 Nueva solicitud de suscripción — ' + (datos.Plan || ''),
+      _template: 'table',
+      _captcha: 'false',
+      ...datos
+    })
+  }).catch(() => {});
+}
 
 /* Pagar con link BAC: abre el link con el monto cargado; si aún no hay link,
    coordina por WhatsApp indicando concepto y monto exacto */
@@ -4099,8 +4116,21 @@ function proceedToConfirm() {
     ? `${fmtC(planPend.precio)} (${planPend.nombre})`
     : fmtC(info.precio);
 
-  /* Plan nuevo o renovación → registrar como PENDIENTE (el admin confirma el pago) */
-  if (esPlanPendiente) autoRegisterSub(nombre, email, tel, nivel, selectedSubPlan);
+  /* Plan nuevo o renovación → registrar como PENDIENTE (el admin confirma el pago)
+     y avisar por correo al estudio */
+  if (esPlanPendiente) {
+    autoRegisterSub(nombre, email, tel, nivel, selectedSubPlan);
+    notificarSolicitudCorreo({
+      Nombre: nombre,
+      Email: email,
+      Telefono: tel || '—',
+      Nivel: nivel || '—',
+      Plan: planPend.nombre,
+      Monto: fmtC(planPend.precio),
+      'Clase reservada': `${info.nombre} · ${diaStr} · ${hora} hrs${booking.lugar ? ' · Lugar ' + booking.lugar : ''}`,
+      Solicitado: new Date().toLocaleString('es-NI')
+    });
+  }
 
   /* ── Alerta de membresía ilimitada activada ── */
   const subAlertEl = document.getElementById('subAlertContainer');
