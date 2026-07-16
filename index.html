@@ -1940,6 +1940,22 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   background:rgba(224,169,59,.18); color:#7a5200; border-radius:50px; padding:2px 8px;
 }
 
+/* Diferenciación clase única vs paquete de suscripción */
+.tipo-chip {
+  display:inline-block; font-size:.6rem; font-weight:800; letter-spacing:.6px;
+  padding:2px 9px; border-radius:50px; margin-bottom:4px; white-space:nowrap;
+}
+.tipo-unica   { background:rgba(46,125,50,.12);  color:#1a5c1a; }
+.tipo-paquete { background:rgba(107,23,40,.12);  color:var(--wine-d); }
+.sa-pend-card.pc-unica   { border-left:4px solid #2e7d32; }
+.sa-pend-card.pc-paquete { border-left:4px solid var(--wine); }
+.sa-sub-card.pc-unica    { border-left:4px solid rgba(46,125,50,.5); }
+.sa-sub-card.pc-paquete  { border-left:4px solid rgba(107,23,40,.5); }
+.sa-pend-hint {
+  font-size:.71rem; color:var(--gray); line-height:1.5;
+  margin:-4px 0 10px; padding-left:2px;
+}
+
 /* Botón eliminar suscriptora */
 .btn-sa-del {
   padding:7px 12px; border:1.5px solid rgba(220,53,69,.3);
@@ -4845,26 +4861,31 @@ function buildSAdminSubs() {
   const pendPaquete = pendientes.filter(s => !esPrimeraVez(s.pendiente.plan));
 
   const renderPendCard = (s) => {
-    const pd = PLANES_SUB[s.pendiente.plan] || { nombre: s.pendiente.plan, precio: 0 };
-    return `<div class="sa-pend-card">
+    const pd = PLANES_SUB[s.pendiente.plan] || { nombre: s.pendiente.plan, precio: 0, clases: 0 };
+    const esUnica = esPrimeraVez(s.pendiente.plan);
+    return `<div class="sa-pend-card ${esUnica ? 'pc-unica' : 'pc-paquete'}">
       <div class="sa-pend-info">
+        <span class="tipo-chip ${esUnica ? 'tipo-unica' : 'tipo-paquete'}">${esUnica ? '🎟 CLASE ÚNICA · ' + fmtC(pd.precio) : '💎 PAQUETE · ' + pd.clases + ' CLASES · ' + fmtC(pd.precio)}</span>
         <strong>${s.nombre}</strong>
         <span>${s.email} · ${s.tel||'—'}</span>
         <span class="sa-pend-plan">${pd.nombre} · <strong>${fmtC(pd.precio)}</strong> · solicitado ${s.pendiente.fecha}</span>
       </div>
       <div class="sa-pend-btns">
-        <button class="btn-pend-ok" onclick="confirmarPagoSub('${s.email}')">✓ Confirmar pago</button>
+        <button class="btn-pend-ok" onclick="confirmarPagoSub('${s.email}')">${esUnica ? '✓ Aceptar pago' : '✓ Confirmar pago'}</button>
         <button class="btn-pend-no" onclick="rechazarPagoSub('${s.email}')">✕ Rechazar</button>
       </div>
     </div>`;
   };
-  const renderPendBlock = (titulo, lista) => lista.length === 0 ? '' : `
+  const renderPendBlock = (titulo, hint, lista) => lista.length === 0 ? '' : `
     <div class="sa-pend-blk">
       <div class="sa-pend-title">${titulo} (${lista.length})</div>
+      <div class="sa-pend-hint">${hint}</div>
       ${lista.map(renderPendCard).join('')}
     </div>`;
-  const pendHtml = renderPendBlock('⏳ Primera vez · pendientes de confirmar', pendPrimera)
-                 + renderPendBlock('⏳ Suscripción (paquete) · pendientes de confirmar', pendPaquete);
+  const pendHtml = renderPendBlock('🎟 Clase única (de una vez) · por aceptar',
+                     'Pago de una sola clase: C$440. Verifica que la transferencia llegó a tu cuenta y acepta.', pendPrimera)
+                 + renderPendBlock('💎 Paquetes de suscripción · por confirmar',
+                     'Son montos mayores: verifica que recibiste el monto COMPLETO del paquete antes de confirmar. Si no coincide, rechaza y coordina por WhatsApp.', pendPaquete);
 
   /* Render de una tarjeta de suscriptora (si = índice global para IDs únicos) */
   const renderCard = (sub, si) => {
@@ -4882,7 +4903,8 @@ function buildSAdminSubs() {
       </div>`;
     }).join('') || '<div style="color:var(--gray);font-size:.74rem;padding:6px 0">Sin asistencias aún</div>';
 
-    return `<div class="sa-sub-card">
+    const esUnica = esPrimeraVez(sub.plan);
+    return `<div class="sa-sub-card ${esUnica ? 'pc-unica' : 'pc-paquete'}">
       <div class="sa-sub-card-hd">
         <div class="sa-sub-avatar">${initials}</div>
         <div class="sa-sub-card-info">
@@ -4891,7 +4913,7 @@ function buildSAdminSubs() {
           <span class="sa-sub-tel">${sub.tel||'Sin teléfono'}</span>
         </div>
         <div class="sa-sub-card-meta">
-          <div><span class="sa-sub-plan-tag">${plan.nombre}</span>${sub.pendiente ? ' <span class="sa-pend-chip">⏳ pendiente</span>' : ''}</div>
+          <div><span class="tipo-chip ${esUnica ? 'tipo-unica' : 'tipo-paquete'}">${esUnica ? '🎟 Clase única' : '💎 Paquete'}</span> <span class="sa-sub-plan-tag">${plan.nombre}</span>${sub.pendiente ? ' <span class="sa-pend-chip">⏳ pendiente</span>' : ''}</div>
           <div class="sa-clases-bar">
             <span class="sa-clases-num sa-cupos-left ${cuposCls}">${sub.clasesRestantes} clases</span>
             <div class="sa-clases-track"><div class="sa-clases-fill" style="width:${pct}%"></div></div>
@@ -4936,8 +4958,8 @@ function buildSAdminSubs() {
         <strong>Sin suscriptoras aún</strong>
         <span>Registra la primera con el botón "+ Nueva".</span>
       </div>`
-    : renderSeccion('Primera vez', '🌱', cardsPrimera, 'Aún no hay clientas de primera vez (clase singular).')
-    + renderSeccion('Suscripción · paquetes', '💎', cardsPaquete, 'Aún no hay suscriptoras con paquete.');
+    : renderSeccion('Clase única · de una vez (C$440)', '🎟', cardsPrimera, 'Aún no hay clientas de clase única.')
+    + renderSeccion('Suscripciones · paquetes (5+ clases)', '💎', cardsPaquete, 'Aún no hay suscriptoras con paquete.');
 
   body.innerHTML = `
     ${pendHtml}
