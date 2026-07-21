@@ -39,8 +39,8 @@
 
 /* ── RESET ── */
 *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
-html { scroll-behavior:smooth; }
-body { font-family:'Poppins',sans-serif; background:var(--white); color:var(--text); overflow-x:hidden; }
+html { scroll-behavior:smooth; overflow-x:hidden; width:100%; }
+body { font-family:'Poppins',sans-serif; background:var(--white); color:var(--text); overflow-x:hidden; width:100%; position:relative; }
 img { display:block; max-width:100%; }
 button { cursor:pointer; border:none; background:none; font-family:inherit; }
 a { text-decoration:none; color:inherit; }
@@ -2350,13 +2350,13 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
     <!-- duplicado para loop continuo -->
     <span class="marquee-item">Barre Burn <span class="dot">✧</span></span>
     <span class="marquee-item">Barre Essenza <span class="dot">✧</span></span>
-    <span class="marquee-item">Presence Pilates <span class="dot">✧</span></span>
+    <span class="marquee-item">Presenza Sculpt <span class="dot">✧</span></span>
     <span class="marquee-item">Unwind Yoga <span class="dot">✧</span></span>
     <span class="marquee-item">TerraPlaza · Managua <span class="dot">✧</span></span>
     <span class="marquee-item">Movimiento con intención <span class="dot">✧</span></span>
     <span class="marquee-item">Barre Burn <span class="dot">✧</span></span>
     <span class="marquee-item">Barre Essenza <span class="dot">✧</span></span>
-    <span class="marquee-item">Presence Pilates <span class="dot">✧</span></span>
+    <span class="marquee-item">Presenza Sculpt <span class="dot">✧</span></span>
     <span class="marquee-item">Unwind Yoga <span class="dot">✧</span></span>
     <span class="marquee-item">TerraPlaza · Managua <span class="dot">✧</span></span>
     <span class="marquee-item">Movimiento con intención <span class="dot">✧</span></span>
@@ -2379,8 +2379,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
       <span class="stat-lbl">Clases por semana</span>
     </div>
     <div class="stat-item r d3">
-      <span class="stat-num" data-count="2" data-suffix="">0</span>
-      <span class="stat-lbl">Salones</span>
+      <span class="stat-num" data-count="1" data-suffix="">0</span>
+      <span class="stat-lbl">Salón</span>
     </div>
   </div>
 </div>
@@ -2462,13 +2462,13 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 
       <div class="clase-card r d3">
         <div class="clase-img">
-          <img src="assets/galeria/pilates-ball.jpeg" alt="Presence Pilates"
+          <img src="assets/galeria/pilates-ball.jpeg" alt="Presenza Sculpt"
             onerror="this.outerHTML='<div class=clase-img-ph ph-pilates>🌿</div>'">
           <div class="clase-overlay"></div>
           <div class="clase-chip">Core &amp; fuerza</div>
         </div>
         <div class="clase-body">
-          <h3 class="clase-name">Presence Pilates</h3>
+          <h3 class="clase-name">Presenza Sculpt</h3>
           <p class="clase-desc">
             Trabaja desde el centro hacia afuera. Fortalece tu core,
             mejora tu postura y crea una conexión profunda entre el
@@ -2901,7 +2901,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
     <div class="sched-legend r d2">
       <div class="legend-item"><span class="leg-dot burn"></span>Barre Burn</div>
       <div class="legend-item"><span class="leg-dot essenza"></span>Barre Essenza</div>
-      <div class="legend-item"><span class="leg-dot pilates"></span>Presence Pilates</div>
+      <div class="legend-item"><span class="leg-dot pilates"></span>Presenza Sculpt</div>
       <div class="legend-item"><span class="leg-dot yoga"></span>Unwind Yoga</div>
     </div>
 
@@ -3055,7 +3055,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="loc-icon">📱</div>
           <div>
             <h4>WhatsApp</h4>
-            <p><a href="https://wa.me/50578359079" target="_blank">7835 9079 — Reservas e info</a></p>
+            <p><a href="https://wa.me/50584317983" target="_blank">8431 7983 — Reservas e info</a></p>
           </div>
         </div>
         <div class="loc-card">
@@ -3469,7 +3469,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
             </svg>
-            Abrir WhatsApp de nuevo (7835-9079)
+            Abrir WhatsApp de nuevo (8431 7983)
           </a>
           <span class="btn-close-m" onclick="closeModal()">Cerrar</span>
         </div>
@@ -3484,7 +3484,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
    HORARIO + RESERVAS — PRESENZA STUDIO
 ════════════════════════════════════════ */
 
-const WA = '50578359079';
+const WA = '50584317983';
 const LINK_PAGO = ''; // ← pega aquí tu link de pago BAC (Compra Click) cuando lo tengas
 const EMAIL_NOTIF = 'sebasgale65@gmail.com'; // ← correo donde llegan las solicitudes de suscripción
 
@@ -3551,12 +3551,12 @@ function contactoDirecto() {
 /* Formato córdobas: C$1,650 */
 function fmtC(n) { return 'C$' + Number(n||0).toLocaleString('en-US'); }
 
-/* ── Definición de clases — máximo 15 cupos ── */
+/* ── Definición de clases · barre 11 cupos, sculpt/yoga 12 ── */
 const INFO = {
-  burn:    { nombre:'Barre Burn',       emoji:'🔥', tag:'Alta energía',  cupos:15, precio:440 },
-  essenza: { nombre:'Barre Essenza',    emoji:'🩰', tag:'Barre clásico', cupos:15, precio:440 },
-  pilates: { nombre:'Presence Pilates', emoji:'🌿', tag:'Core & fuerza', cupos:15, precio:440 },
-  yoga:    { nombre:'Unwind Yoga',      emoji:'🧘', tag:'Restaurativo',  cupos:15, precio:440 },
+  burn:    { nombre:'Barre Burn',      emoji:'🔥', tag:'Alta energía',  cupos:11, precio:440 },
+  essenza: { nombre:'Barre Essenza',   emoji:'🩰', tag:'Barre clásico', cupos:11, precio:440 },
+  pilates: { nombre:'Presenza Sculpt', emoji:'🌿', tag:'Core & fuerza', cupos:12, precio:440 },
+  yoga:    { nombre:'Unwind Yoga',     emoji:'🧘', tag:'Restaurativo',  cupos:12, precio:440 },
 };
 
 /* ── Horario semanal (jsDay: 1=Lun … 5=Vie) ── */
@@ -4585,7 +4585,7 @@ function downloadVoucher() {
     </div>
     <div class="footer">
       <strong>Presencia Studio</strong> · Managua, Nicaragua<br>
-      📱 7835-9079 · presenciastudionicaragua@gmail.com<br><br>
+      📱 8431 7983 · presenciastudionicaragua@gmail.com<br><br>
       <button class="no-print" onclick="window.print()" style="background:#6B1728;color:white;border:none;padding:8px 22px;border-radius:20px;cursor:pointer;font-size:.8rem;margin-top:6px">
         🖨 Imprimir / Guardar PDF
       </button>
@@ -4849,6 +4849,12 @@ function eliminarReserva(clase, dateStr, hora, ts, origen) {
 
 /* Clasificación: la clase singular = "primera vez"; el resto = paquete de suscripción */
 function esPrimeraVez(planKey) { return planKey === 'singular'; }
+
+/* Plan ilimitado (uso libre): se detecta por el plan o por el contador alto,
+   por si alguna asistencia vieja ya le descontó del 9999 */
+function esIlimitada(sub) {
+  return (PLANES_SUB[sub?.plan]?.clases || 0) >= 9999 || (sub?.clasesRestantes || 0) >= 9000;
+}
 
 /* ── Tab: Suscriptoras ── */
 function buildSAdminSubs() {
