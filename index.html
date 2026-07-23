@@ -3542,6 +3542,7 @@ const ADMIN_PIN  = '7835';
 const SUPER_PIN  = 'presenza2026';
 const COACH_PIN  = 'coach2026';   /* acceso solo-vista para coaches: Calendario + Horarios */
 let sadminRol    = 'duena';       /* 'duena' (todo) | 'coach' (solo vista) */
+let sadminTabActual = 'hoy';      /* pestaña activa, para refrescar la vista correcta */
 
 const PLANES_SUB = {
   singular: { nombre:'Clase singular',        clases:1,    precio:440,  tag:'Single',   meses:1 },
@@ -4105,8 +4106,7 @@ function confirmarPagoSub(email) {
   (arr[idx].renovaciones = arr[idx].renovaciones||[]).push({ fecha: hoy, plan: planKey, clases: pd.clases });
   delete arr[idx].pendiente;
   saveSuscriptoras(arr);
-  buildSAdminSubs();
-  updateSubsBadge();
+  sadminTab(sadminTabActual); /* refresca la pestaña donde estés (Hoy o Suscriptoras) */
 }
 
 function rechazarPagoSub(email) {
@@ -4122,8 +4122,7 @@ function rechazarPagoSub(email) {
     delete arr[idx].pendiente;
   }
   saveSuscriptoras(arr);
-  buildSAdminSubs();
-  updateSubsBadge();
+  sadminTab(sadminTabActual); /* refresca la pestaña donde estés (Hoy o Suscriptoras) */
 }
 
 function proceedToConfirm() {
@@ -4681,6 +4680,7 @@ function closeSuperAdmin() {
 function sadminTab(tab) {
   /* El perfil coach solo puede ver Calendario y Horarios */
   if (sadminRol === 'coach' && !['calendario','horarios'].includes(tab)) tab = 'calendario';
+  sadminTabActual = tab;
   document.querySelectorAll('.sadmin-tab').forEach(t =>
     t.classList.toggle('active', t.dataset.tab === tab));
   const body = document.getElementById('sadminBody');
@@ -4714,6 +4714,7 @@ function buildSAdminHoy() {
 
   if (slots.length === 0) {
     body.innerHTML = `<div class="sa-fecha">${diaStr}</div>
+      ${buildPendientesHtml()}
       <div class="sa-empty">
         <span class="sa-empty-ico">🌙</span>
         <strong>Día de descanso</strong>
@@ -4795,6 +4796,7 @@ function buildSAdminHoy() {
 
   body.innerHTML = `
     <div class="sa-fecha">${diaStr}</div>
+    ${buildPendientesHtml()}
     <div class="sa-kpi-grid">
       <div class="sa-kpi">
         <span class="sa-kpi-ico">📅</span>
@@ -4885,13 +4887,10 @@ function esIlimitada(sub) {
   return (PLANES_SUB[sub?.plan]?.clases || 0) >= 9999 || (sub?.clasesRestantes || 0) >= 9000;
 }
 
-/* ── Tab: Suscriptoras ── */
-function buildSAdminSubs() {
-  const body = document.getElementById('sadminBody');
-  const subs = getSuscriptoras();
-
-  /* ── Solicitudes pendientes de confirmación de pago (separadas) ── */
-  const pendientes  = subs.filter(s => s.pendiente);
+/* ── Solicitudes pendientes de confirmación de pago ──
+   Bloque compartido: se muestra en la pestaña Hoy y en Suscriptoras */
+function buildPendientesHtml() {
+  const pendientes  = getSuscriptoras().filter(s => s.pendiente);
   const pendPrimera = pendientes.filter(s => esPrimeraVez(s.pendiente.plan));
   const pendPaquete = pendientes.filter(s => !esPrimeraVez(s.pendiente.plan));
 
@@ -4917,10 +4916,17 @@ function buildSAdminSubs() {
       <div class="sa-pend-hint">${hint}</div>
       ${lista.map(renderPendCard).join('')}
     </div>`;
-  const pendHtml = renderPendBlock('🎟 Clase única (de una vez) · por aceptar',
-                     'Pago de una sola clase: C$440. Verifica que la transferencia llegó a tu cuenta y acepta.', pendPrimera)
-                 + renderPendBlock('💎 Paquetes de suscripción · por confirmar',
-                     'Son montos mayores: verifica que recibiste el monto COMPLETO del paquete antes de confirmar. Si no coincide, rechaza y coordina por WhatsApp.', pendPaquete);
+  return renderPendBlock('🎟 Clase única (de una vez) · por aceptar',
+           'Pago de una sola clase: C$440. Verifica que la transferencia llegó a tu cuenta y acepta.', pendPrimera)
+       + renderPendBlock('💎 Paquetes de suscripción · por confirmar',
+           'Son montos mayores: verifica que recibiste el monto COMPLETO del paquete antes de confirmar. Si no coincide, rechaza y coordina por WhatsApp.', pendPaquete);
+}
+
+/* ── Tab: Suscriptoras ── */
+function buildSAdminSubs() {
+  const body = document.getElementById('sadminBody');
+  const subs = getSuscriptoras();
+  const pendHtml = buildPendientesHtml();
 
   /* Render de una tarjeta de suscriptora (si = índice global para IDs únicos) */
   const renderCard = (sub, si) => {
