@@ -4857,7 +4857,8 @@ function registrarAsistencia(email, clase, dateStr, hora, asistKey) {
   const sub = subs[idx];
   if (sub.clasesRestantes <= 0) { alert('La alumna no tiene clases disponibles en su suscripción.'); return; }
 
-  sub.clasesRestantes = Math.max(0, sub.clasesRestantes - 1);
+  /* Los planes ilimitados no descuentan clases */
+  if (!esIlimitada(sub)) sub.clasesRestantes = Math.max(0, sub.clasesRestantes - 1);
   sub.clasesUsadas    = (sub.clasesUsadas || 0) + 1;
   sub.historial       = sub.historial || [];
   sub.historial.push({ fecha: dateStr, clase, hora, ts: Date.now() });
@@ -5000,8 +5001,10 @@ function buildSAdminSubs() {
   /* Render de una tarjeta de suscriptora (si = índice global para IDs únicos) */
   const renderCard = (sub, si) => {
     const plan     = PLANES_SUB[sub.plan] || { nombre: sub.plan, clases: sub.clasesTotal || 1 };
-    const pct      = Math.min(100, Math.round((sub.clasesRestantes / Math.max(1, plan.clases)) * 100));
-    const cuposCls = sub.clasesRestantes <= 0 ? 'sa-cupos-out' : sub.clasesRestantes <= 3 ? 'sa-cupos-low' : 'sa-cupos-ok';
+    const ilim     = esIlimitada(sub);
+    const pct      = ilim ? 100 : Math.min(100, Math.round((sub.clasesRestantes / Math.max(1, plan.clases)) * 100));
+    const cuposCls = ilim ? 'sa-cupos-ok' : sub.clasesRestantes <= 0 ? 'sa-cupos-out' : sub.clasesRestantes <= 3 ? 'sa-cupos-low' : 'sa-cupos-ok';
+    const clasesTxt = ilim ? '∞ ilimitado' : `${sub.clasesRestantes} clases`;
     const initials = sub.nombre.split(' ').slice(0,2).map(w => w[0]||'').join('').toUpperCase();
     const histRows = (sub.historial||[]).slice(-5).reverse().map(h => {
       const inf = INFO[h.clase] || { emoji:'📋', nombre: h.clase };
@@ -5025,7 +5028,7 @@ function buildSAdminSubs() {
         <div class="sa-sub-card-meta">
           <div><span class="tipo-chip ${esUnica ? 'tipo-unica' : 'tipo-paquete'}">${esUnica ? '🎟 Clase única' : '💎 Paquete'}</span> <span class="sa-sub-plan-tag">${plan.nombre}</span>${sub.pendiente ? ' <span class="sa-pend-chip">⏳ pendiente</span>' : ''}</div>
           <div class="sa-clases-bar">
-            <span class="sa-clases-num sa-cupos-left ${cuposCls}">${sub.clasesRestantes} clases</span>
+            <span class="sa-clases-num sa-cupos-left ${cuposCls}">${clasesTxt}</span>
             <div class="sa-clases-track"><div class="sa-clases-fill" style="width:${pct}%"></div></div>
           </div>
           <div class="sa-vence">Vence: ${sub.fechaVence||'—'}</div>
