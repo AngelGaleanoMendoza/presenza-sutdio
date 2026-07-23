@@ -1963,6 +1963,20 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   margin:-4px 0 10px; padding-left:2px;
 }
 
+/* ── Perfil COACH: solo vista de Calendario y Horarios ── */
+.coach-mode .sadmin-tab[data-tab="hoy"],
+.coach-mode .sadmin-tab[data-tab="reportes"],
+.coach-mode .sadmin-tab[data-tab="subs"],
+.coach-mode .sadmin-tab[data-tab="eventos"] { display:none; }
+.coach-mode .sa-agendar-inline,
+.coach-mode .btn-sa-alumna-del,
+.coach-mode .btn-hor-save,
+.coach-mode .btn-hor-reset,
+.coach-mode .btn-hor-del,
+.coach-mode .btn-hor-add { display:none !important; }
+.coach-mode .hor-sel,
+.coach-mode .hor-inp { pointer-events:none; opacity:.85; }
+
 /* Botón eliminar suscriptora */
 .btn-sa-del {
   padding:7px 12px; border:1.5px solid rgba(220,53,69,.3);
@@ -3526,6 +3540,8 @@ const MESES_ES  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','
 
 const ADMIN_PIN  = '7835';
 const SUPER_PIN  = 'presenza2026';
+const COACH_PIN  = 'coach2026';   /* acceso solo-vista para coaches: Calendario + Horarios */
+let sadminRol    = 'duena';       /* 'duena' (todo) | 'coach' (solo vista) */
 
 const PLANES_SUB = {
   singular: { nombre:'Clase singular',        clases:1,    precio:440,  tag:'Single',   meses:1 },
@@ -4638,14 +4654,18 @@ function toggleSpmVis() {
 }
 function checkSuperPin() {
   const val = document.getElementById('superPinInput').value;
-  if (val === SUPER_PIN) {
+  if (val === SUPER_PIN || val === COACH_PIN) {
+    sadminRol = (val === COACH_PIN) ? 'coach' : 'duena';
+    document.getElementById('sadminBackdrop').classList.toggle('coach-mode', sadminRol === 'coach');
+    document.getElementById('sadminHdTitle').textContent =
+      sadminRol === 'coach' ? '🩰 Panel Coach · solo vista' : '👑 Super Admin';
     document.getElementById('superPinBackdrop').classList.remove('open');
     document.getElementById('sadminBackdrop').classList.add('open');
     document.body.style.overflow = 'hidden';
     const h = new Date();
     document.getElementById('sadminHdFecha').textContent =
       `${DIAS_ES[h.getDay()]} ${h.getDate()} ${MESES_ES[h.getMonth()]} ${h.getFullYear()}`;
-    sadminTab('hoy');
+    sadminTab(sadminRol === 'coach' ? 'calendario' : 'hoy');
   } else {
     document.getElementById('superPinErr').textContent = 'Contraseña incorrecta, intenta de nuevo.';
     document.getElementById('superPinInput').value = '';
@@ -4659,6 +4679,8 @@ function closeSuperAdmin() {
 }
 
 function sadminTab(tab) {
+  /* El perfil coach solo puede ver Calendario y Horarios */
+  if (sadminRol === 'coach' && !['calendario','horarios'].includes(tab)) tab = 'calendario';
   document.querySelectorAll('.sadmin-tab').forEach(t =>
     t.classList.toggle('active', t.dataset.tab === tab));
   const body = document.getElementById('sadminBody');
@@ -5455,7 +5477,34 @@ function buildSAdminReportes() {
   const tipoHtml = Object.entries(ag.byTipo).sort((a,b)=>b[1]-a[1])
     .map(([k,v]) => `<span><strong>${v}</strong> · ${k}</span>`).join('');
 
+  /* Clases dadas por cada coach (sesiones con al menos una reserva) */
+  const byCoach = {};
+  regs.forEach(c => {
+    const nom = (c.instructor||'').trim() || 'Sin asignar';
+    if (!byCoach[nom]) byCoach[nom] = { sesiones:new Set(), asist:0, dets:{} };
+    byCoach[nom].sesiones.add(`${c.clase}_${c.dateStr}_${c.hora}`);
+    byCoach[nom].asist++;
+    (byCoach[nom].dets[c.clase] = byCoach[nom].dets[c.clase] || new Set()).add(`${c.dateStr}_${c.hora}`);
+  });
+  const coachHtml = Object.entries(byCoach)
+    .sort((a,b) => b[1].sesiones.size - a[1].sesiones.size)
+    .map(([nom, d]) => {
+      const det = Object.entries(d.dets)
+        .map(([k, s]) => `${INFO[k]?.emoji||'📋'} ${INFO[k]?.nombre||k}: ${s.size}`)
+        .join(' · ');
+      return `<div class="rep-clase-row">
+        <span class="rep-cl-emoji">🩰</span>
+        <div class="rep-cl-info">
+          <strong>${nom}</strong>
+          <span>${det} · 👥 ${d.asist} asistencias</span>
+        </div>
+        <div class="rep-cl-num">${d.sesiones.size}<small>${d.sesiones.size===1?'clase':'clases'}</small></div>
+      </div>`;
+    }).join('');
+
   body.innerHTML = toolbar + kpis + `
+    <div class="rep-sec-title">🩰 Clases por coach <small>en este ${r.periodo.toLowerCase()}</small></div>
+    <div class="sa-clase-blk">${coachHtml || '<p style="color:var(--gray);font-size:.78rem;padding:10px">Sin clases con instructora asignada.</p>'}</div>
     <div class="rep-sec-title">📚 Por clase <small>${nuevos} ${nuevos===1?'persona nueva':'personas nuevas'}</small></div>
     <div class="sa-clase-blk">${clasesHtml}</div>
     <div class="rep-sec-title">🏆 Personas más recurrentes</div>
@@ -5616,7 +5665,9 @@ function buildSAdminHorarios() {
 
   let html = `
     <div class="hor-toolbar">
-      <span class="hor-note">Edita el horario semanal. Guarda para aplicar los cambios.</span>
+      <span class="hor-note">${sadminRol === 'coach'
+        ? '📖 Horario semanal del estudio — solo consulta.'
+        : 'Edita el horario semanal. Guarda para aplicar los cambios.'}</span>
       <div>
         <button class="btn-hor-save"  onclick="saveHorarios()">💾 Guardar</button>
         <button class="btn-hor-reset" onclick="resetHorarios()">↩ Restaurar</button>
@@ -6033,7 +6084,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="sadmin-hd-top">
         <div class="sadmin-hd-left">
           <p>✧ Presenza Studio</p>
-          <h2>👑 Super Admin</h2>
+          <h2 id="sadminHdTitle">👑 Super Admin</h2>
           <p class="sadmin-hd-fecha" id="sadminHdFecha"></p>
         </div>
         <div class="sadmin-close" onclick="closeSuperAdmin()">✕</div>
