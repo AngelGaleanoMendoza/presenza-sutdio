@@ -3542,7 +3542,7 @@ const DIAS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const MESES_ES  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
 const ADMIN_PIN  = '7835';
-const SUPER_PIN  = 'presenza2026';
+const SUPER_PIN  = 'JimenaMorenopresenza2026';
 const COACH_PIN  = 'coach2026';   /* acceso solo-vista para coaches: Calendario + Horarios */
 let sadminRol    = 'duena';       /* 'duena' (todo) | 'coach' (solo vista) */
 let sadminTabActual = 'hoy';      /* pestaña activa, para refrescar la vista correcta */
@@ -4145,6 +4145,8 @@ function confirmarPagoSub(email) {
   const hoy  = now.toISOString().split('T')[0];
   const venc = calcVence(pd.meses);
 
+  /* Las clases de un plan ya vencido se pierden: la renovación arranca de cero */
+  if (subVencida(arr[idx])) arr[idx].clasesRestantes = 0;
   arr[idx].clasesRestantes = Math.max(0, arr[idx].clasesRestantes) + pd.clases;
   arr[idx].clasesTotal     = pd.clases;
   arr[idx].plan            = planKey;
@@ -5248,6 +5250,8 @@ function guardarNuevaSub() {
   const venc = calcVence(pd.meses);
 
   if (idx >= 0) {
+    /* Las clases de un plan ya vencido se pierden: la renovación arranca de cero */
+    if (subVencida(arr[idx])) arr[idx].clasesRestantes = 0;
     arr[idx].clasesRestantes += pd.clases;
     arr[idx].clasesTotal      = pd.clases;
     arr[idx].plan             = plan;
@@ -5285,6 +5289,8 @@ function renovarSub(email) {
   const now  = new Date();
   const venc = calcVence(pd.meses);
 
+  /* Las clases de un plan ya vencido se pierden: la renovación arranca de cero */
+  if (subVencida(arr[idx])) arr[idx].clasesRestantes = 0;
   arr[idx].clasesRestantes += pd.clases;
   arr[idx].clasesTotal      = pd.clases;
   arr[idx].plan             = choice;
@@ -6264,7 +6270,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <span class="spm-brand-sub">Super Admin</span>
       <span class="spm-label">Contraseña de acceso</span>
       <div class="spm-input-wrap">
-        <input type="password" id="superPinInput" class="spm-input" maxlength="20"
+        <input type="password" id="superPinInput" class="spm-input" maxlength="40"
           placeholder="Ingresa tu contraseña"
           onkeydown="if(event.key==='Enter')checkSuperPin(); if(event.key==='Escape')closeSuperPin()"/>
         <button class="spm-eye" id="spmEye" onclick="toggleSpmVis()" tabindex="-1">👁</button>
