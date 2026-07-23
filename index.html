@@ -4874,6 +4874,7 @@ function eliminarReserva(clase, dateStr, hora, ts, origen) {
   const arr = JSON.parse(localStorage.getItem(key) || '[]').filter(c => c.ts !== ts);
   if (arr.length) localStorage.setItem(key, JSON.stringify(arr));
   else localStorage.removeItem(key);
+  renderCards(); /* refresca los cupos en las tarjetas públicas del horario */
 
   if (origen === 'cal') {
     buildSAdminCalendario();
@@ -4942,6 +4943,7 @@ function rechazarPagoReserva(clase, dateStr, hora, ts) {
   const arr = JSON.parse(localStorage.getItem(key)||'[]').filter(c => c.ts !== ts);
   if (arr.length) localStorage.setItem(key, JSON.stringify(arr));
   else localStorage.removeItem(key);
+  renderCards(); /* refresca los cupos en las tarjetas públicas del horario */
   sadminTab(sadminTabActual);
 }
 
@@ -5202,6 +5204,7 @@ function agendarSubAClase(email, clase, dateStr, hora, instructor) {
     nivel: '', notas: 'Agendada por admin',
     metodo: `💎 Suscripción · ${planN}`, instructor
   });
+  renderCards(); /* refresca los cupos en las tarjetas públicas del horario */
   return true;
 }
 
