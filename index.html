@@ -1760,7 +1760,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   .sa-alumna-row .sa-alumna-tel { grid-column:2; }
 }
 .sa-alumna-row {
-  display:grid; grid-template-columns:1fr auto auto auto auto;
+  display:grid; grid-template-columns:1fr auto auto auto auto auto;
   align-items:center; gap:10px;
   padding:9px 12px 9px 20px; font-size:.79rem;
   border-bottom:1px solid rgba(107,23,40,.05);
@@ -3384,8 +3384,11 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
           <input type="email" id="mEmail" placeholder="tu@email.com" oninput="checkMForm()"/>
         </div>
         <div class="mfg">
-          <label>WhatsApp / Teléfono</label>
+          <label>WhatsApp / Teléfono <span style="color:#c0392b">*</span></label>
           <input type="tel" id="mTel" placeholder="+505 0000 0000" oninput="checkMForm()"/>
+          <span id="mTelHint" style="display:none;font-size:.68rem;color:#c0392b;margin-top:4px">
+            📱 Necesitamos tu número (mínimo 8 dígitos) para confirmar tu reserva.
+          </span>
         </div>
         <div class="mfg">
           <label>Nivel de experiencia</label>
@@ -3548,9 +3551,9 @@ const PLANES_SUB = {
   singular: { nombre:'Clase singular',        clases:1,    precio:440,  tag:'Single',   meses:1 },
   plan5:    { nombre:'Paquete 5 clases',       clases:5,    precio:1650, tag:'Básico',   meses:1 },
   plan10:   { nombre:'Paquete 10 clases',      clases:10,   precio:2930, tag:'Regular',  meses:1 },
-  ilimit1:  { nombre:'Mensual ilimitado',      clases:9999, precio:4760, tag:'Mensual',  meses:1 },
-  ilimit3:  { nombre:'Trimestral ilimitado',   clases:9999, precio:4210, tag:'3 meses',  meses:3 },
-  ilimit6:  { nombre:'Semestral ilimitado',    clases:9999, precio:3734, tag:'6 meses',  meses:6 },
+  ilimit1:  { nombre:'Mensual ilimitado',      clases:1000, precio:4760, tag:'Mensual',  meses:1 },
+  ilimit3:  { nombre:'Trimestral ilimitado',   clases:1000, precio:4210, tag:'3 meses',  meses:3 },
+  ilimit6:  { nombre:'Semestral ilimitado',    clases:1000, precio:3734, tag:'6 meses',  meses:6 },
 };
 
 /* En la reserva se ofrecen los 3 paquetes de clases. Las membresías
@@ -3659,6 +3662,32 @@ function saveSuscriptoras(arr)     { localStorage.setItem('presenza_subs', JSON.
 function getSuscriptoraByEmail(em) {
   if (!em) return null;
   return getSuscriptoras().find(s => s.email.toLowerCase() === em.toLowerCase());
+}
+
+/* Teléfono normalizado (solo dígitos) — identificador secundario */
+function normTel(t) { return (t||'').replace(/\D/g,''); }
+
+/* Busca suscriptora por email y, si no aparece, por teléfono.
+   Así evitamos duplicados si la alumna usa otro correo pero el mismo número. */
+function findSuscriptora(email, tel) {
+  const subs = getSuscriptoras();
+  const em   = (email||'').toLowerCase();
+  let s = em ? subs.find(x => (x.email||'').toLowerCase() === em) : null;
+  if (!s) {
+    const td = normTel(tel);
+    if (td.length >= 8) s = subs.find(x => normTel(x.tel) === td);
+  }
+  return s || null;
+}
+
+/* Vencimiento: 30 días exactos por cada mes del plan, desde la activación */
+function calcVence(meses) {
+  return new Date(Date.now() + (meses||1) * 30 * 86400000).toISOString().split('T')[0];
+}
+
+/* ¿El plan ya venció? (fecha de vencimiento anterior a hoy) */
+function subVencida(sub) {
+  return !!(sub && sub.fechaVence && sub.fechaVence < new Date().toISOString().split('T')[0]);
 }
 
 /* ── Semana ── */
@@ -3877,15 +3906,27 @@ function mGoStep(n) {
 }
 
 function checkMForm() {
+  const telVal = document.getElementById('mTel').value;
+  const telOk  = normTel(telVal).length >= 8;
+  const hint   = document.getElementById('mTelHint');
+  /* Aviso visible si escribió algo pero el número está incompleto */
+  if (hint) hint.style.display = (telVal.trim() && !telOk) ? 'block' : 'none';
   const ok = document.getElementById('mNombre').value.trim() &&
              document.getElementById('mEmail').value.trim()  &&
-             document.getElementById('mTel').value.trim()    &&
+             telOk &&
              document.getElementById('mNivel').value;
   document.getElementById('btnConfirmar').disabled = !ok;
 }
 
 /* PASO 1 → 2 : Pilates va a "Lugar"; el resto va directo a "Pago" */
 function submitR() {
+  /* Candado: sin teléfono válido no se avanza (requerido para confirmar pagos) */
+  if (normTel(document.getElementById('mTel').value).length < 8) {
+    const hint = document.getElementById('mTelHint');
+    if (hint) hint.style.display = 'block';
+    document.getElementById('mTel').focus();
+    return;
+  }
   if (booking.clase === 'pilates') {
     renderLugares();
   } else {
@@ -3987,10 +4028,11 @@ function verifySub() {
     return;
   }
 
-  const sub = getSuscriptoraByEmail(email);
+  const telInp = document.getElementById('mTel').value.trim();
+  const sub = findSuscriptora(email, telInp);
 
-  /* Suscriptora activa con clases disponibles */
-  if (sub && sub.activa && sub.clasesRestantes > 0) {
+  /* Suscriptora activa, vigente y con clases disponibles */
+  if (sub && sub.activa && sub.clasesRestantes > 0 && !subVencida(sub)) {
     selectedSubPlan = sub.plan;
     const cls = sub.clasesRestantes <= 3 ? 'sub-cupos-low' : '';
     result.innerHTML = `
@@ -4000,7 +4042,7 @@ function verifySub() {
           <strong>¡Bienvenida de nuevo, ${sub.nombre.split(' ')[0]}!</strong>
           <span>${PLANES_SUB[sub.plan]?.nombre || 'Suscripción'} · Vence: ${sub.fechaVence}</span>
         </div>
-        <span class="sub-cupos-badge ${cls}">${sub.clasesRestantes >= 9999 ? '∞ ilimitado' : sub.clasesRestantes + ' clases'}</span>
+        <span class="sub-cupos-badge ${cls}">${esIlimitada(sub) ? '∞ ilimitado' : sub.clasesRestantes + ' clases'}</span>
       </div>`;
     document.getElementById('btnPagar').disabled = false;
     return;
@@ -4018,9 +4060,10 @@ function verifySub() {
     return;
   }
 
-  /* Sin suscripción o agotada → mostrar selector de plan
+  /* Sin suscripción, agotada o vencida → mostrar selector de plan
      (paquetes de clases; las ilimitadas solo como "más información") */
-  const esRenovacion = sub && sub.clasesRestantes <= 0;
+  const esVencida    = sub && subVencida(sub);
+  const esRenovacion = sub && (sub.clasesRestantes <= 0 || esVencida);
   const planesHtml = PLANES_BOOKING_VISIBLE.map(k => {
     const v = PLANES_SUB[k];
     return `
@@ -4028,13 +4071,13 @@ function verifySub() {
       <span class="sub-plane-tag">${v.tag}</span>
       <span class="sub-plane-name">${v.nombre}</span>
       <span class="sub-plane-price">${fmtC(v.precio)}</span>
-      <span class="sub-plane-clases">${v.clases >= 9999 ? '∞ ilimitado' : v.clases + ' clases'}</span>
+      <span class="sub-plane-clases">${v.clases >= 1000 ? '∞ ilimitado' : v.clases + ' clases'}</span>
     </div>`;
   }).join('');
 
   result.innerHTML = `
     <div class="sub-plan-new">
-      <p>${esRenovacion ? '⟳ Tus clases se agotaron. Elige tu paquete para renovar:' : '🎟️ Elige tu paquete de clases:'}</p>
+      <p>${esVencida ? `⚠ Tu plan venció el ${sub.fechaVence}. Elige un paquete para renovar:` : esRenovacion ? '⟳ Tus clases se agotaron. Elige tu paquete para renovar:' : '🎟️ Elige tu paquete de clases:'}</p>
       <div class="sub-planes">${planesHtml}</div>
       <button type="button" class="sub-contacto-directo" onclick="contactoDirecto()">💬 Contacto directo con el estudio</button>
       <div class="sub-ilimit-box" onclick="infoIlimitados()">
@@ -4060,7 +4103,12 @@ function selectSubPlan(planKey) {
    Las clases del plan NO se pueden usar hasta la confirmación. */
 function autoRegisterSub(nombre, email, tel, nivel, planKey) {
   const arr = getSuscriptoras();
-  const idx = arr.findIndex(s => s.email.toLowerCase() === email.toLowerCase());
+  /* Anti-duplicados: primero por email; si no existe, por teléfono */
+  let idx = arr.findIndex(s => (s.email||'').toLowerCase() === email.toLowerCase());
+  if (idx < 0) {
+    const td = normTel(tel);
+    if (td.length >= 8) idx = arr.findIndex(s => normTel(s.tel) === td);
+  }
   const hoy = new Date().toISOString().split('T')[0];
 
   if (idx >= 0) {
@@ -4095,7 +4143,7 @@ function confirmarPagoSub(email) {
   if (!pd) { alert('Plan no válido.'); return; }
   const now  = new Date();
   const hoy  = now.toISOString().split('T')[0];
-  const venc = new Date(now.getFullYear(), now.getMonth()+(pd.meses||1), now.getDate()).toISOString().split('T')[0];
+  const venc = calcVence(pd.meses);
 
   arr[idx].clasesRestantes = Math.max(0, arr[idx].clasesRestantes) + pd.clases;
   arr[idx].clasesTotal     = pd.clases;
@@ -4135,8 +4183,8 @@ function proceedToConfirm() {
   const info   = INFO[clase];
   const d      = new Date(dateStr+'T12:00:00');
   const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
-  const subActiva  = pagoMetodo==='sub' ? getSuscriptoraByEmail(email) : null;
-  const usaSubActiva = !!(subActiva && subActiva.activa && subActiva.clasesRestantes > 0);
+  const subActiva  = pagoMetodo==='sub' ? findSuscriptora(email, tel) : null;
+  const usaSubActiva = !!(subActiva && subActiva.activa && subActiva.clasesRestantes > 0 && !subVencida(subActiva));
   const planUsado  = usaSubActiva ? subActiva.plan : selectedSubPlan;
   const esPlanPendiente = pagoMetodo==='sub' && !usaSubActiva && !!selectedSubPlan;
   const metodoDtxt = pagoMetodo==='transfer'
@@ -4770,11 +4818,14 @@ function buildSAdminHoy() {
         </div>
         <span class="sa-alumna-tel">${c.tel||'—'}</span>
         ${esSub
-          ? `<span class="sa-cupos-left ${cuposCls}">${cupos >= 9999 ? '∞' : cupos} clases</span>
+          ? `<span class="sa-cupos-left ${cuposCls}">${cupos >= 1000 ? '∞' : cupos} clases</span>
              <button class="btn-sa-asist" ${yaAsistio?'disabled':''} onclick="registrarAsistencia('${c.email}','${clase}','${dateStr}','${hora}','${asistKey}')">
                ${yaAsistio ? '✓ Asistió' : 'Marcar ✓'}
              </button>`
           : `<span></span><span></span>`}
+        ${c.pagoOk === false
+          ? '<span></span>'
+          : `<button class="btn-sa-alumna-del" title="Generar comprobante" style="color:#2e7d32;border-color:rgba(46,125,50,.35)" onclick="comprobanteReserva('${clase}','${dateStr}','${hora}',${c.ts})">📄</button>`}
         <button class="btn-sa-alumna-del" title="Eliminar reserva" onclick="eliminarReserva('${clase}','${dateStr}','${hora}',${c.ts},'hoy')">🗑</button>
       </div>`;
     }).join('') || `<div style="padding:7px 20px;font-size:.76rem;color:var(--gray)">Sin inscripciones</div>`;
@@ -4856,6 +4907,7 @@ function registrarAsistencia(email, clase, dateStr, hora, asistKey) {
   if (idx < 0) return;
   const sub = subs[idx];
   if (sub.clasesRestantes <= 0) { alert('La alumna no tiene clases disponibles en su suscripción.'); return; }
+  if (subVencida(sub)) { alert(`El plan de ${sub.nombre} venció el ${sub.fechaVence}. Renueva su plan primero.`); return; }
 
   /* Los planes ilimitados no descuentan clases */
   if (!esIlimitada(sub)) sub.clasesRestantes = Math.max(0, sub.clasesRestantes - 1);
@@ -4948,13 +5000,70 @@ function rechazarPagoReserva(clase, dateStr, hora, ts) {
   sadminTab(sadminTabActual);
 }
 
+/* ── Comprobantes generados por el admin (imprimibles / guardar como PDF) ── */
+function printComprobante(titulo, filas) {
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titulo} — Presenza</title>
+  <style>
+    body { font-family:Arial,sans-serif; padding:28px; max-width:420px; margin:0 auto; color:#2C1810; }
+    .hd { text-align:center; border-bottom:2px solid #6B1728; padding-bottom:12px; margin-bottom:16px; }
+    .hd h1 { font-size:1.3rem; color:#6B1728; margin:0; }
+    .hd p { font-size:.68rem; color:#9A8880; letter-spacing:2px; text-transform:uppercase; margin:4px 0 0; }
+    .row { display:flex; justify-content:space-between; gap:14px; padding:7px 0; border-bottom:1px dashed #EAD9CA; font-size:.85rem; }
+    .row strong { color:#6B1728; text-align:right; }
+    .estado { text-align:center; margin-top:16px; font-weight:bold; color:#2e7d32; border:2px solid #2e7d32; border-radius:8px; padding:8px; }
+    .foot { margin-top:18px; text-align:center; font-size:.68rem; color:#9A8880; }
+  </style></head><body>
+  <div class="hd"><h1>✧ Presenza Studio</h1><p>${titulo}</p></div>
+  ${filas.map(([k,v]) => `<div class="row"><span>${k}</span><strong>${v}</strong></div>`).join('')}
+  <div class="estado">✓ PAGO CONFIRMADO</div>
+  <p class="foot">Presenza Studio · Managua · Emitido el ${new Date().toLocaleString('es-NI')}</p>
+  <script>window.print();<\/script></body></html>`);
+  w.document.close();
+}
+
+function comprobanteReserva(clase, dateStr, hora, ts) {
+  const c = getClientes(clase, dateStr, hora).find(x => x.ts === ts);
+  if (!c) return;
+  const info = INFO[clase] || { nombre:clase, emoji:'📋', precio:0 };
+  const d    = new Date(dateStr+'T12:00:00');
+  printComprobante('Comprobante de reserva', [
+    ['Clase', `${info.emoji} ${info.nombre}`],
+    ['Fecha', `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]} ${d.getFullYear()}`],
+    ['Hora', hora + ' hrs'],
+    ...(c.lugar ? [['Lugar', c.lugar]] : []),
+    ['Alumna', c.nombre || '—'],
+    ['Teléfono', c.tel || '—'],
+    ['Método', c.metodo || '—'],
+    ['Monto', fmtC(info.precio)],
+    ['N° de reserva', 'PS-' + String(ts).slice(-6)]
+  ]);
+}
+
+function comprobanteSub(email) {
+  const sub = getSuscriptoraByEmail(email);
+  if (!sub) return;
+  const pd = PLANES_SUB[sub.plan] || { nombre: sub.plan, precio: 0 };
+  printComprobante('Comprobante de suscripción', [
+    ['Plan', pd.nombre],
+    ['Monto', fmtC(pd.precio)],
+    ['Alumna', sub.nombre],
+    ['Teléfono', sub.tel || '—'],
+    ['Email', sub.email],
+    ['Clases', esIlimitada(sub) ? '∞ ilimitado' : `${sub.clasesRestantes} disponibles`],
+    ['Inicio', sub.fechaInicio || '—'],
+    ['Vence', sub.fechaVence || '—'],
+    ['N° de suscriptora', sub.id || '—']
+  ]);
+}
+
 /* Clasificación: la clase singular = "primera vez"; el resto = paquete de suscripción */
 function esPrimeraVez(planKey) { return planKey === 'singular'; }
 
 /* Plan ilimitado (uso libre): se detecta por el plan o por el contador alto,
-   por si alguna asistencia vieja ya le descontó del 9999 */
+   por si algún registro viejo quedó con 9999/9998 */
 function esIlimitada(sub) {
-  return (PLANES_SUB[sub?.plan]?.clases || 0) >= 9999 || (sub?.clasesRestantes || 0) >= 9000;
+  return (PLANES_SUB[sub?.plan]?.clases || 0) >= 1000 || (sub?.clasesRestantes || 0) >= 1000;
 }
 
 /* ── Solicitudes pendientes de confirmación de pago ──
@@ -5002,8 +5111,9 @@ function buildSAdminSubs() {
   const renderCard = (sub, si) => {
     const plan     = PLANES_SUB[sub.plan] || { nombre: sub.plan, clases: sub.clasesTotal || 1 };
     const ilim     = esIlimitada(sub);
+    const vencida  = subVencida(sub);
     const pct      = ilim ? 100 : Math.min(100, Math.round((sub.clasesRestantes / Math.max(1, plan.clases)) * 100));
-    const cuposCls = ilim ? 'sa-cupos-ok' : sub.clasesRestantes <= 0 ? 'sa-cupos-out' : sub.clasesRestantes <= 3 ? 'sa-cupos-low' : 'sa-cupos-ok';
+    const cuposCls = vencida ? 'sa-cupos-out' : ilim ? 'sa-cupos-ok' : sub.clasesRestantes <= 0 ? 'sa-cupos-out' : sub.clasesRestantes <= 3 ? 'sa-cupos-low' : 'sa-cupos-ok';
     const clasesTxt = ilim ? '∞ ilimitado' : `${sub.clasesRestantes} clases`;
     const initials = sub.nombre.split(' ').slice(0,2).map(w => w[0]||'').join('').toUpperCase();
     const histRows = (sub.historial||[]).slice(-5).reverse().map(h => {
@@ -5026,7 +5136,7 @@ function buildSAdminSubs() {
           <span class="sa-sub-tel">${sub.tel||'Sin teléfono'}</span>
         </div>
         <div class="sa-sub-card-meta">
-          <div><span class="tipo-chip ${esUnica ? 'tipo-unica' : 'tipo-paquete'}">${esUnica ? '🎟 Clase única' : '💎 Paquete'}</span> <span class="sa-sub-plan-tag">${plan.nombre}</span>${sub.pendiente ? ' <span class="sa-pend-chip">⏳ pendiente</span>' : ''}</div>
+          <div><span class="tipo-chip ${esUnica ? 'tipo-unica' : 'tipo-paquete'}">${esUnica ? '🎟 Clase única' : '💎 Paquete'}</span> <span class="sa-sub-plan-tag">${plan.nombre}</span>${sub.pendiente ? ' <span class="sa-pend-chip">⏳ pendiente</span>' : ''}${vencida ? ' <span class="sa-pend-chip" style="background:rgba(220,53,69,.14);color:#842029">⚠ vencida</span>' : ''}</div>
           <div class="sa-clases-bar">
             <span class="sa-clases-num sa-cupos-left ${cuposCls}">${clasesTxt}</span>
             <div class="sa-clases-track"><div class="sa-clases-fill" style="width:${pct}%"></div></div>
@@ -5037,6 +5147,7 @@ function buildSAdminSubs() {
       <div class="sa-sub-actions">
         <button class="btn-sa-agendar" onclick="toggleAgendarSub(this)">📅 Agendar ▾</button>
         <button class="btn-sa-renovar" onclick="renovarSub('${sub.email}')">⟳ Renovar plan</button>
+        <button class="btn-sa-historial" onclick="comprobanteSub('${sub.email}')">📄 Comprobante</button>
         <button class="btn-sa-historial" onclick="toggleHistSub(this)">Historial ▾</button>
         <button class="btn-sa-del" onclick="eliminarSub('${sub.email}')">🗑 Eliminar</button>
       </div>
@@ -5125,10 +5236,16 @@ function guardarNuevaSub() {
   if (!nombre || !email) { alert('Nombre y email son obligatorios.'); return; }
 
   const arr  = getSuscriptoras();
-  const idx  = arr.findIndex(s => s.email.toLowerCase() === email.toLowerCase());
+  /* Anti-duplicados: primero por email; si no existe, por teléfono */
+  let idx = arr.findIndex(s => (s.email||'').toLowerCase() === email.toLowerCase());
+  if (idx < 0) {
+    const td = normTel(tel);
+    if (td.length >= 8) idx = arr.findIndex(s => normTel(s.tel) === td);
+    if (idx >= 0 && !confirm(`Ya existe ${arr[idx].nombre} con ese teléfono (${arr[idx].email}). ¿Sumar este plan a su cuenta en vez de crear una nueva?`)) return;
+  }
   const pd   = PLANES_SUB[plan];
   const now  = new Date();
-  const venc = new Date(now.getFullYear(), now.getMonth()+(pd.meses||1), now.getDate()).toISOString().split('T')[0];
+  const venc = calcVence(pd.meses);
 
   if (idx >= 0) {
     arr[idx].clasesRestantes += pd.clases;
@@ -5166,7 +5283,7 @@ function renovarSub(email) {
   if (idx < 0) return;
   const pd   = PLANES_SUB[choice];
   const now  = new Date();
-  const venc = new Date(now.getFullYear(), now.getMonth()+(pd.meses||1), now.getDate()).toISOString().split('T')[0];
+  const venc = calcVence(pd.meses);
 
   arr[idx].clasesRestantes += pd.clases;
   arr[idx].clasesTotal      = pd.clases;
@@ -5189,8 +5306,10 @@ function eliminarSub(email) {
 function agendarSubAClase(email, clase, dateStr, hora, instructor) {
   const sub = getSuscriptoraByEmail(email);
   if (!sub) { alert('Suscriptora no encontrada.'); return false; }
-  if (!sub.activa || sub.clasesRestantes <= 0) {
-    alert(`${sub.nombre} no tiene clases disponibles. Renueva su plan primero.`);
+  if (!sub.activa || sub.clasesRestantes <= 0 || subVencida(sub)) {
+    alert(subVencida(sub)
+      ? `El plan de ${sub.nombre} venció el ${sub.fechaVence}. Renueva su plan primero.`
+      : `${sub.nombre} no tiene clases disponibles. Renueva su plan primero.`);
     return false;
   }
   const info     = INFO[clase];
@@ -5323,7 +5442,7 @@ function sadminVerDia(dateStr, el) {
     return;
   }
 
-  const subs = getSuscriptoras().filter(s => s.activa && s.clasesRestantes > 0);
+  const subs = getSuscriptoras().filter(s => s.activa && s.clasesRestantes > 0 && !subVencida(s));
   const clasesHtml = slots.map(({ clase, hora, instructor }, idx) => {
     const info     = INFO[clase];
     const clientes = getClientes(clase, dateStr, hora);
@@ -5343,7 +5462,7 @@ function sadminVerDia(dateStr, el) {
       <div class="sa-agendar-inline">
         <select id="calAg_${idx}" class="agp-sel">
           <option value="">+ Agendar suscriptora…</option>
-          ${subs.map(s => `<option value="${s.email}">${s.nombre} (${s.clasesRestantes >= 9999 ? '∞' : s.clasesRestantes} clases)</option>`).join('')}
+          ${subs.map(s => `<option value="${s.email}">${s.nombre} (${s.clasesRestantes >= 1000 ? '∞' : s.clasesRestantes} clases)</option>`).join('')}
         </select>
         <button class="btn-agp" ${llena?'disabled':''} onclick="calAgendar('${clase}','${dateStr}','${hora}','${instructor}','calAg_${idx}')">${llena?'Llena':'Agendar →'}</button>
       </div>`;
