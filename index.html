@@ -4219,7 +4219,9 @@ function proceedToConfirm() {
     return;
   }
 
-  saveSlot(clase, dateStr, hora, { nombre, email, tel, nivel, notas, lugar: booking.lugar, metodo: metodoDtxt, instructor });
+  /* Las reservas por transferencia quedan "por confirmar" hasta que el admin
+     verifique el pago (pagoOk:false). El resto se considera resuelto aparte. */
+  saveSlot(clase, dateStr, hora, { nombre, email, tel, nivel, notas, lugar: booking.lugar, metodo: metodoDtxt, instructor, pagoOk: pagoMetodo !== 'transfer' });
 
   /* ── Verificar umbral y mostrar alerta admin ── */
   const ocupNuevo  = getOcupados(clase, dateStr, hora);
@@ -4715,6 +4717,7 @@ function buildSAdminHoy() {
   if (slots.length === 0) {
     body.innerHTML = `<div class="sa-fecha">${diaStr}</div>
       ${buildPendientesHtml()}
+      ${buildPendPagoHtml()}
       <div class="sa-empty">
         <span class="sa-empty-ico">🌙</span>
         <strong>Día de descanso</strong>
@@ -4731,7 +4734,8 @@ function buildSAdminHoy() {
     getClientes(clase, dateStr, hora).forEach(c => {
       const m = (c.metodo||'').toLowerCase();
       if (m.includes('transfer')) {
-        pagos.transfer++; totalIngreso += info.precio;
+        if (c.pagoOk === false) { pagos.pendT = (pagos.pendT||0) + 1; }
+        else { pagos.transfer++; totalIngreso += info.precio; }
       } else if (m.includes('suscri') || m.includes('💎')) {
         pagos.sub++;
         const match = (c.metodo||'').match(/·\s*(.+)$/);
@@ -4742,7 +4746,7 @@ function buildSAdminHoy() {
       }
     });
   });
-  const totalClientes = pagos.transfer + pagos.sub + pagos.cash;
+  const totalClientes = pagos.transfer + pagos.sub + pagos.cash + (pagos.pendT||0);
 
   let totalSubs = 0;
   const clasesHtml = slots.map(({ clase, hora, instructor }) => {
@@ -4762,7 +4766,7 @@ function buildSAdminHoy() {
         <div class="sa-alumna-info">
           <div class="sa-alumna-nombre">${c.nombre} ${c.lugar ? `<span class="sa-lugar-badge">📍 ${c.lugar}</span>` : ''}</div>
           <div class="sa-alumna-email">${c.email||'—'}</div>
-          <div class="sa-alumna-sub">${esSub ? '💎 Suscriptora' : (sub && sub.pendiente) ? '⏳ Sub pendiente de pago' : (c.metodo||'—').split('·')[0].trim()}</div>
+          <div class="sa-alumna-sub">${c.pagoOk === false ? '🏦 ⏳ pago por confirmar' : esSub ? '💎 Suscriptora' : (sub && sub.pendiente) ? '⏳ Sub pendiente de pago' : (c.metodo||'—').split('·')[0].trim()}</div>
         </div>
         <span class="sa-alumna-tel">${c.tel||'—'}</span>
         ${esSub
@@ -4797,6 +4801,7 @@ function buildSAdminHoy() {
   body.innerHTML = `
     <div class="sa-fecha">${diaStr}</div>
     ${buildPendientesHtml()}
+    ${buildPendPagoHtml()}
     <div class="sa-kpi-grid">
       <div class="sa-kpi">
         <span class="sa-kpi-ico">📅</span>
@@ -4839,6 +4844,7 @@ function buildSAdminHoy() {
         </div>
       </div>
       ${Object.keys(pagos.planDetalle).length > 0 ? `<div class="sa-pago-detalle">${Object.entries(pagos.planDetalle).map(([k,v])=>`<span>💎 ${k}: ${v}</span>`).join('')}</div>` : ''}
+      ${pagos.pendT ? `<div class="sa-pago-detalle"><span>🏦 ⏳ ${pagos.pendT} transferencia${pagos.pendT===1?'':'s'} por confirmar (no sumada${pagos.pendT===1?'':'s'} al total)</span></div>` : ''}
       <div class="sa-pagos-total">Total cobrado: <strong>${fmtC(totalIngreso)}</strong></div>
     </div>
     ${clasesHtml}`;
@@ -4876,6 +4882,67 @@ function eliminarReserva(clase, dateStr, hora, ts, origen) {
   } else {
     buildSAdminHoy();
   }
+}
+
+/* ── Reservas por transferencia pendientes de confirmar pago ──
+   (pagoOk:false → el admin verifica la transferencia y confirma o rechaza) */
+function buildPendPagoHtml() {
+  const pend = [];
+  for (let k in localStorage) {
+    const m = k.match(/^presenza_(\w+)_(\d{4}-\d{2}-\d{2})_(\d{4})$/);
+    if (!m) continue;
+    const [, clase, dateStr, horaRaw] = m;
+    if (!INFO[clase]) continue;
+    const hora = horaRaw.slice(0,2)+':'+horaRaw.slice(2);
+    getClientes(clase, dateStr, hora).forEach(c => {
+      if (c.pagoOk === false) pend.push({ ...c, clase, dateStr, hora });
+    });
+  }
+  if (pend.length === 0) return '';
+  pend.sort((a,b) => (a.dateStr+a.hora).localeCompare(b.dateStr+b.hora));
+
+  const cards = pend.map(c => {
+    const info   = INFO[c.clase];
+    const d      = new Date(c.dateStr+'T12:00:00');
+    const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
+    return `<div class="sa-pend-card pc-unica">
+      <div class="sa-pend-info">
+        <span class="tipo-chip tipo-unica">🏦 TRANSFERENCIA · ${fmtC(info.precio)}</span>
+        <strong>${c.nombre||'—'}</strong>
+        <span>${c.email||'—'} · ${c.tel||'—'}</span>
+        <span class="sa-pend-plan">${info.emoji} ${info.nombre} · ${diaStr} · ${c.hora} hrs${c.lugar ? ` · Lugar ${c.lugar}` : ''}</span>
+      </div>
+      <div class="sa-pend-btns">
+        <button class="btn-pend-ok" onclick="confirmarPagoReserva('${c.clase}','${c.dateStr}','${c.hora}',${c.ts})">✓ Confirmar pago</button>
+        <button class="btn-pend-no" onclick="rechazarPagoReserva('${c.clase}','${c.dateStr}','${c.hora}',${c.ts})">✕ Rechazar</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="sa-pend-blk">
+    <div class="sa-pend-title">🏦 Reservas por transferencia · por confirmar (${pend.length})</div>
+    <div class="sa-pend-hint">Verifica que la transferencia llegó a tu cuenta y confirma. Rechazar elimina la reserva y libera el cupo.</div>
+    ${cards}
+  </div>`;
+}
+
+function confirmarPagoReserva(clase, dateStr, hora, ts) {
+  const key = slotKey(clase, dateStr, hora);
+  const arr = JSON.parse(localStorage.getItem(key)||'[]');
+  const idx = arr.findIndex(c => c.ts === ts);
+  if (idx < 0) return;
+  arr[idx].pagoOk = true;
+  localStorage.setItem(key, JSON.stringify(arr));
+  sadminTab(sadminTabActual);
+}
+
+function rechazarPagoReserva(clase, dateStr, hora, ts) {
+  if (!confirm('¿Rechazar esta reserva? Se eliminará y se liberará el cupo.')) return;
+  const key = slotKey(clase, dateStr, hora);
+  const arr = JSON.parse(localStorage.getItem(key)||'[]').filter(c => c.ts !== ts);
+  if (arr.length) localStorage.setItem(key, JSON.stringify(arr));
+  else localStorage.removeItem(key);
+  sadminTab(sadminTabActual);
 }
 
 /* Clasificación: la clase singular = "primera vez"; el resto = paquete de suscripción */
