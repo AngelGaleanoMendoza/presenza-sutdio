@@ -4759,7 +4759,7 @@ function updateSubsBadge() {
 function buildSAdminHoy() {
   const body    = document.getElementById('sadminBody');
   const hoy     = new Date();
-  const dateStr = hoy.toISOString().split('T')[0];
+  const dateStr = fmtISO(hoy);   // fecha LOCAL (igual que reservas y Calendario); toISOString() usa UTC y desincroniza el día
   const dow     = hoy.getDay();
   const diaStr  = `${DIAS_ES[dow]} ${hoy.getDate()} ${MESES_ES[hoy.getMonth()]} ${hoy.getFullYear()}`;
   const slots   = HORARIO[dow] || [];
