@@ -1,0 +1,32 @@
+{
+  "name": "Presenza Studio",
+  "short_name": "Presenza",
+  "description": "Barre, Pilates y Yoga en Managua. Reserva tu clase y vive el movimiento con intención.",
+  "lang": "es-NI",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5EDE3",
+  "theme_color": "#6B1728",
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
