@@ -4449,7 +4449,7 @@ function buildCapacityAlert(clase, dateStr, hora, libres) {
   return `
     <div class="cap-alert cap-${tipo}">
       <div class="cap-alert-hd">
-        <span>${titulo} · ${clientes.length}/${info.cupos} inscritas</span>
+        <span>${titulo} · ${clientes.length}/${cuposDe(clase, dateStr, hora)} inscritas</span>
         <button class="cap-print-btn" onclick="printSlot('${clase}','${dateStr}','${hora}')">🖨 Imprimir</button>
       </div>
       <p class="cap-alert-sub">${info.emoji} ${info.nombre} · ${diaStr} · ${hora} hrs</p>
@@ -4515,7 +4515,8 @@ function buildAdminContentMain() {
     const info   = INFO[clase] || { nombre:clase, emoji:'📋', cupos:15 };
     const d      = new Date(dateStr+'T12:00:00');
     const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
-    const libres = info.cupos - clientes.length;
+    const cuposCl = cuposDe(clase, dateStr, hora);
+    const libres = cuposCl - clientes.length;
     const alertCls = libres <= 2 ? 'adm-alerta' : libres <= 3 ? 'adm-aviso' : '';
 
     const filas = clientes.map((c,i) => `
@@ -4539,7 +4540,7 @@ function buildAdminContentMain() {
           </div>
         </div>
         <div class="adm-slot-meta">
-          <span class="adm-cupos ${alertCls}">${clientes.length}/${info.cupos} · ${libres} libres</span>
+          <span class="adm-cupos ${alertCls}">${clientes.length}/${cuposCl} · ${libres} libres</span>
           <button class="btn-adm-print" title="Imprimir lista" onclick="printSlot('${clase}','${dateStr}','${hora}')">🖨</button>
         </div>
       </div>
@@ -4579,7 +4580,7 @@ function printSlot(clase, dateStr, hora) {
     @media print { body { padding:10px; } }
   </style></head><body>
   <h1>${info.emoji} ${info.nombre}</h1>
-  <p class="sub">${diaStr} · ${hora} hrs · ${clientes.length} / ${info.cupos} inscritas</p>
+  <p class="sub">${diaStr} · ${hora} hrs · ${clientes.length} / ${cuposDe(clase, dateStr, hora)} inscritas</p>
   <table>
     <tr><th>#</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Nivel</th><th>Pago</th><th>Notas</th></tr>
     ${filas}
@@ -4615,7 +4616,7 @@ function printAll() {
       `<tr><td>${i+1}</td><td>${c.nombre||'—'}</td><td>${c.tel||'—'}</td><td>${c.nivel||'—'}</td><td>${c.metodo||'—'}</td></tr>`
     ).join('');
     return `<h3>${info.emoji} ${info.nombre} · ${diaStr} · ${hora} hrs</h3>
-      <p style="font-size:.78rem;color:#9A8880;margin-bottom:8px">${clientes.length}/${info.cupos} inscritas</p>
+      <p style="font-size:.78rem;color:#9A8880;margin-bottom:8px">${clientes.length}/${cuposDe(clase, dateStr, hora)} inscritas</p>
       <table><tr><th>#</th><th>Nombre</th><th>Teléfono</th><th>Nivel</th><th>Pago</th></tr>${filas}</table>
       <br>`;
   }).join('');
@@ -5812,7 +5813,7 @@ function printReporteClase(clase) {
         <td>${t.esSub?'💎 ':''}${t.label}</td>
       </tr>`;
     }).join('');
-    return `<h3>${diaStr} · ${hora} hrs · ${ses[id].length}/${info.cupos} asistentes</h3>
+    return `<h3>${diaStr} · ${hora} hrs · ${ses[id].length}/${cuposDe(clase, dateStr, hora)} asistentes</h3>
       <table>
         <tr><th>#</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Nivel</th><th>Tipo de suscripción</th></tr>
         ${filas}
@@ -6032,7 +6033,8 @@ function buildAdminContent(customContainer) {
     const info   = INFO[clase]||{ nombre:clase, emoji:'📋', cupos:15 };
     const d      = new Date(dateStr+'T12:00:00');
     const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
-    const libres = info.cupos - clientes.length;
+    const cuposCl = cuposDe(clase, dateStr, hora);
+    const libres = cuposCl - clientes.length;
     const sec    = document.createElement('div');
     sec.className = 'admin-slot';
     sec.innerHTML = `
@@ -6041,7 +6043,7 @@ function buildAdminContent(customContainer) {
           <div><strong>${info.nombre}</strong><span>${diaStr} · ${hora} hrs</span></div>
         </div>
         <div class="adm-slot-meta">
-          <span class="adm-cupos ${libres<=2?'adm-alerta':libres<=3?'adm-aviso':''}">${clientes.length}/${info.cupos}</span>
+          <span class="adm-cupos ${libres<=2?'adm-alerta':libres<=3?'adm-aviso':''}">${clientes.length}/${cuposCl}</span>
           <button class="btn-adm-print" onclick="printSlot('${clase}','${dateStr}','${hora}')">🖨</button>
         </div>
       </div>
