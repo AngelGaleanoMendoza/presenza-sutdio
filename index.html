@@ -3588,9 +3588,11 @@ const INFO = {
 
 /* ── Clases especiales de un solo día (gratis / eventos puntuales) ──
    NO aparecen en el horario público: solo se accede por su link único
-   presenzastudioni.com/#<id>. Para desactivarla, borra el objeto. */
+   presenzastudioni.com/#<id>. Para desactivarla, borra el objeto.
+   El id es un token aleatorio a propósito: es la única llave del link, así que
+   NO usar palabras adivinables (gratis, promo, clase…) ni enlazarlo desde la web. */
 const CLASES_ESPECIALES = [
-  { id:'clasegratis', clase:'pilates', dateStr:'2026-07-29', hora:'10:30',
+  { id:'naytn5h25g', clase:'pilates', dateStr:'2026-07-29', hora:'10:30',
     instructor:'Jimena', cupos:11, precio:0,
     titulo:'Clase gratis · Presenza Sculpt' },
 ];
@@ -6325,7 +6327,7 @@ document.addEventListener('DOMContentLoaded', () => {
     abrirEspecialPorHash();
   });
 
-  /* Link único de clase especial: presenzastudioni.com/#clasegratis */
+  /* Link único de clase especial: presenzastudioni.com/#<id de CLASES_ESPECIALES> */
   abrirEspecialPorHash();
 });
 </script>
