@@ -3586,6 +3586,32 @@ const INFO = {
   yoga:    { nombre:'Unwind Yoga',     emoji:'🧘', tag:'Restaurativo',  cupos:12, precio:440 },
 };
 
+/* ── Clases especiales de un solo día (gratis / eventos puntuales) ──
+   NO aparecen en el horario público: solo se accede por su link único
+   presenzastudioni.com/#<id>. Para desactivarla, borra el objeto. */
+const CLASES_ESPECIALES = [
+  { id:'clasegratis', clase:'pilates', dateStr:'2026-07-29', hora:'10:30',
+    instructor:'Jimena', cupos:11, precio:0,
+    titulo:'Clase gratis · Presenza Sculpt' },
+];
+function getEspecial(clase, dateStr, hora) {
+  return CLASES_ESPECIALES.find(e => e.clase===clase && e.dateStr===dateStr && e.hora===hora) || null;
+}
+/* Cupos y precio reales de una sesión (la especial manda sobre INFO) */
+function cuposDe(clase, dateStr, hora) {
+  const e = getEspecial(clase, dateStr, hora);
+  return e ? e.cupos : (INFO[clase]?.cupos || 12);
+}
+function precioDe(clase, dateStr, hora) {
+  const e = getEspecial(clase, dateStr, hora);
+  return e ? e.precio : (INFO[clase]?.precio || 0);
+}
+/* Slots del horario semanal + clases especiales de esa fecha */
+function slotsDelDia(dateStr, dow) {
+  return [ ...(HORARIO[dow] || []),
+           ...CLASES_ESPECIALES.filter(e => e.dateStr === dateStr) ];
+};
+
 /* ── Horario semanal (jsDay: 1=Lun … 5=Vie) ── */
 const HORARIO = {
   1: [ // Lunes
@@ -3842,13 +3868,15 @@ let selectedSubPlan = null;
 function openBooking(clase, dateStr, hora, instructor) {
   booking = { clase, dateStr, hora, instructor };
   const info = INFO[clase];
+  const esp  = getEspecial(clase, dateStr, hora);
+  booking.gratis = !!(esp && esp.precio === 0);
   const d = new Date(dateStr+'T12:00:00');
   const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
 
   const ms = document.getElementById('modalSel');
   ms.className = `modal-sel ms-${clase}`;
-  document.getElementById('mSelEmoji').textContent  = info.emoji;
-  document.getElementById('mSelNombre').textContent = info.nombre;
+  document.getElementById('mSelEmoji').textContent  = booking.gratis ? '🎁' : info.emoji;
+  document.getElementById('mSelNombre').textContent = info.nombre + (booking.gratis ? ' · GRATIS' : '');
   document.getElementById('mSelDia').textContent    = `${diaStr} · ${instructor}`;
   document.getElementById('mSelHora').textContent   = hora;
 
@@ -3870,14 +3898,36 @@ function closeModal() {
   document.getElementById('modalBackdrop').classList.remove('open');
   document.body.style.overflow = '';
 }
+
+/* Abre la reserva de una clase especial desde su link único (#id).
+   Avisa si la clase ya pasó o si se llenaron los cupos. */
+function abrirEspecialPorHash() {
+  const id  = (window.location.hash || '').replace('#','');
+  const esp = CLASES_ESPECIALES.find(e => e.id === id);
+  if (!esp) return;
+  history.replaceState(null, '', window.location.pathname + window.location.search);
+
+  const hoy = new Date().toISOString().split('T')[0];
+  if (esp.dateStr < hoy) {
+    alert('Esta clase gratis ya pasó. Escríbenos por WhatsApp para conocer los próximos horarios ✧');
+    return;
+  }
+  const libres = esp.cupos - getOcupados(esp.clase, esp.dateStr, esp.hora);
+  if (libres <= 0) {
+    alert('¡Los cupos de esta clase gratis ya se agotaron! Escríbenos por WhatsApp para apartar tu lugar en la próxima ✧');
+    return;
+  }
+  setTimeout(() => openBooking(esp.clase, esp.dateStr, esp.hora, esp.instructor), 400);
+}
 function bdClick(e) { if(e.target===document.getElementById('modalBackdrop')) closeModal(); }
 
 /* Flujo dinámico: Pilates lleva paso "Lugar", el resto no */
 let mFlow = [];
 function setupFlow(clase) {
+  const pasoPago = booking.gratis ? [] : [ {panel:'mp2',label:'Pago'} ];
   mFlow = (clase === 'pilates')
-    ? [ {panel:'mp1',label:'Datos'}, {panel:'mpLugar',label:'Lugar'}, {panel:'mp2',label:'Pago'}, {panel:'mp3',label:'Confirmación'} ]
-    : [ {panel:'mp1',label:'Datos'}, {panel:'mp2',label:'Pago'}, {panel:'mp3',label:'Confirmación'} ];
+    ? [ {panel:'mp1',label:'Datos'}, {panel:'mpLugar',label:'Lugar'}, ...pasoPago, {panel:'mp3',label:'Confirmación'} ]
+    : [ {panel:'mp1',label:'Datos'}, ...pasoPago, {panel:'mp3',label:'Confirmación'} ];
   buildStepBar();
 }
 function buildStepBar() {
@@ -3931,6 +3981,8 @@ function submitR() {
     renderLugares();
   } else {
     booking.lugar = null;
+    /* Clase gratis: no hay paso de pago, va directo a confirmación */
+    if (booking.gratis) { proceedToConfirm(); return; }
     setupPago();
   }
   mGoStep(2);
@@ -3939,14 +3991,15 @@ function submitR() {
 /* Render del grid de mats según los lugares ya reservados */
 function renderLugares() {
   const { clase, dateStr, hora } = booking;
-  const info     = INFO[clase];
-  const total    = info.cupos || 15;
+  const total    = cuposDe(clase, dateStr, hora);
   const clientes = getClientes(clase, dateStr, hora);
   const ocupados = new Set(clientes.filter(c => c.lugar).map(c => Number(c.lugar)));
 
   booking.lugar = null;
   document.getElementById('btnLugar').disabled = true;
   document.getElementById('lugarSelInfo').textContent = 'Toca un mat para reservarlo';
+  document.getElementById('btnLugar').textContent =
+    booking.gratis ? 'Confirmar mi cupo gratis →' : 'Continuar al pago →';
 
   let html = '';
   for (let i = 1; i <= total; i++) {
@@ -3979,8 +4032,9 @@ function setupPago() {
   document.getElementById('psIcon').textContent   = info.emoji;
   document.getElementById('psNombre').textContent = info.nombre;
   document.getElementById('psDia').textContent    = `${diaStr} · ${hora} hrs${lugarTxt}`;
-  document.getElementById('psPrice').textContent  = `${fmtC(info.precio)}`;
-  document.getElementById('linkMonto').textContent = fmtC(info.precio);
+  const precioReal = precioDe(clase, dateStr, hora);
+  document.getElementById('psPrice').textContent  = `${fmtC(precioReal)}`;
+  document.getElementById('linkMonto').textContent = fmtC(precioReal);
 
   pagoMetodo      = null;
   selectedSubPlan = null;
@@ -3993,9 +4047,10 @@ function setupPago() {
   document.getElementById('btnPagar').disabled = true;
 }
 
-/* PASO Lugar → Pago (solo Pilates) */
+/* PASO Lugar → Pago (solo Pilates). Si la clase es gratis, va a confirmación */
 function confirmLugar() {
   if (!booking.lugar) return;
+  if (booking.gratis) { proceedToConfirm(); return; }
   setupPago();
   mGoStep(3);
 }
@@ -4189,20 +4244,24 @@ function proceedToConfirm() {
   const usaSubActiva = !!(subActiva && subActiva.activa && subActiva.clasesRestantes > 0 && !subVencida(subActiva));
   const planUsado  = usaSubActiva ? subActiva.plan : selectedSubPlan;
   const esPlanPendiente = pagoMetodo==='sub' && !usaSubActiva && !!selectedSubPlan;
-  const metodoDtxt = pagoMetodo==='transfer'
+  const metodoDtxt = booking.gratis
+    ? '🎁 Clase gratis'
+    : pagoMetodo==='transfer'
     ? '🏦 Transferencia'
     : pagoMetodo==='sub'
     ? `💎 Suscripción · ${PLANES_SUB[planUsado]?.nombre || 'Membresía'}${esPlanPendiente ? ' (pago pendiente)' : ''}`
     : 'Efectivo en el estudio';
 
-  /* Monto real a pagar: el del plan elegido si pide un paquete;
-     "incluida" si usa suscripción activa; el de la clase en pago único */
+  /* Monto real a pagar: gratis si es clase especial; el del plan elegido si pide
+     un paquete; "incluida" si usa suscripción activa; el de la clase en pago único */
   const planPend = esPlanPendiente ? PLANES_SUB[selectedSubPlan] : null;
-  const montoTxt = usaSubActiva
+  const montoTxt = booking.gratis
+    ? 'Gratis 🎁'
+    : usaSubActiva
     ? 'Incluida en tu plan 💎'
     : planPend
     ? `${fmtC(planPend.precio)} (${planPend.nombre})`
-    : fmtC(info.precio);
+    : fmtC(precioDe(clase, dateStr, hora));
 
   /* Plan nuevo o renovación → registrar como PENDIENTE (el admin confirma el pago)
      y avisar por correo al estudio */
@@ -4275,7 +4334,7 @@ function proceedToConfirm() {
 
   /* ── Verificar umbral y mostrar alerta admin ── */
   const ocupNuevo  = getOcupados(clase, dateStr, hora);
-  const libresNuevo = info.cupos - ocupNuevo;
+  const libresNuevo = cuposDe(clase, dateStr, hora) - ocupNuevo;
   const capContainer = document.getElementById('capAlertContainer');
   if (capContainer) {
     if (libresNuevo <= 3) {
@@ -4762,7 +4821,7 @@ function buildSAdminHoy() {
   const dateStr = fmtISO(hoy);   // fecha LOCAL (igual que reservas y Calendario); toISOString() usa UTC y desincroniza el día
   const dow     = hoy.getDay();
   const diaStr  = `${DIAS_ES[dow]} ${hoy.getDate()} ${MESES_ES[hoy.getMonth()]} ${hoy.getFullYear()}`;
-  const slots   = HORARIO[dow] || [];
+  const slots   = slotsDelDia(dateStr, dow);
 
   if (slots.length === 0) {
     body.innerHTML = `<div class="sa-fecha">${diaStr}</div>
@@ -4780,23 +4839,25 @@ function buildSAdminHoy() {
   const pagos = { transfer:0, sub:0, cash:0, planDetalle:{} };
   let totalIngreso = 0;
   slots.forEach(({ clase, hora }) => {
-    const info = INFO[clase];
+    const precio = precioDe(clase, dateStr, hora);
     getClientes(clase, dateStr, hora).forEach(c => {
       const m = (c.metodo||'').toLowerCase();
-      if (m.includes('transfer')) {
+      if (m.includes('gratis')) {
+        pagos.gratis = (pagos.gratis||0) + 1; /* no suma ingreso */
+      } else if (m.includes('transfer')) {
         if (c.pagoOk === false) { pagos.pendT = (pagos.pendT||0) + 1; }
-        else { pagos.transfer++; totalIngreso += info.precio; }
+        else { pagos.transfer++; totalIngreso += precio; }
       } else if (m.includes('suscri') || m.includes('💎')) {
         pagos.sub++;
         const match = (c.metodo||'').match(/·\s*(.+)$/);
         const planNom = match ? match[1].trim() : 'Membresía';
         pagos.planDetalle[planNom] = (pagos.planDetalle[planNom]||0) + 1;
       } else {
-        pagos.cash++; totalIngreso += info.precio;
+        pagos.cash++; totalIngreso += precio;
       }
     });
   });
-  const totalClientes = pagos.transfer + pagos.sub + pagos.cash + (pagos.pendT||0);
+  const totalClientes = pagos.transfer + pagos.sub + pagos.cash + (pagos.pendT||0) + (pagos.gratis||0);
 
   let totalSubs = 0;
   const clasesHtml = slots.map(({ clase, hora, instructor }) => {
@@ -4832,18 +4893,20 @@ function buildSAdminHoy() {
       </div>`;
     }).join('') || `<div style="padding:7px 20px;font-size:.76rem;color:var(--gray)">Sin inscripciones</div>`;
 
-    const pct      = Math.min(100, Math.round(clientes.length / info.cupos * 100));
+    const cuposCl  = cuposDe(clase, dateStr, hora);
+    const esEsp    = !!getEspecial(clase, dateStr, hora);
+    const pct      = Math.min(100, Math.round(clientes.length / cuposCl * 100));
     const ocupCls  = pct >= 100 ? 'sa-ocup-full' : pct >= 70 ? 'sa-ocup-mid' : 'sa-ocup-ok';
 
     return `<div class="sa-clase-blk">
       <div class="sa-clase-hd">
-        <span>${info.emoji}</span>
-        <strong>${info.nombre}</strong>
+        <span>${esEsp ? '🎁' : info.emoji}</span>
+        <strong>${info.nombre}${esEsp ? ' <span class="tipo-chip tipo-unica">GRATIS</span>' : ''}</strong>
         <div class="sa-clase-meta">
           ${instructor} · ${hora} hrs
           <div class="sa-ocup-wrap">
             <div class="sa-ocup-track"><div class="sa-ocup-fill ${ocupCls}" style="width:${pct}%"></div></div>
-            <span class="sa-ocup-pct">${clientes.length}/${info.cupos}</span>
+            <span class="sa-ocup-pct">${clientes.length}/${cuposCl}</span>
           </div>
         </div>
       </div>
@@ -5324,7 +5387,7 @@ function agendarSubAClase(email, clase, dateStr, hora, instructor) {
     alert(`${sub.nombre} ya está agendada en esta clase.`);
     return false;
   }
-  if (clientes.length >= info.cupos) { alert('Esta clase ya está llena.'); return false; }
+  if (clientes.length >= cuposDe(clase, dateStr, hora)) { alert('Esta clase ya está llena.'); return false; }
 
   const planN = PLANES_SUB[sub.plan]?.nombre || 'Membresía';
   saveSlot(clase, dateStr, hora, {
@@ -5441,7 +5504,7 @@ function sadminVerDia(dateStr, el) {
   const d      = new Date(dateStr+'T12:00:00');
   const dow    = d.getDay();
   const diaStr = `${DIAS_ES[dow]} ${d.getDate()} ${MESES_ES[d.getMonth()]} ${d.getFullYear()}`;
-  const slots  = HORARIO[dow] || [];
+  const slots  = slotsDelDia(dateStr, dow);
 
   if (slots.length === 0) {
     detail.innerHTML = `<div class="cal-day-detail"><p style="color:var(--gray);text-align:center;padding:16px">Sin clases este día.</p></div>`;
@@ -5463,7 +5526,9 @@ function sadminVerDia(dateStr, el) {
         <span></span>
         <button class="btn-sa-alumna-del" title="Eliminar reserva" onclick="eliminarReserva('${clase}','${dateStr}','${hora}',${c.ts},'cal')">🗑</button>
       </div>`).join('') || `<div style="padding:6px 20px;font-size:.75rem;color:var(--gray)">Sin reservas</div>`;
-    const llena = clientes.length >= info.cupos;
+    const cuposCl = cuposDe(clase, dateStr, hora);
+    const esEsp   = !!getEspecial(clase, dateStr, hora);
+    const llena = clientes.length >= cuposCl;
     const agendarRow = subs.length === 0 ? '' : `
       <div class="sa-agendar-inline">
         <select id="calAg_${idx}" class="agp-sel">
@@ -5474,8 +5539,8 @@ function sadminVerDia(dateStr, el) {
       </div>`;
     return `<div class="sa-clase-blk">
       <div class="sa-clase-hd">
-        <span>${info.emoji}</span><strong>${info.nombre}</strong>
-        <span class="sa-clase-meta">${instructor} · ${hora} hrs · ${clientes.length}/${info.cupos}</span>
+        <span>${esEsp ? '🎁' : info.emoji}</span><strong>${info.nombre}${esEsp ? ' <span class="tipo-chip tipo-unica">GRATIS</span>' : ''}</strong>
+        <span class="sa-clase-meta">${instructor} · ${hora} hrs · ${clientes.length}/${cuposCl}</span>
       </div>${filas}${agendarRow}</div>`;
   }).join('');
 
@@ -6255,7 +6320,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.location.hash === '#admin') openAdminPanel();
   window.addEventListener('hashchange', () => {
     if (window.location.hash === '#admin') openAdminPanel();
+    abrirEspecialPorHash();
   });
+
+  /* Link único de clase especial: presenzastudioni.com/#clasegratis */
+  abrirEspecialPorHash();
 });
 </script>
 
