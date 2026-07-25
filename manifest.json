@@ -5,8 +5,7 @@
   "lang": "es-NI",
   "start_url": "/",
   "scope": "/",
-  "display": "standalone",
-  "orientation": "portrait",
+  "display": "browser",
   "background_color": "#F5EDE3",
   "theme_color": "#6B1728",
   "icons": [
