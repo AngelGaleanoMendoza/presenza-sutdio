@@ -1219,17 +1219,31 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   content:''; position:absolute; top:50%; width:24%; height:1px; background:rgba(107,23,40,.18);
 }
 .lugar-frente::before { left:6%; } .lugar-frente::after { right:6%; }
-.lugar-grid {
-  display:grid; grid-template-columns:repeat(5,1fr); gap:9px;
-  max-width:330px; margin:0 auto 18px;
+/* Distribución real del salón: 2 hileras. Arriba (frente) van 1,2 · coach ·
+   3,4,5,6 y abajo el resto, centrado. Las filas se arman en renderLugares(). */
+.lugar-grid { max-width:340px; width:100%; margin:0 auto 18px; }
+/* nowrap + flex-shrink: en pantallas angostas los mats se achican, nunca
+   saltan de línea, así siempre quedan exactamente 2 hileras. */
+.lugar-fila {
+  display:flex; flex-wrap:nowrap; justify-content:center; gap:6px; margin-bottom:6px;
 }
+.lugar-fila:last-child { margin-bottom:0; }
 .lugar-seat {
-  aspect-ratio:1; border-radius:13px; border:1.5px solid rgba(107,23,40,.18);
+  flex:0 1 42px; min-width:0; aspect-ratio:1; border-radius:11px; border:1.5px solid rgba(107,23,40,.18);
   background:var(--white); display:flex; flex-direction:column; align-items:center; justify-content:center;
-  cursor:pointer; transition:all .18s; gap:2px;
+  cursor:pointer; transition:all .18s; gap:1px;
 }
-.lugar-seat .ls-ico { font-size:.95rem; line-height:1; opacity:.55; }
-.lugar-seat .ls-num { font-size:.74rem; font-weight:700; color:var(--wine-d); transform:rotate(-90deg); }
+.lugar-seat .ls-ico { font-size:.8rem; line-height:1; opacity:.55; }
+.lugar-seat .ls-num { font-size:.7rem; font-weight:700; color:var(--wine-d); }
+/* Mat de la instructora: se muestra para ubicarse, pero no se puede reservar */
+.lugar-seat.coach {
+  background:rgba(107,23,40,.06); border-style:dashed; border-color:rgba(107,23,40,.3);
+  cursor:default;
+}
+.lugar-seat.coach .ls-num {
+  font-size:.45rem; letter-spacing:.4px; text-transform:uppercase; color:var(--blush);
+}
+.lugar-seat.coach:hover { transform:none; }
 .lugar-seat.disponible:hover { border-color:var(--wine); background:rgba(107,23,40,.05); transform:translateY(-2px); }
 .lugar-seat.reservado {
   background:#ece6e0; border-color:transparent; cursor:not-allowed; opacity:.7;
@@ -3594,7 +3608,9 @@ function fmtC(n) { return 'C$' + Number(n||0).toLocaleString('en-US'); }
 const INFO = {
   burn:    { nombre:'Barre Burn',      emoji:'🔥', tag:'Alta energía',  cupos:11, precio:440 },
   essenza: { nombre:'Barre Essenza',   emoji:'🩰', tag:'Barre clásico', cupos:11, precio:440 },
-  pilates: { nombre:'Presenza Sculpt', emoji:'🌿', tag:'Core & fuerza', cupos:12, precio:440 },
+  /* 11 mats reservables (1–11); el mat de la instructora se muestra en la
+     hilera de adelante pero no es un cupo. */
+  pilates: { nombre:'Presenza Sculpt', emoji:'🌿', tag:'Core & fuerza', cupos:11, precio:440 },
   yoga:    { nombre:'Unwind Yoga',     emoji:'🧘', tag:'Restaurativo',  cupos:12, precio:440 },
 };
 
@@ -4015,16 +4031,30 @@ function renderLugares() {
   document.getElementById('btnLugar').textContent =
     booking.gratis ? 'Confirmar mi cupo gratis →' : 'Continuar al pago →';
 
-  let html = '';
-  for (let i = 1; i <= total; i++) {
+  const seat = i => {
     const reservado = ocupados.has(i);
-    html += `<div class="lugar-seat ${reservado?'reservado':'disponible'}" data-n="${i}"
+    return `<div class="lugar-seat ${reservado?'reservado':'disponible'}" data-n="${i}"
       ${reservado ? '' : `onclick="selectLugar(${i})"`}>
       <span class="ls-ico">🧘</span>
       <span class="ls-num">${i}</span>
     </div>`;
-  }
-  document.getElementById('lugarGrid').innerHTML = html;
+  };
+  const coachSeat = `<div class="lugar-seat coach" title="Mat de la instructora">
+      <span class="ls-ico">🪷</span>
+      <span class="ls-num">Coach</span>
+    </div>`;
+
+  /* Hilera de adelante: 1, 2, mat de la coach, 3, 4, 5, 6.
+     Hilera de atrás: del 7 en adelante. */
+  const range = (a,b) => Array.from({length: Math.max(0, b-a+1)}, (_,k) => a+k);
+  const arriba = range(1, Math.min(2, total)).map(seat).join('')
+               + coachSeat
+               + range(3, Math.min(6, total)).map(seat).join('');
+  const abajo  = range(7, total).map(seat).join('');
+
+  document.getElementById('lugarGrid').innerHTML =
+    `<div class="lugar-fila">${arriba}</div>` +
+    (abajo ? `<div class="lugar-fila">${abajo}</div>` : '');
 }
 
 function selectLugar(n) {
