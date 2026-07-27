@@ -3722,18 +3722,35 @@ function getSuscriptoraByEmail(em) {
 
 /* Teléfono normalizado (solo dígitos) — identificador secundario */
 function normTel(t) { return (t||'').replace(/\D/g,''); }
+/* Nombre normalizado (minúsculas, sin tildes ni espacios de más) */
+function normNombre(n) {
+  return (n||'').trim().toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/\s+/g,' ');
+}
 
-/* Busca suscriptora por email y, si no aparece, por teléfono.
-   Así evitamos duplicados si la alumna usa otro correo pero el mismo número. */
-function findSuscriptora(email, tel) {
-  const subs = getSuscriptoras();
-  const em   = (email||'').toLowerCase();
-  let s = em ? subs.find(x => (x.email||'').toLowerCase() === em) : null;
-  if (!s) {
-    const td = normTel(tel);
-    if (td.length >= 8) s = subs.find(x => normTel(x.tel) === td);
+/* Índice de la suscriptora en el arreglo: email primero; si no aparece,
+   teléfono + nombre.
+   El teléfono SOLO no basta: varias alumnas pueden compartir número (familia,
+   el del estudio, o el mismo usado en pruebas) y se fusionarían en un registro,
+   bloqueando a todas menos a la primera. Con nombre + teléfono reconocemos a la
+   misma persona que cambió de correo, sin mezclar personas distintas. */
+function findSubIndex(arr, email, tel, nombre) {
+  const em = (email||'').trim().toLowerCase();
+  let idx = em ? arr.findIndex(x => (x.email||'').trim().toLowerCase() === em) : -1;
+  if (idx < 0) {
+    const td = normTel(tel), nm = normNombre(nombre);
+    if (td.length >= 8 && nm) {
+      idx = arr.findIndex(x => normTel(x.tel) === td && normNombre(x.nombre) === nm);
+    }
   }
-  return s || null;
+  return idx;
+}
+
+function findSuscriptora(email, tel, nombre) {
+  const arr = getSuscriptoras();
+  const idx = findSubIndex(arr, email, tel, nombre);
+  return idx >= 0 ? arr[idx] : null;
 }
 
 /* Vencimiento: 30 días exactos por cada mes del plan, desde la activación */
@@ -4128,7 +4145,7 @@ function verifySub() {
   }
 
   const telInp = document.getElementById('mTel').value.trim();
-  const sub = findSuscriptora(email, telInp);
+  const sub = findSuscriptora(email, telInp, nombre);
 
   /* Suscriptora activa, vigente y con clases disponibles */
   if (sub && sub.activa && sub.clasesRestantes > 0 && !subVencida(sub)) {
@@ -4202,12 +4219,8 @@ function selectSubPlan(planKey) {
    Las clases del plan NO se pueden usar hasta la confirmación. */
 function autoRegisterSub(nombre, email, tel, nivel, planKey) {
   const arr = getSuscriptoras();
-  /* Anti-duplicados: primero por email; si no existe, por teléfono */
-  let idx = arr.findIndex(s => (s.email||'').toLowerCase() === email.toLowerCase());
-  if (idx < 0) {
-    const td = normTel(tel);
-    if (td.length >= 8) idx = arr.findIndex(s => normTel(s.tel) === td);
-  }
+  /* Anti-duplicados: email; si no aparece, teléfono + nombre (misma persona) */
+  const idx = findSubIndex(arr, email, tel, nombre);
   const hoy = new Date().toISOString().split('T')[0];
 
   if (idx >= 0) {
@@ -4284,7 +4297,7 @@ function proceedToConfirm() {
   const info   = INFO[clase];
   const d      = new Date(dateStr+'T12:00:00');
   const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
-  const subActiva  = pagoMetodo==='sub' ? findSuscriptora(email, tel) : null;
+  const subActiva  = pagoMetodo==='sub' ? findSuscriptora(email, tel, nombre) : null;
   const usaSubActiva = !!(subActiva && subActiva.activa && subActiva.clasesRestantes > 0 && !subVencida(subActiva));
   const planUsado  = usaSubActiva ? subActiva.plan : selectedSubPlan;
   const esPlanPendiente = pagoMetodo==='sub' && !usaSubActiva && !!selectedSubPlan;
@@ -5346,13 +5359,10 @@ function guardarNuevaSub() {
   if (!nombre || !email) { alert('Nombre y email son obligatorios.'); return; }
 
   const arr  = getSuscriptoras();
-  /* Anti-duplicados: primero por email; si no existe, por teléfono */
-  let idx = arr.findIndex(s => (s.email||'').toLowerCase() === email.toLowerCase());
-  if (idx < 0) {
-    const td = normTel(tel);
-    if (td.length >= 8) idx = arr.findIndex(s => normTel(s.tel) === td);
-    if (idx >= 0 && !confirm(`Ya existe ${arr[idx].nombre} con ese teléfono (${arr[idx].email}). ¿Sumar este plan a su cuenta en vez de crear una nueva?`)) return;
-  }
+  /* Anti-duplicados: email; si no aparece, teléfono + nombre (misma persona) */
+  const idx = findSubIndex(arr, email, tel, nombre);
+  const porTel = idx >= 0 && (arr[idx].email||'').trim().toLowerCase() !== email.toLowerCase();
+  if (porTel && !confirm(`Ya existe ${arr[idx].nombre} con ese teléfono (${arr[idx].email}). ¿Sumar este plan a su cuenta en vez de crear una nueva?`)) return;
   const pd   = PLANES_SUB[plan];
   const now  = new Date();
   const venc = calcVence(pd.meses);
