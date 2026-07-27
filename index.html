@@ -3720,8 +3720,13 @@ async function sbFetch(path, opts = {}) {
       ...(opts.headers || {})
     }
   });
-  if (!r.ok) { const t = await r.text(); const e = new Error(`Supabase ${r.status}: ${t}`); e.status = r.status; e.body = t; throw e; }
-  return r.status === 204 ? null : r.json();
+  const txt = await r.text();
+  if (!r.ok) { const e = new Error(`Supabase ${r.status}: ${txt}`); e.status = r.status; e.body = txt; throw e; }
+  /* Un POST/PATCH/DELETE correcto responde con el cuerpo vacío. Parsearlo como
+     JSON lanzaría SyntaxError ("The string did not match the expected pattern"
+     en Safari), y la reserva se veía como fallida aunque sí quedó guardada. */
+  if (!txt) return null;
+  try { return JSON.parse(txt); } catch(e) { return null; }
 }
 
 const RE_SLOT = /^presenza_(\w+)_(\d{4}-\d{2}-\d{2})_(\d{4})$/;
