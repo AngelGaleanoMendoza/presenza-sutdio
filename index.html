@@ -3994,14 +3994,20 @@ function findSuscriptora(email, tel, nombre) {
   return idx >= 0 ? arr[idx] : null;
 }
 
+/* Fecha de HOY en Nicaragua (UTC-6). toISOString() devuelve la fecha en UTC,
+   así que después de las 6:00 pm ya marcaba el día siguiente: las suscripciones
+   de la tarde se guardaban con fecha de mañana y los planes vencían medio día
+   antes de tiempo. Se usa la fecha local, igual que el tab Hoy y el Calendario. */
+function hoyISO() { return fmtISO(new Date()); }
+
 /* Vencimiento: 30 días exactos por cada mes del plan, desde la activación */
 function calcVence(meses) {
-  return new Date(Date.now() + (meses||1) * 30 * 86400000).toISOString().split('T')[0];
+  return fmtISO(new Date(Date.now() + (meses||1) * 30 * 86400000));
 }
 
 /* ¿El plan ya venció? (fecha de vencimiento anterior a hoy) */
 function subVencida(sub) {
-  return !!(sub && sub.fechaVence && sub.fechaVence < new Date().toISOString().split('T')[0]);
+  return !!(sub && sub.fechaVence && sub.fechaVence < hoyISO());
 }
 
 /* ── Semana ── */
@@ -4105,10 +4111,13 @@ function renderCards() {
 
   sesiones.forEach(({ clase, hora, instructor }) => {
     const info    = INFO[clase];
+    /* cuposDe/precioDe: una clase especial de ese día manda sobre INFO */
+    const cupoTot = cuposDe(clase, schedSelDay, hora);
+    const precio  = precioDe(clase, schedSelDay, hora);
     const ocup    = getOcupados(clase, schedSelDay, hora);
-    const libres  = info.cupos - ocup;
+    const libres  = cupoTot - ocup;
     const full    = libres <= 0;
-    const fillPct = Math.round((ocup / info.cupos) * 100);
+    const fillPct = Math.min(100, Math.round((ocup / cupoTot) * 100));
     const horaNum = parseInt(hora.replace(':',''), 10);
 
     if (!descansoInserted && horaNum >= 1200) {
@@ -4135,7 +4144,7 @@ function renderCards() {
         </div>
         <div class="sc-instructor">👤 ${instructor}</div>
         <div class="sc-cupos-row">
-          <span class="sc-cupos-txt"><strong>${libres}</strong> / ${info.cupos} cupos libres · ${fmtC(info.precio)}</span>
+          <span class="sc-cupos-txt"><strong>${Math.max(0,libres)}</strong> / ${cupoTot} cupos libres · ${fmtC(precio)}</span>
           <div class="sc-progress">
             <div class="sc-progress-fill" style="width:${fillPct}%"></div>
           </div>
@@ -4189,19 +4198,23 @@ function closeModal() {
 
 /* Abre la reserva de una clase especial desde su link único (#id).
    Avisa si la clase ya pasó o si se llenaron los cupos. */
-function abrirEspecialPorHash() {
+async function abrirEspecialPorHash() {
   const id  = (window.location.hash || '').replace('#','');
   const esp = CLASES_ESPECIALES.find(e => e.id === id);
   if (!esp) return;
   history.replaceState(null, '', window.location.pathname + window.location.search);
 
-  const hoy = new Date().toISOString().split('T')[0];
-  if (esp.dateStr < hoy) {
+  if (esp.dateStr < hoyISO()) {
     alert('Esta clase gratis ya pasó. Escríbenos por WhatsApp para conocer los próximos horarios ✧');
     return;
   }
-  const libres = esp.cupos - getOcupados(esp.clase, esp.dateStr, esp.hora);
-  if (libres <= 0) {
+  /* Esperar los datos de la nube antes de contar cupos: al abrir el link,
+     SLOTS todavía trae solo el respaldo de ESTE celular (vacío para una alumna
+     nueva), así que el aviso de "cupos agotados" nunca salía y el grid de mats
+     se pintaba entero libre aunque la clase estuviera llena. */
+  if (SB_ON) { try { await sincronizarReservas(); } catch(e) {} }
+
+  if (esp.cupos - getOcupados(esp.clase, esp.dateStr, esp.hora) <= 0) {
     alert('¡Los cupos de esta clase gratis ya se agotaron! Escríbenos por WhatsApp para apartar tu lugar en la próxima ✧');
     return;
   }
@@ -4462,7 +4475,7 @@ async function autoRegisterSub(nombre, email, tel, nivel, planKey) {
   const arr = getSuscriptoras();
   /* Anti-duplicados: email; si no aparece, teléfono + nombre (misma persona) */
   const idx = findSubIndex(arr, email, tel, nombre);
-  const hoy = new Date().toISOString().split('T')[0];
+  const hoy = hoyISO();
 
   if (idx >= 0) {
     /* Renovación solicitada: no tocar su plan actual, solo marcar pendiente */
@@ -4495,7 +4508,7 @@ async function confirmarPagoSub(email) {
   const pd      = PLANES_SUB[planKey];
   if (!pd) { alert('Plan no válido.'); return; }
   const now  = new Date();
-  const hoy  = now.toISOString().split('T')[0];
+  const hoy  = fmtISO(now);
   const venc = calcVence(pd.meses);
 
   /* Las clases de un plan ya vencido se pierden: la renovación arranca de cero */
@@ -4561,22 +4574,6 @@ async function proceedToConfirm() {
     ? `${fmtC(planPend.precio)} (${planPend.nombre})`
     : fmtC(precioDe(clase, dateStr, hora));
 
-  /* Plan nuevo o renovación → registrar como PENDIENTE (el admin confirma el pago)
-     y avisar por correo al estudio */
-  if (esPlanPendiente) {
-    await autoRegisterSub(nombre, email, tel, nivel, selectedSubPlan);
-    notificarSolicitudCorreo({
-      Nombre: nombre,
-      Email: email,
-      Telefono: tel || '—',
-      Nivel: nivel || '—',
-      Plan: planPend.nombre,
-      Monto: fmtC(planPend.precio),
-      'Clase reservada': `${info.nombre} · ${diaStr} · ${hora} hrs${booking.lugar ? ' · Lugar ' + booking.lugar : ''}`,
-      Solicitado: new Date().toLocaleString('es-NI')
-    });
-  }
-
   /* ── Alerta de membresía ilimitada activada ── */
   const subAlertEl = document.getElementById('subAlertContainer');
   const esIlimit   = pagoMetodo === 'sub' && ['ilimit1','ilimit3','ilimit6'].includes(planUsado);
@@ -4584,7 +4581,7 @@ async function proceedToConfirm() {
     const pd      = PLANES_SUB[planUsado];
     const subReg  = getSuscriptoraByEmail(email);
     const fmtD    = s => { const dd = new Date(s+'T12:00:00'); return `${dd.getDate()} ${MESES_ES[dd.getMonth()]} ${dd.getFullYear()}`; };
-    const inicioS = subReg?.fechaInicio || new Date().toISOString().split('T')[0];
+    const inicioS = subReg?.fechaInicio || hoyISO();
     const finS    = subReg?.fechaVence  || '';
     booking.subAlerta = {
       planNombre: pd.nombre,
@@ -4620,8 +4617,29 @@ async function proceedToConfirm() {
   /* Seguridad: traer el estado real de la nube antes de tomar el lugar, por si
      alguien reservó desde otro celular mientras esta alumna llenaba sus datos */
   if (SB_ON) { try { await sincronizarReservas(); } catch(e) {} }
-  const yaOcupado = getClientes(clase, dateStr, hora).some(c => Number(c.lugar) === Number(booking.lugar));
-  if (booking.lugar && yaOcupado) {
+  const clientesAhora = getClientes(clase, dateStr, hora);
+
+  /* Tope de cupos. Antes solo se revisaba el mat, así que Barre y Yoga (que no
+     eligen lugar) no tenían ningún freno: dos alumnas desde dos celulares
+     tomaban el último cupo y la clase quedaba sobrevendida. */
+  if (clientesAhora.length >= cuposDe(clase, dateStr, hora)) {
+    alert('Los cupos de esta clase se acaban de llenar. Escríbenos por WhatsApp y te apartamos lugar en la siguiente ✧');
+    closeModal();
+    renderCards();
+    return;
+  }
+
+  /* Misma alumna, misma clase: evita la reserva doble por tocar el botón dos
+     veces o por volver atrás en el navegador. */
+  const emailNorm = email.trim().toLowerCase();
+  if (emailNorm && clientesAhora.some(c => (c.email||'').trim().toLowerCase() === emailNorm)) {
+    alert('Ya tienes una reserva en esta clase. Si necesitas cambiarla, escríbenos por WhatsApp ✧');
+    closeModal();
+    renderCards();
+    return;
+  }
+
+  if (booking.lugar && clientesAhora.some(c => Number(c.lugar) === Number(booking.lugar))) {
     alert(`El lugar ${booking.lugar} acaba de ser reservado por alguien más. Por favor elige otro.`);
     renderLugares();
     mGoStep(2);
@@ -4630,9 +4648,12 @@ async function proceedToConfirm() {
 
   /* Las reservas por transferencia quedan "por confirmar" hasta que el admin
      verifique el pago (pagoOk:false). El resto se considera resuelto aparte. */
+  const btnFinal = document.getElementById('btnPagar');
+  if (btnFinal) btnFinal.disabled = true;   /* candado contra el doble toque */
   try {
     await saveSlot(clase, dateStr, hora, { nombre, email, tel, nivel, notas, lugar: booking.lugar, metodo: metodoDtxt, instructor, pagoOk: pagoMetodo !== 'transfer' });
   } catch (err) {
+    if (btnFinal) btnFinal.disabled = false;
     /* 409 = el índice único rechazó el mat: otra alumna se adelantó */
     if (err.status === 409 && booking.lugar) {
       alert(`El lugar ${booking.lugar} acaba de ser reservado por alguien más. Por favor elige otro.`);
@@ -4643,6 +4664,24 @@ async function proceedToConfirm() {
       alert('No pudimos guardar tu reserva. Revisa tu conexión e inténtalo de nuevo.\n\n' + err.message);
     }
     return;
+  }
+
+  /* Plan nuevo o renovación → registrar como PENDIENTE (el admin confirma el pago)
+     y avisar por correo al estudio.
+     Va DESPUÉS de guardar la reserva: si la reserva falla, ya no queda una
+     solicitud de plan huérfana en el panel ni llega un correo por cada reintento. */
+  if (esPlanPendiente) {
+    await autoRegisterSub(nombre, email, tel, nivel, selectedSubPlan);
+    notificarSolicitudCorreo({
+      Nombre: nombre,
+      Email: email,
+      Telefono: tel || '—',
+      Nivel: nivel || '—',
+      Plan: planPend.nombre,
+      Monto: fmtC(planPend.precio),
+      'Clase reservada': `${info.nombre} · ${diaStr} · ${hora} hrs${booking.lugar ? ' · Lugar ' + booking.lugar : ''}`,
+      Solicitado: new Date().toLocaleString('es-NI')
+    });
   }
 
   /* ── Verificar umbral y mostrar alerta admin ── */
@@ -5343,13 +5382,17 @@ function buildPendPagoHtml() {
   if (pend.length === 0) return '';
   pend.sort((a,b) => (a.dateStr+a.hora).localeCompare(b.dateStr+b.hora));
 
+  const hoyStr = hoyISO();
   const cards = pend.map(c => {
     const info   = INFO[c.clase];
     const d      = new Date(c.dateStr+'T12:00:00');
     const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
-    return `<div class="sa-pend-card pc-unica">
+    /* Las de clases ya pasadas se quedan a la vista (no se pierde el cobro),
+       pero marcadas: son las que hay que resolver o eliminar. */
+    const vencida = c.dateStr < hoyStr;
+    return `<div class="sa-pend-card pc-unica"${vencida ? ' style="opacity:.72"' : ''}>
       <div class="sa-pend-info">
-        <span class="tipo-chip tipo-unica">🏦 TRANSFERENCIA · ${fmtC(info.precio)}</span>
+        <span class="tipo-chip tipo-unica">🏦 TRANSFERENCIA · ${fmtC(precioDe(c.clase, c.dateStr, c.hora))}${vencida ? ' · ⚠ CLASE YA PASÓ' : ''}</span>
         <strong>${c.nombre||'—'}</strong>
         <span>${c.email||'—'} · ${c.tel||'—'}</span>
         <span class="sa-pend-plan">${info.emoji} ${info.nombre} · ${diaStr} · ${c.hora} hrs${c.lugar ? ` · Lugar ${c.lugar}` : ''}</span>
@@ -5632,7 +5675,7 @@ async function guardarNuevaSub() {
     arr[idx].plan             = plan;
     arr[idx].fechaVence       = venc;
     arr[idx].activa           = true;
-    (arr[idx].renovaciones = arr[idx].renovaciones||[]).push({ fecha:now.toISOString().split('T')[0], plan, clases:pd.clases });
+    (arr[idx].renovaciones = arr[idx].renovaciones||[]).push({ fecha:fmtISO(now), plan, clases:pd.clases });
   } else {
     arr.push({
       id:               'SUB-'+Date.now().toString(36).toUpperCase().slice(-6),
@@ -5641,10 +5684,10 @@ async function guardarNuevaSub() {
       clasesRestantes:  pd.clases,
       clasesUsadas:     0,
       activa:           true,
-      fechaInicio:      now.toISOString().split('T')[0],
+      fechaInicio:      fmtISO(now),
       fechaVence:       venc,
       historial:        [],
-      renovaciones:     [{ fecha:now.toISOString().split('T')[0], plan, clases:pd.clases }]
+      renovaciones:     [{ fecha:fmtISO(now), plan, clases:pd.clases }]
     });
   }
   await saveSuscriptoras(arr);
@@ -5671,7 +5714,7 @@ async function renovarSub(email) {
   arr[idx].plan             = choice;
   arr[idx].fechaVence       = venc;
   arr[idx].activa           = true;
-  (arr[idx].renovaciones = arr[idx].renovaciones||[]).push({ fecha:now.toISOString().split('T')[0], plan:choice, clases:pd.clases });
+  (arr[idx].renovaciones = arr[idx].renovaciones||[]).push({ fecha:fmtISO(now), plan:choice, clases:pd.clases });
   await saveSuscriptoras(arr);
   buildSAdminSubs();
 }
@@ -5735,10 +5778,11 @@ function agpLoadSlots(i) {
   }
   sel.innerHTML = slots.map(s => {
     const info = INFO[s.clase];
+    const cupo = cuposDe(s.clase, fecha, s.hora);
     const ocup = getClientes(s.clase, fecha, s.hora).length;
-    const full = ocup >= info.cupos;
+    const full = ocup >= cupo;
     return `<option value="${s.clase}|${s.hora}|${s.instructor}" ${full?'disabled':''}>
-      ${info.emoji} ${info.nombre} · ${s.hora} hrs · ${s.instructor} (${ocup}/${info.cupos}${full?' LLENA':''})
+      ${info.emoji} ${info.nombre} · ${s.hora} hrs · ${s.instructor} (${ocup}/${cupo}${full?' LLENA':''})
     </option>`;
   }).join('');
 }
@@ -6322,15 +6366,26 @@ function saveHorarios() {
   renderSched();
 }
 
-/* El horario es uno solo para todo el estudio: se reemplaza completo en la nube */
+/* El horario es uno solo para todo el estudio: se reemplaza completo en la nube.
+   Si el internet se corta entre el borrado y la reinserción, el horario quedaba
+   VACÍO para todos los dispositivos. Por eso se guarda una copia antes y se
+   restaura si falla la escritura. */
 async function guardarHorariosDB() {
   if (!SB_ON) return;
-  await sbFetch('horarios?dia=gte.0', { method:'DELETE' });
   const filas = [];
   [1,2,3,4,5].forEach(dia => (HORARIO[dia]||[]).forEach((s, i) => {
     filas.push({ dia, clase:s.clase, hora:s.hora, instructor:s.instructor||null, orden:i });
   }));
-  if (filas.length) await sbFetch('horarios', { method:'POST', body: JSON.stringify(filas) });
+  if (!filas.length) throw new Error('El horario no puede quedar vacío.');
+
+  const previas = (await sbFetch('horarios?select=dia,clase,hora,instructor,orden&order=dia,orden')) || [];
+  await sbFetch('horarios?dia=gte.0', { method:'DELETE' });
+  try {
+    await sbFetch('horarios', { method:'POST', body: JSON.stringify(filas) });
+  } catch (e) {
+    if (previas.length) { try { await sbFetch('horarios', { method:'POST', body: JSON.stringify(previas) }); } catch(e2) {} }
+    throw e;
+  }
 }
 
 async function sincronizarHorarios() {
@@ -6346,9 +6401,16 @@ async function sincronizarHorarios() {
   return true;
 }
 
-function resetHorarios() {
-  if (!confirm('¿Restaurar el horario original? Se perderán todos los cambios.')) return;
+/* Restaurar también hay que hacerlo en la nube: si solo se borraba la copia
+   local, al recargar se volvía a bajar el horario editado y el botón no hacía
+   nada. Con la tabla vacía, todos los dispositivos vuelven al horario original. */
+async function resetHorarios() {
+  if (!confirm('¿Restaurar el horario original? Se perderán todos los cambios, también en los demás dispositivos.')) return;
   localStorage.removeItem('presenza_horario_custom');
+  if (SB_ON) {
+    try { await sbFetch('horarios?dia=gte.0', { method:'DELETE' }); }
+    catch(e) { alert('No se pudo restaurar en la nube: ' + e.message); return; }
+  }
   location.reload();
 }
 
