@@ -3877,6 +3877,48 @@ async function sincronizarSubs() {
   return true;
 }
 
+/* ── ASISTENCIAS ──
+   Antes la marca "Marcar ✓" vivía en el localStorage del navegador que la
+   hacía: desde otro dispositivo el botón salía sin marcar y volver a tocarlo
+   descontaba una segunda clase del paquete de la alumna. Ahora la marca es
+   compartida, y la tabla tiene un índice único que rechaza la repetida. */
+let ASIST = new Set();   /* claves 'clase_fecha_hora_email' ya registradas */
+
+function asistKeyDe(clase, dateStr, hora, email) {
+  return `${clase}_${dateStr}_${hora}_${(email||'').trim().toLowerCase()}`;
+}
+function yaAsistio(clase, dateStr, hora, email) {
+  return ASIST.has(asistKeyDe(clase, dateStr, hora, email));
+}
+
+async function sincronizarAsistencias() {
+  if (!SB_ON) return false;
+  const filas = await sbFetch('asistencias?select=clase,fecha,hora,email');
+  ASIST = new Set(filas.map(f => asistKeyDe(f.clase, f.fecha, f.hora, f.email)));
+  return true;
+}
+
+/* Registra la asistencia. Devuelve false si ya estaba marcada (aquí o en otro
+   dispositivo), para no descontar la clase dos veces. */
+async function marcarAsistenciaDB(clase, dateStr, hora, email, subId) {
+  const k = asistKeyDe(clase, dateStr, hora, email);
+  if (ASIST.has(k)) return false;
+  if (SB_ON) {
+    try {
+      await sbFetch('asistencias', { method:'POST', body: JSON.stringify({
+        clase, fecha: dateStr, hora, email: (email||'').trim().toLowerCase(), sub_id: subId || null
+      })});
+    } catch (e) {
+      /* 409 = otro dispositivo ya la marcó: no se descuenta de nuevo */
+      if (e.status === 409) { ASIST.add(k); return false; }
+      alert('No se pudo registrar la asistencia: ' + e.message);
+      return false;
+    }
+  }
+  ASIST.add(k);
+  return true;
+}
+
 /* Guarda el arreglo completo: sube los cambios y borra las que se quitaron.
    Todas las filas ya traen `id` (autoRegisterSub y guardarNuevaSub lo generan
    antes de llegar aquí), así que el upsert va sobre esa llave. */
@@ -5050,7 +5092,7 @@ function checkSuperPin() {
     sadminTab(sadminRol === 'coach' ? 'calendario' : 'hoy');
     /* Traer lo hecho desde otros celulares antes de mostrar el panel */
     if (SB_ON) {
-      Promise.all([sincronizarReservas(), sincronizarSubs()])
+      Promise.all([sincronizarReservas(), sincronizarSubs(), sincronizarAsistencias(), sincronizarHorarios()])
         .then(() => { sadminTab(sadminTabActual); updateSubsBadge(); })
         .catch(err => alert('No se pudieron cargar los datos de la nube.\nMostrando la última copia local.\n\n' + err.message));
     }
@@ -5146,8 +5188,7 @@ function buildSAdminHoy() {
     const filas = clientes.map(c => {
       const sub       = getSuscriptoraByEmail(c.email);
       const esSub     = !!(sub && sub.activa);
-      const asistKey  = `pras_${clase}_${dateStr}_${hora.replace(':','')}_${c.email.replace(/[^a-z0-9]/gi,'_')}`;
-      const yaAsistio = !!localStorage.getItem(asistKey);
+      const asistio   = yaAsistio(clase, dateStr, hora, c.email);
       const cupos     = sub ? sub.clasesRestantes : null;
       const cuposCls  = cupos === null ? '' : cupos <= 2 ? 'sa-cupos-low' : cupos <= 0 ? 'sa-cupos-out' : 'sa-cupos-ok';
 
@@ -5160,8 +5201,8 @@ function buildSAdminHoy() {
         <span class="sa-alumna-tel">${c.tel||'—'}</span>
         ${esSub
           ? `<span class="sa-cupos-left ${cuposCls}">${cupos >= 1000 ? '∞' : cupos} clases</span>
-             <button class="btn-sa-asist" ${yaAsistio?'disabled':''} onclick="registrarAsistencia('${c.email}','${clase}','${dateStr}','${hora}','${asistKey}')">
-               ${yaAsistio ? '✓ Asistió' : 'Marcar ✓'}
+             <button class="btn-sa-asist" ${asistio?'disabled':''} onclick="registrarAsistencia('${c.email}','${clase}','${dateStr}','${hora}')">
+               ${asistio ? '✓ Asistió' : 'Marcar ✓'}
              </button>`
           : `<span></span><span></span>`}
         ${c.pagoOk === false
@@ -5244,13 +5285,21 @@ function buildSAdminHoy() {
     ${clasesHtml}`;
 }
 
-async function registrarAsistencia(email, clase, dateStr, hora, asistKey) {
+async function registrarAsistencia(email, clase, dateStr, hora) {
   const subs = getSuscriptoras();
   const idx  = subs.findIndex(s => s.email.toLowerCase() === email.toLowerCase());
   if (idx < 0) return;
   const sub = subs[idx];
   if (sub.clasesRestantes <= 0) { alert('La alumna no tiene clases disponibles en su suscripción.'); return; }
   if (subVencida(sub)) { alert(`El plan de ${sub.nombre} venció el ${sub.fechaVence}. Renueva su plan primero.`); return; }
+
+  /* Se registra primero la asistencia: si ya estaba marcada (aquí o desde otro
+     dispositivo) no se descuenta la clase de nuevo. */
+  if (!await marcarAsistenciaDB(clase, dateStr, hora, email, sub.id)) {
+    alert(`${sub.nombre} ya tenía su asistencia registrada en esta clase.`);
+    buildSAdminHoy();
+    return;
+  }
 
   /* Los planes ilimitados no descuentan clases */
   if (!esIlimitada(sub)) sub.clasesRestantes = Math.max(0, sub.clasesRestantes - 1);
@@ -5259,7 +5308,6 @@ async function registrarAsistencia(email, clase, dateStr, hora, asistKey) {
   sub.historial.push({ fecha: dateStr, clase, hora, ts: Date.now() });
   subs[idx] = sub;
   await saveSuscriptoras(subs);
-  localStorage.setItem(asistKey, '1');
   buildSAdminHoy(); /* Refrescar */
 }
 
@@ -6267,7 +6315,35 @@ function saveHorarios() {
   });
   localStorage.setItem('presenza_horario_custom', JSON.stringify(HORARIO));
   const btn = document.querySelector('.btn-hor-save');
-  if (btn) { btn.textContent = '✅ Guardado'; setTimeout(() => btn.textContent = '💾 Guardar', 1800); }
+  if (btn) btn.textContent = '⏳ Guardando…';
+  guardarHorariosDB()
+    .then(() => { if (btn) { btn.textContent = '✅ Guardado'; setTimeout(() => btn.textContent = '💾 Guardar', 1800); } })
+    .catch(e => { if (btn) btn.textContent = '💾 Guardar'; alert('Se guardó en este dispositivo, pero no en la nube:\n' + e.message); });
+  renderSched();
+}
+
+/* El horario es uno solo para todo el estudio: se reemplaza completo en la nube */
+async function guardarHorariosDB() {
+  if (!SB_ON) return;
+  await sbFetch('horarios?dia=gte.0', { method:'DELETE' });
+  const filas = [];
+  [1,2,3,4,5].forEach(dia => (HORARIO[dia]||[]).forEach((s, i) => {
+    filas.push({ dia, clase:s.clase, hora:s.hora, instructor:s.instructor||null, orden:i });
+  }));
+  if (filas.length) await sbFetch('horarios', { method:'POST', body: JSON.stringify(filas) });
+}
+
+async function sincronizarHorarios() {
+  if (!SB_ON) return false;
+  const filas = await sbFetch('horarios?select=*&order=dia,orden');
+  if (!filas.length) return false;          /* la tabla aún no tiene datos */
+  const nuevo = {};
+  filas.forEach(f => (nuevo[f.dia] = nuevo[f.dia] || []).push({
+    clase:f.clase, hora:f.hora, instructor:f.instructor||''
+  }));
+  [1,2,3,4,5].forEach(d => { HORARIO[d] = nuevo[d] || []; });
+  localStorage.setItem('presenza_horario_custom', JSON.stringify(HORARIO));
+  return true;
 }
 
 function resetHorarios() {
@@ -6385,6 +6461,34 @@ function getEventos() {
 }
 function saveEventos(arr) {
   localStorage.setItem('presenza_eventos', JSON.stringify(arr));
+  guardarEventosDB(arr).catch(e =>
+    alert('Se guardó en este dispositivo, pero no en la nube:\n' + e.message));
+}
+
+/* Los eventos son los mismos para todo el estudio: se reemplazan completos */
+async function guardarEventosDB(arr) {
+  if (!SB_ON) return;
+  await sbFetch('eventos?id=gte.0', { method:'DELETE' });
+  if (!arr.length) return;
+  await sbFetch('eventos', { method:'POST', body: JSON.stringify(arr.map((ev, i) => ({
+    titulo: ev.titulo || '', emoji: ev.emoji || null, tipo: ev.tipo || null,
+    fecha: ev.fecha || null, hora: ev.hora || null,
+    precio: ev.precio || 0, cupos: ev.cupos ?? null,
+    descr: ev.desc || null, activo: true, orden: i
+  }))) });
+}
+
+async function sincronizarEventos() {
+  if (!SB_ON) return false;
+  const filas = await sbFetch('eventos?select=*&order=orden');
+  if (!filas.length) return false;          /* la tabla aún no tiene datos */
+  const arr = filas.map(f => ({
+    titulo:f.titulo, emoji:f.emoji||'✨', tipo:f.tipo||undefined,
+    fecha:f.fecha||'', hora:f.hora||'',
+    precio:f.precio||0, cupos:f.cupos||0, desc:f.descr||''
+  }));
+  localStorage.setItem('presenza_eventos', JSON.stringify(arr));
+  return true;
 }
 
 function renderCumpleCard(ev) {
@@ -6571,11 +6675,20 @@ document.addEventListener('DOMContentLoaded', () => {
   renderSched();
   renderEventosPublic();
   if (SB_ON) {
+    /* El horario y los eventos mandan sobre lo que se pinta, así que se
+       recargan primero y luego se vuelve a dibujar la agenda */
+    Promise.all([
+      sincronizarHorarios().catch(e => console.warn('Horarios:', e.message)),
+      sincronizarEventos().catch(e => console.warn('Eventos:', e.message))
+    ]).then(() => { renderSched(); renderEventosPublic(); });
+
     sincronizarReservas()
       .then(() => { renderCards(); })
       .catch(err => console.warn('No se pudieron sincronizar las reservas:', err.message));
     sincronizarSubs()
       .catch(err => console.warn('No se pudieron sincronizar las suscriptoras:', err.message));
+    sincronizarAsistencias()
+      .catch(err => console.warn('No se pudieron sincronizar las asistencias:', err.message));
   }
   /* "Reservar" del nav → scroll a sección + triple tap = Super Admin */
   let rsvTaps = 0, rsvTimer = null;
