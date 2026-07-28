@@ -3829,10 +3829,14 @@ let SUBS = [];
 
 function getSuscriptoras() { return SUBS; }
 
+/* id es la llave primaria en la tabla (SUB-XXXXXX, la misma que ya genera
+   la app); pendiente vive como pendiente_plan/pendiente_fecha en la base
+   pero como objeto {plan,fecha} en memoria — así no hay que tocar toda la
+   lógica de negocio que ya lee sub.pendiente.plan / sub.pendiente.fecha. */
 function subToRow(s) {
   return {
+    id: s.id,
     email: (s.email||'').trim().toLowerCase(),
-    id: s.id || null,
     nombre: s.nombre || '',
     tel: s.tel || null,
     notas: s.notas || null,
@@ -3843,15 +3847,15 @@ function subToRow(s) {
     activa: !!s.activa,
     fecha_inicio: s.fechaInicio || null,
     fecha_vence: s.fechaVence || null,
-    pendiente: s.pendiente || null,
+    pendiente_plan: s.pendiente?.plan || null,
+    pendiente_fecha: s.pendiente?.fecha || null,
     historial: s.historial || [],
-    renovaciones: s.renovaciones || [],
-    actualizado: new Date().toISOString()
+    renovaciones: s.renovaciones || []
   };
 }
 function rowToSub(f) {
   const s = {
-    email: f.email, id: f.id || '', nombre: f.nombre || '',
+    id: f.id || '', email: f.email, nombre: f.nombre || '',
     tel: f.tel || '', notas: f.notas || '', plan: f.plan || '',
     clasesTotal: f.clases_total || 0,
     clasesRestantes: f.clases_restantes || 0,
@@ -3860,7 +3864,7 @@ function rowToSub(f) {
     fechaInicio: f.fecha_inicio || '', fechaVence: f.fecha_vence || '',
     historial: f.historial || [], renovaciones: f.renovaciones || []
   };
-  if (f.pendiente) s.pendiente = f.pendiente;
+  if (f.pendiente_plan) s.pendiente = { plan: f.pendiente_plan, fecha: f.pendiente_fecha || '' };
   return s;
 }
 
@@ -3873,31 +3877,39 @@ async function sincronizarSubs() {
   return true;
 }
 
-/* Guarda el arreglo completo: sube los cambios y borra las que se quitaron */
+/* Guarda el arreglo completo: sube los cambios y borra las que se quitaron.
+   Todas las filas ya traen `id` (autoRegisterSub y guardarNuevaSub lo generan
+   antes de llegar aquí), así que el upsert va sobre esa llave. */
 async function saveSuscriptoras(arr) {
-  const idsAntes = SUBS.map(s => (s.email||'').toLowerCase());
-  const idsAhora = arr.map(s => (s.email||'').toLowerCase());
-  const borradas = idsAntes.filter(e => e && !idsAhora.includes(e));
+  const idsAntes = SUBS.map(s => s.id).filter(Boolean);
+  const idsAhora = arr.map(s => s.id).filter(Boolean);
+  const borradas = idsAntes.filter(id => !idsAhora.includes(id));
 
   SUBS = arr;
   localStorage.setItem('presenza_subs', JSON.stringify(arr)); /* respaldo */
   if (!SB_ON) return true;
   try {
     if (arr.length) {
-      await sbFetch('suscriptoras?on_conflict=email', {
+      await sbFetch('suscriptoras?on_conflict=id', {
         method: 'POST',
         headers: { Prefer: 'resolution=merge-duplicates' },
         body: JSON.stringify(arr.map(subToRow))
       });
     }
-    for (const em of borradas) {
-      await sbFetch(`suscriptoras?email=eq.${encodeURIComponent(em)}`, { method:'DELETE' });
+    for (const id of borradas) {
+      await sbFetch(`suscriptoras?id=eq.${encodeURIComponent(id)}`, { method:'DELETE' });
     }
     return true;
   } catch (e) {
     /* 404 = la tabla `suscriptoras` todavía no se creó en Supabase: el sitio
-       sigue funcionando con el respaldo local, sin molestar a la alumna. */
+       sigue funcionando con el respaldo local, sin molestar a la alumna.
+       409 = el correo o teléfono ya existe en otra fila (choque entre dos
+       dispositivos registrando a la vez): se avisa para revisar a mano. */
     if (e.status === 404) { console.warn('Falta crear la tabla suscriptoras en Supabase.'); return true; }
+    if (e.status === 409) {
+      alert('Ya existe una suscriptora con ese correo o teléfono (probablemente registrada desde otro dispositivo casi al mismo tiempo). Revisa la pestaña Suscriptoras antes de intentar de nuevo.');
+      return false;
+    }
     alert('Se guardó en este dispositivo, pero no se pudo sincronizar con la nube:\n' + e.message);
     return false;
   }
