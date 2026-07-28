@@ -3821,8 +3821,87 @@ async function marcarPagoOkDB(key, ts) {
 /* ════════════════════════════════════════
    SUSCRIPTORAS
 ════════════════════════════════════════ */
-function getSuscriptoras()         { return JSON.parse(localStorage.getItem('presenza_subs')||'[]'); }
-function saveSuscriptoras(arr)     { localStorage.setItem('presenza_subs', JSON.stringify(arr)); }
+/* Las suscriptoras viven en Supabase (tabla `suscriptoras`) para que las
+   solicitudes hechas desde el celular de cada alumna lleguen a este panel.
+   SUBS es la copia en memoria: toda la app lee de aquí sin esperar, igual
+   que SLOTS con las reservas. localStorage queda como respaldo offline. */
+let SUBS = [];
+
+function getSuscriptoras() { return SUBS; }
+
+function subToRow(s) {
+  return {
+    email: (s.email||'').trim().toLowerCase(),
+    id: s.id || null,
+    nombre: s.nombre || '',
+    tel: s.tel || null,
+    notas: s.notas || null,
+    plan: s.plan || null,
+    clases_total: s.clasesTotal || 0,
+    clases_restantes: s.clasesRestantes || 0,
+    clases_usadas: s.clasesUsadas || 0,
+    activa: !!s.activa,
+    fecha_inicio: s.fechaInicio || null,
+    fecha_vence: s.fechaVence || null,
+    pendiente: s.pendiente || null,
+    historial: s.historial || [],
+    renovaciones: s.renovaciones || [],
+    actualizado: new Date().toISOString()
+  };
+}
+function rowToSub(f) {
+  const s = {
+    email: f.email, id: f.id || '', nombre: f.nombre || '',
+    tel: f.tel || '', notas: f.notas || '', plan: f.plan || '',
+    clasesTotal: f.clases_total || 0,
+    clasesRestantes: f.clases_restantes || 0,
+    clasesUsadas: f.clases_usadas || 0,
+    activa: !!f.activa,
+    fechaInicio: f.fecha_inicio || '', fechaVence: f.fecha_vence || '',
+    historial: f.historial || [], renovaciones: f.renovaciones || []
+  };
+  if (f.pendiente) s.pendiente = f.pendiente;
+  return s;
+}
+
+/* Trae las suscriptoras de la nube y reemplaza la copia en memoria */
+async function sincronizarSubs() {
+  if (!SB_ON) return false;
+  const filas = await sbFetch('suscriptoras?select=*');
+  SUBS = filas.map(rowToSub);
+  localStorage.setItem('presenza_subs', JSON.stringify(SUBS));
+  return true;
+}
+
+/* Guarda el arreglo completo: sube los cambios y borra las que se quitaron */
+async function saveSuscriptoras(arr) {
+  const idsAntes = SUBS.map(s => (s.email||'').toLowerCase());
+  const idsAhora = arr.map(s => (s.email||'').toLowerCase());
+  const borradas = idsAntes.filter(e => e && !idsAhora.includes(e));
+
+  SUBS = arr;
+  localStorage.setItem('presenza_subs', JSON.stringify(arr)); /* respaldo */
+  if (!SB_ON) return true;
+  try {
+    if (arr.length) {
+      await sbFetch('suscriptoras?on_conflict=email', {
+        method: 'POST',
+        headers: { Prefer: 'resolution=merge-duplicates' },
+        body: JSON.stringify(arr.map(subToRow))
+      });
+    }
+    for (const em of borradas) {
+      await sbFetch(`suscriptoras?email=eq.${encodeURIComponent(em)}`, { method:'DELETE' });
+    }
+    return true;
+  } catch (e) {
+    /* 404 = la tabla `suscriptoras` todavía no se creó en Supabase: el sitio
+       sigue funcionando con el respaldo local, sin molestar a la alumna. */
+    if (e.status === 404) { console.warn('Falta crear la tabla suscriptoras en Supabase.'); return true; }
+    alert('Se guardó en este dispositivo, pero no se pudo sincronizar con la nube:\n' + e.message);
+    return false;
+  }
+}
 function getSuscriptoraByEmail(em) {
   if (!em) return null;
   return getSuscriptoras().find(s => s.email.toLowerCase() === em.toLowerCase());
@@ -4325,7 +4404,7 @@ function selectSubPlan(planKey) {
 
 /* La alumna elige plan → queda PENDIENTE hasta que el admin confirme el pago.
    Las clases del plan NO se pueden usar hasta la confirmación. */
-function autoRegisterSub(nombre, email, tel, nivel, planKey) {
+async function autoRegisterSub(nombre, email, tel, nivel, planKey) {
   const arr = getSuscriptoras();
   /* Anti-duplicados: email; si no aparece, teléfono + nombre (misma persona) */
   const idx = findSubIndex(arr, email, tel, nombre);
@@ -4350,11 +4429,11 @@ function autoRegisterSub(nombre, email, tel, nivel, planKey) {
       renovaciones:    []
     });
   }
-  saveSuscriptoras(arr);
+  await saveSuscriptoras(arr);
 }
 
 /* ── Confirmación de pago (Super Admin) ── */
-function confirmarPagoSub(email) {
+async function confirmarPagoSub(email) {
   const arr = getSuscriptoras();
   const idx = arr.findIndex(s => s.email.toLowerCase() === email.toLowerCase());
   if (idx < 0 || !arr[idx].pendiente) return;
@@ -4375,11 +4454,11 @@ function confirmarPagoSub(email) {
   if (!arr[idx].fechaInicio) arr[idx].fechaInicio = hoy;
   (arr[idx].renovaciones = arr[idx].renovaciones||[]).push({ fecha: hoy, plan: planKey, clases: pd.clases });
   delete arr[idx].pendiente;
-  saveSuscriptoras(arr);
+  await saveSuscriptoras(arr);
   sadminTab(sadminTabActual); /* refresca la pestaña donde estés (Hoy o Suscriptoras) */
 }
 
-function rechazarPagoSub(email) {
+async function rechazarPagoSub(email) {
   if (!confirm(`¿Rechazar la solicitud de ${email}? No se activará ningún plan.`)) return;
   const arr = getSuscriptoras();
   const idx = arr.findIndex(s => s.email.toLowerCase() === email.toLowerCase());
@@ -4391,7 +4470,7 @@ function rechazarPagoSub(email) {
   } else {
     delete arr[idx].pendiente;
   }
-  saveSuscriptoras(arr);
+  await saveSuscriptoras(arr);
   sadminTab(sadminTabActual); /* refresca la pestaña donde estés (Hoy o Suscriptoras) */
 }
 
@@ -4431,7 +4510,7 @@ async function proceedToConfirm() {
   /* Plan nuevo o renovación → registrar como PENDIENTE (el admin confirma el pago)
      y avisar por correo al estudio */
   if (esPlanPendiente) {
-    autoRegisterSub(nombre, email, tel, nivel, selectedSubPlan);
+    await autoRegisterSub(nombre, email, tel, nivel, selectedSubPlan);
     notificarSolicitudCorreo({
       Nombre: nombre,
       Email: email,
@@ -4957,11 +5036,11 @@ function checkSuperPin() {
     document.getElementById('sadminHdFecha').textContent =
       `${DIAS_ES[h.getDay()]} ${h.getDate()} ${MESES_ES[h.getMonth()]} ${h.getFullYear()}`;
     sadminTab(sadminRol === 'coach' ? 'calendario' : 'hoy');
-    /* Traer las reservas hechas desde otros celulares antes de mostrar el panel */
+    /* Traer lo hecho desde otros celulares antes de mostrar el panel */
     if (SB_ON) {
-      sincronizarReservas()
-        .then(() => sadminTab(sadminTabActual))
-        .catch(err => alert('No se pudieron cargar las reservas de la nube.\nMostrando la última copia local.\n\n' + err.message));
+      Promise.all([sincronizarReservas(), sincronizarSubs()])
+        .then(() => { sadminTab(sadminTabActual); updateSubsBadge(); })
+        .catch(err => alert('No se pudieron cargar los datos de la nube.\nMostrando la última copia local.\n\n' + err.message));
     }
   } else {
     document.getElementById('superPinErr').textContent = 'Contraseña incorrecta, intenta de nuevo.';
@@ -5153,7 +5232,7 @@ function buildSAdminHoy() {
     ${clasesHtml}`;
 }
 
-function registrarAsistencia(email, clase, dateStr, hora, asistKey) {
+async function registrarAsistencia(email, clase, dateStr, hora, asistKey) {
   const subs = getSuscriptoras();
   const idx  = subs.findIndex(s => s.email.toLowerCase() === email.toLowerCase());
   if (idx < 0) return;
@@ -5167,7 +5246,7 @@ function registrarAsistencia(email, clase, dateStr, hora, asistKey) {
   sub.historial       = sub.historial || [];
   sub.historial.push({ fecha: dateStr, clase, hora, ts: Date.now() });
   subs[idx] = sub;
-  saveSuscriptoras(subs);
+  await saveSuscriptoras(subs);
   localStorage.setItem(asistKey, '1');
   buildSAdminHoy(); /* Refrescar */
 }
@@ -5468,7 +5547,7 @@ function toggleNuevaSub() {
   }
 }
 
-function guardarNuevaSub() {
+async function guardarNuevaSub() {
   const nombre = document.getElementById('nsNombre').value.trim();
   const email  = document.getElementById('nsEmail').value.trim();
   const tel    = document.getElementById('nsTel').value.trim();
@@ -5508,11 +5587,11 @@ function guardarNuevaSub() {
       renovaciones:     [{ fecha:now.toISOString().split('T')[0], plan, clases:pd.clases }]
     });
   }
-  saveSuscriptoras(arr);
+  await saveSuscriptoras(arr);
   buildSAdminSubs();
 }
 
-function renovarSub(email) {
+async function renovarSub(email) {
   const opciones = Object.entries(PLANES_SUB).map(([k,v])=>`${k} → ${v.nombre} (${fmtC(v.precio)})`).join('\n');
   const choice   = prompt(`Renovar suscripción de ${email}\n\nEscribe el código del plan:\n${opciones}`);
   if (choice === null) return;
@@ -5533,14 +5612,14 @@ function renovarSub(email) {
   arr[idx].fechaVence       = venc;
   arr[idx].activa           = true;
   (arr[idx].renovaciones = arr[idx].renovaciones||[]).push({ fecha:now.toISOString().split('T')[0], plan:choice, clases:pd.clases });
-  saveSuscriptoras(arr);
+  await saveSuscriptoras(arr);
   buildSAdminSubs();
 }
 
-function eliminarSub(email) {
+async function eliminarSub(email) {
   if (!confirm(`¿Eliminar la suscriptora ${email}? Esta acción no se puede deshacer.`)) return;
   const arr = getSuscriptoras().filter(s => s.email.toLowerCase() !== email.toLowerCase());
-  saveSuscriptoras(arr);
+  await saveSuscriptoras(arr);
   buildSAdminSubs();
 }
 
@@ -6473,15 +6552,18 @@ function evSaveAll() {
 
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {
-  /* Primero el respaldo local para pintar algo al instante, y en seguida las
-     reservas reales de la nube (las de todos los dispositivos) */
+  /* Primero el respaldo local para pintar algo al instante, y en seguida los
+     datos reales de la nube (los de todos los dispositivos) */
   SLOTS = cargarRespaldoLocal();
+  try { SUBS = JSON.parse(localStorage.getItem('presenza_subs')||'[]'); } catch(e) { SUBS = []; }
   renderSched();
   renderEventosPublic();
   if (SB_ON) {
     sincronizarReservas()
       .then(() => { renderCards(); })
-      .catch(err => console.warn('No se pudo sincronizar con Supabase:', err.message));
+      .catch(err => console.warn('No se pudieron sincronizar las reservas:', err.message));
+    sincronizarSubs()
+      .catch(err => console.warn('No se pudieron sincronizar las suscriptoras:', err.message));
   }
   /* "Reservar" del nav → scroll a sección + triple tap = Super Admin */
   let rsvTaps = 0, rsvTimer = null;
