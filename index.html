@@ -3761,14 +3761,17 @@ function contactoDirecto() {
 /* Formato córdobas: C$1,650 */
 function fmtC(n) { return 'C$' + Number(n||0).toLocaleString('en-US'); }
 
-/* ── Definición de clases · barre 11 cupos, sculpt/yoga 12 ── */
+/* ── Definición de clases ──
+   Hay UN solo salón con 12 mats en 2 hileras de 6. Uno de esos 12 es siempre
+   el de la instructora, así que en TODAS las clases quedan 11 mats vendibles
+   (1–11) y la alumna elige el suyo. El mat del coach se dibuja en su posición
+   real dentro de la hilera de adelante, pero no es un cupo. */
+const CUPOS_SALON = 11;
 const INFO = {
-  burn:    { nombre:'Barre Burn',      emoji:'🔥', tag:'Alta energía',  cupos:11, precio:440 },
-  essenza: { nombre:'Barre Essenza',   emoji:'🩰', tag:'Barre clásico', cupos:11, precio:440 },
-  /* El salón tiene 12 mats: 11 reservables (1–11) + el de la instructora,
-     que se dibuja en la hilera de adelante pero no es un cupo vendible. */
-  pilates: { nombre:'Presenza Sculpt', emoji:'❤️‍🔥', tag:'Core & fuerza', cupos:11, precio:440 },
-  yoga:    { nombre:'Unwind Yoga',     emoji:'🧘', tag:'Restaurativo',  cupos:12, precio:440 },
+  burn:    { nombre:'Barre Burn',      emoji:'🔥', tag:'Alta energía',  cupos:CUPOS_SALON, precio:440 },
+  essenza: { nombre:'Barre Essenza',   emoji:'🩰', tag:'Barre clásico', cupos:CUPOS_SALON, precio:440 },
+  pilates: { nombre:'Presenza Sculpt', emoji:'❤️‍🔥', tag:'Core & fuerza', cupos:CUPOS_SALON, precio:440 },
+  yoga:    { nombre:'Unwind Yoga',     emoji:'🧘', tag:'Restaurativo',  cupos:CUPOS_SALON, precio:440 },
 };
 
 /* ── Clases especiales de un solo día (gratis / eventos puntuales) ──
@@ -3787,7 +3790,7 @@ function getEspecial(clase, dateStr, hora) {
 /* Cupos y precio reales de una sesión (la especial manda sobre INFO) */
 function cuposDe(clase, dateStr, hora) {
   const e = getEspecial(clase, dateStr, hora);
-  return e ? e.cupos : (INFO[clase]?.cupos || 12);
+  return e ? e.cupos : (INFO[clase]?.cupos || CUPOS_SALON);
 }
 function precioDe(clase, dateStr, hora) {
   const e = getEspecial(clase, dateStr, hora);
@@ -4379,13 +4382,15 @@ async function abrirEspecialPorHash() {
 }
 function bdClick(e) { if(e.target===document.getElementById('modalBackdrop')) closeModal(); }
 
-/* Flujo dinámico: Pilates lleva paso "Lugar", el resto no */
+/* Flujo del modal. TODAS las clases pasan por "Lugar": es el mismo salón de
+   12 mats para Barre, Sculpt y Yoga, así que la alumna siempre elige el suyo.
+   Además el mat elegido es lo que la base usa como candado: el índice único
+   (slot_key, lugar) impide que dos alumnas tomen el mismo desde dos celulares. */
 let mFlow = [];
 function setupFlow(clase) {
   const pasoPago = booking.gratis ? [] : [ {panel:'mp2',label:'Pago'} ];
-  mFlow = (clase === 'pilates')
-    ? [ {panel:'mp1',label:'Datos'}, {panel:'mpLugar',label:'Lugar'}, ...pasoPago, {panel:'mp3',label:'Confirmación'} ]
-    : [ {panel:'mp1',label:'Datos'}, ...pasoPago, {panel:'mp3',label:'Confirmación'} ];
+  mFlow = [ {panel:'mp1',label:'Datos'}, {panel:'mpLugar',label:'Lugar'},
+            ...pasoPago, {panel:'mp3',label:'Confirmación'} ];
   buildStepBar();
 }
 function buildStepBar() {
@@ -4426,7 +4431,7 @@ function checkMForm() {
   document.getElementById('btnConfirmar').disabled = !ok;
 }
 
-/* PASO 1 → 2 : Pilates va a "Lugar"; el resto va directo a "Pago" */
+/* PASO 1 → 2 : todas las clases pasan por "Lugar" */
 function submitR() {
   /* Candado: sin teléfono válido no se avanza (requerido para confirmar pagos) */
   if (normTel(document.getElementById('mTel').value).length < 8) {
@@ -4435,14 +4440,7 @@ function submitR() {
     document.getElementById('mTel').focus();
     return;
   }
-  if (booking.clase === 'pilates') {
-    renderLugares();
-  } else {
-    booking.lugar = null;
-    /* Clase gratis: no hay paso de pago, va directo a confirmación */
-    if (booking.gratis) { proceedToConfirm(); return; }
-    setupPago();
-  }
+  renderLugares();
   mGoStep(2);
 }
 
@@ -4777,9 +4775,9 @@ async function proceedToConfirm() {
   if (SB_ON) { try { await sincronizarReservas(); } catch(e) {} }
   const clientesAhora = getClientes(clase, dateStr, hora);
 
-  /* Tope de cupos. Antes solo se revisaba el mat, así que Barre y Yoga (que no
-     eligen lugar) no tenían ningún freno: dos alumnas desde dos celulares
-     tomaban el último cupo y la clase quedaba sobrevendida. */
+  /* Tope de cupos: red de seguridad además del mat. Ahora que todas las clases
+     eligen mat, el índice único de la base ya bloquea el mat repetido; esto
+     atrapa además las reservas sin lugar (las que agenda el admin). */
   if (clientesAhora.length >= cuposDe(clase, dateStr, hora)) {
     alert('Los cupos de esta clase se acaban de llenar. Escríbenos por WhatsApp y te apartamos lugar en la siguiente ✧');
     closeModal();
@@ -5900,17 +5898,30 @@ async function agendarSubAClase(email, clase, dateStr, hora, instructor) {
     alert(`${sub.nombre} ya está agendada en esta clase.`);
     return false;
   }
-  if (clientes.length >= cuposDe(clase, dateStr, hora)) { alert('Esta clase ya está llena.'); return false; }
+  const total = cuposDe(clase, dateStr, hora);
+  if (clientes.length >= total) { alert('Esta clase ya está llena.'); return false; }
+
+  /* Se le asigna el primer mat libre. Sin lugar, el grid le mostraría a las
+     demás alumnas un mat disponible que en realidad ya está ocupado por ella. */
+  const tomados = new Set(clientes.filter(c => c.lugar).map(c => Number(c.lugar)));
+  let lugarLibre = null;
+  for (let i = 1; i <= total; i++) if (!tomados.has(i)) { lugarLibre = i; break; }
 
   const planN = PLANES_SUB[sub.plan]?.nombre || 'Membresía';
   try {
     await saveSlot(clase, dateStr, hora, {
       nombre: sub.nombre, email: sub.email, tel: sub.tel||'',
-      nivel: '', notas: 'Agendada por admin',
+      nivel: '', notas: 'Agendada por admin', lugar: lugarLibre,
       metodo: `💎 Suscripción · ${planN}`, instructor
     });
   } catch (e) {
-    alert('No se pudo agendar: ' + e.message);
+    /* 409 = el índice único rechazó el mat (alguien lo tomó en ese instante) */
+    if (e.status === 409) {
+      try { await sincronizarReservas(); } catch(e2) {}
+      alert('Ese mat lo acaban de tomar. Intenta agendarla de nuevo.');
+    } else {
+      alert('No se pudo agendar: ' + e.message);
+    }
     return false;
   }
   renderCards(); /* refresca los cupos en las tarjetas públicas del horario */

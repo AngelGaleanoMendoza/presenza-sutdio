@@ -15,7 +15,7 @@ create table if not exists reservas (
   tel        text,
   nivel      text,
   notas      text,
-  lugar      int,                -- número de mat (solo Presenza Sculpt)
+  lugar      int,                -- número de mat 1–11 (el salón tiene 12, uno es de la instructora)
   metodo     text,               -- 🏦 Transferencia · 💎 Suscripción · 🎁 Clase gratis
   instructor text,
   pago_ok    boolean not null default true,  -- false = transferencia por confirmar
