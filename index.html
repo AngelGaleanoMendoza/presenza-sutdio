@@ -879,6 +879,78 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 }
 .pc-featured .pc-cta-wa:hover { background:rgba(255,255,255,.28); transform:translateY(-2px); }
 .pc-featured .pc-cta-link { background:rgba(255,255,255,.18); border:1.5px solid rgba(255,255,255,.36); box-shadow:none; }
+
+/* ══════════════════════════════════════════════════════════
+   BOTÓN CAMPANA (suscribirse)
+
+   Port en CSS puro del componente de framer-motion: la campana quieta se
+   cambia por la que suena girando y creciendo con rebote, y el punto rojo
+   entra después con un rebote más suelto. Sin React ni librerías: el sitio
+   es un solo archivo y no tiene build.
+
+   Los cubic-bezier reemplazan los springs del original:
+     · icono → stiffness 600 / damping 25  ≈ cubic-bezier(.34,1.56,.64,1)
+     · punto → stiffness 600 / damping 15  ≈ cubic-bezier(.2,1.8,.4,1) (más rebote)
+   ══════════════════════════════════════════════════════════ */
+.ring-btn {
+  display:flex; align-items:center; justify-content:center; gap:9px;
+  transition:background .15s, box-shadow .25s, transform .22s cubic-bezier(.34,1.56,.64,1);
+}
+/* El toque hunde el botón (whileTap scale .96 del original) */
+.ring-btn:active { transform:scale(.96) !important; transition-duration:.09s; }
+
+.rb-ico { position:relative; width:16px; height:16px; flex:none; display:block; }
+.rb-ico svg {
+  position:absolute; top:0; left:0; width:16px; height:16px;
+  fill:none; stroke:currentColor; stroke-width:2;
+  stroke-linecap:round; stroke-linejoin:round;
+  transition:opacity .2s ease, transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.rb-i1 { opacity:1; transform:rotate(0deg)    scale(1);  }   /* campana quieta */
+.rb-i2 { opacity:0; transform:rotate(-15deg)  scale(.8); }   /* campana sonando */
+.rb-dot {
+  position:absolute; top:-1px; right:-1px; width:6px; height:6px;
+  border-radius:50%; background:#F2585B; box-shadow:0 0 0 1.5px rgba(0,0,0,.12);
+  transform:scale(0); transition:transform .3s cubic-bezier(.2,1.8,.4,1);
+}
+.rb-txt { font-weight:600; letter-spacing:-.1px; }
+
+/* Estado "sonando". Tres disparadores:
+     · :hover del propio botón (escritorio)
+     · .rb-on que pone el JS al entrar en pantalla (celular, donde no hay hover)
+     · :hover de un contenedor .rb-trigger, para cuando la campana vive dentro
+       de una tarjeta y lo que la alumna toca es la tarjeta completa */
+.ring-btn.rb-on         { transform:translateY(-2px) scale(1.02); }
+.ring-btn.rb-on .rb-i1  { opacity:0; transform:rotate(15deg) scale(.8); }
+.ring-btn.rb-on .rb-i2  { opacity:1; transform:rotate(0deg)  scale(1); }
+.ring-btn.rb-on .rb-dot { transform:scale(1); transition-delay:.1s; }
+
+@media (hover:hover) {
+  .ring-btn:hover { transform:translateY(-2px) scale(1.02); }
+  .ring-btn:hover .rb-i1, .rb-trigger:hover .rb-i1  { opacity:0; transform:rotate(15deg) scale(.8); }
+  .ring-btn:hover .rb-i2, .rb-trigger:hover .rb-i2  { opacity:1; transform:rotate(0deg)  scale(1); }
+  .ring-btn:hover .rb-dot, .rb-trigger:hover .rb-dot { transform:scale(1); transition-delay:.1s; }
+}
+
+/* La tarjeta destacada ("3 Meses Ilimitado") tiene su propia regla de hover
+   más específica, que se comía el scale: se lo devolvemos. */
+.pc-featured .pc-cta-wa.ring-btn:hover { transform:translateY(-2px) scale(1.02); }
+
+/* Dentro de la caja de ilimitadas la que se levanta es la caja, no el CTA */
+.sub-ilimit-cta.ring-btn { gap:6px; }
+.sub-ilimit-cta.ring-btn:hover { transform:none; }
+
+/* Misma física de rebote para los demás pasos del flujo de suscripción,
+   sin cambiar sus iconos: paquetes, método 💎 y tarjetas de plan. */
+.rb-press { transition:all .22s cubic-bezier(.34,1.56,.64,1); }
+.rb-press:not(:disabled):active { transform:scale(.96); transition-duration:.09s; }
+
+/* Respeta a quien pidió menos movimiento en su sistema */
+@media (prefers-reduced-motion:reduce) {
+  .ring-btn, .ring-btn *, .rb-press { transition-duration:.01ms !important; }
+  .ring-btn:hover, .ring-btn.rb-on, .ring-btn:active, .rb-press:active { transform:none !important; }
+}
+
 .sa-pago-detalle { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; font-size:.69rem; color:var(--gray); }
 .sa-pago-detalle span { background:var(--cream); border-radius:6px; padding:2px 7px; }
 
@@ -2984,7 +3056,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Cualquier disciplina disponible</div>
           <div class="pc-perk"><span>✧</span> Sin compromiso mensual</div>
         </div>
-        <button class="pc-cta pc-cta-link" onclick="payLink('Clase Singular', 440)">💬 Reservar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-link rb-press" onclick="payLink('Clase Singular', 440)">💬 Reservar por WhatsApp →</button>
       </div>
 
       <!-- 5 Clases $45 — destacado -->
@@ -3000,7 +3072,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Válido por 30 días</div>
           <div class="pc-perk"><span>✧</span> Combina Barre, Pilates & Yoga</div>
         </div>
-        <button class="pc-cta pc-cta-link" onclick="payLink('el Paquete de 5 Clases', 1650)">💬 Reservar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-link rb-press" onclick="payLink('el Paquete de 5 Clases', 1650)">💬 Reservar por WhatsApp →</button>
       </div>
 
       <!-- 10 Clases $80 -->
@@ -3015,7 +3087,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Válido por 45 días</div>
           <div class="pc-perk"><span>✧</span> Combina Barre, Pilates & Yoga</div>
         </div>
-        <button class="pc-cta pc-cta-link" onclick="payLink('el Paquete de 10 Clases', 2930)">💬 Reservar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-link rb-press" onclick="payLink('el Paquete de 10 Clases', 2930)">💬 Reservar por WhatsApp →</button>
       </div>
 
       <div class="pagos-row-label">♾️ Membresías ilimitadas</div>
@@ -3032,7 +3104,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Acceso a todas las disciplinas</div>
           <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
         </div>
-        <button class="pc-cta pc-cta-wa" onclick="planWA('Mensual Ilimitado','C$4,760/mes')">ℹ️ Click para más información →</button>
+        <button class="pc-cta pc-cta-wa ring-btn" onclick="planWA('Mensual Ilimitado','C$4,760/mes')"><span class="rb-ico" aria-hidden="true"><svg class="rb-i1" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><svg class="rb-i2" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M22 8c0-2.3-.8-4.3-2-6"/></svg><span class="rb-dot"></span></span><span class="rb-txt">Click para más información</span><span aria-hidden="true">→</span></button>
       </div>
 
       <!-- 3 Meses Ilimitado $115/mes — destacado -->
@@ -3048,7 +3120,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Acceso a todas las disciplinas</div>
           <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
         </div>
-        <button class="pc-cta pc-cta-wa" onclick="planWA('3 Meses Ilimitado','C$4,210/mes')">ℹ️ Click para más información →</button>
+        <button class="pc-cta pc-cta-wa ring-btn" onclick="planWA('3 Meses Ilimitado','C$4,210/mes')"><span class="rb-ico" aria-hidden="true"><svg class="rb-i1" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><svg class="rb-i2" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M22 8c0-2.3-.8-4.3-2-6"/></svg><span class="rb-dot"></span></span><span class="rb-txt">Click para más información</span><span aria-hidden="true">→</span></button>
       </div>
 
       <!-- 6 Meses Ilimitado $102/mes -->
@@ -3063,7 +3135,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Acceso a todas las disciplinas</div>
           <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
         </div>
-        <button class="pc-cta pc-cta-wa" onclick="planWA('6 Meses Ilimitado','C$3,734/mes')">ℹ️ Click para más información →</button>
+        <button class="pc-cta pc-cta-wa ring-btn" onclick="planWA('6 Meses Ilimitado','C$3,734/mes')"><span class="rb-ico" aria-hidden="true"><svg class="rb-i1" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><svg class="rb-i2" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M22 8c0-2.3-.8-4.3-2-6"/></svg><span class="rb-dot"></span></span><span class="rb-txt">Click para más información</span><span aria-hidden="true">→</span></button>
       </div>
 
     </div>
@@ -3476,7 +3548,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
               <span class="msb-icon">💵</span>
               Efectivo en estudio
             </div>
-            <div class="msb msb-sub" id="msbSub" onclick="selectMetodo('sub')">
+            <div class="msb msb-sub rb-press" id="msbSub" onclick="selectMetodo('sub')">
               <span class="msb-icon">💎</span>
               Suscripción
             </div>
@@ -3495,7 +3567,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
         <div class="sub-check-box" id="subCheckBox">
           <div id="subCheckResult"></div>
         </div>
-        <button class="btn-confirmar" id="btnPagar" onclick="proceedToConfirm()" disabled>
+        <button class="btn-confirmar rb-press" id="btnPagar" onclick="proceedToConfirm()" disabled>
           Continuar reservación →
         </button>
       </div>
@@ -3589,6 +3661,37 @@ const PLANES_BOOKING_VISIBLE = ['singular', 'plan5', 'plan10'];
 const PLANES_ILIMITADOS      = ['ilimit1', 'ilimit3', 'ilimit6'];
 
 /* Más información sobre las membresías ilimitadas → WhatsApp directo */
+/* Campana del botón de suscripción (las dos versiones + el punto rojo).
+   El CSS .ring-btn se encarga del cambio con rebote entre una y otra. */
+function bellSVG() {
+  return '<span class="rb-ico" aria-hidden="true">' +
+    '<svg class="rb-i1" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>' +
+    '<svg class="rb-i2" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M22 8c0-2.3-.8-4.3-2-6"/></svg>' +
+    '<span class="rb-dot"></span></span>';
+}
+
+/* El original reacciona al hover del mouse, que en un celular no existe —
+   y casi todas las alumnas entran desde el teléfono. Ahí la campana suena
+   una sola vez cuando el botón aparece en pantalla. */
+const RB_TOUCH = !window.matchMedia('(hover:hover)').matches;
+function rbSonarUnaVez(btn, delay = 220) {
+  setTimeout(() => {
+    btn.classList.add('rb-on');
+    setTimeout(() => btn.classList.remove('rb-on'), 1500);
+  }, delay);
+}
+function rbObservar(root) {
+  if (!RB_TOUCH || !('IntersectionObserver' in window)) return;
+  const btns = [...(root || document).querySelectorAll('.ring-btn')];
+  if (!btns.length) return;
+  const obs = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    obs.unobserve(e.target);       /* una sola vez por botón, sin repetir */
+    rbSonarUnaVez(e.target);
+  }), { threshold: .6 });
+  btns.forEach(b => obs.observe(b));
+}
+
 function infoIlimitados() {
   const txt = `Hola Presenza ✧ Quiero más información sobre las membresías ilimitadas:\n` +
     PLANES_ILIMITADOS.map(k => `• ${PLANES_SUB[k].nombre} — ${fmtC(PLANES_SUB[k].precio)}/mes`).join('\n');
@@ -4437,7 +4540,7 @@ function verifySub() {
   const planesHtml = PLANES_BOOKING_VISIBLE.map(k => {
     const v = PLANES_SUB[k];
     return `
-    <div class="sub-plane" data-plan="${k}" onclick="selectSubPlan('${k}')">
+    <div class="sub-plane rb-press" data-plan="${k}" onclick="selectSubPlan('${k}')">
       <span class="sub-plane-tag">${v.tag}</span>
       <span class="sub-plane-name">${v.nombre}</span>
       <span class="sub-plane-price">${fmtC(v.precio)}</span>
@@ -4449,17 +4552,18 @@ function verifySub() {
     <div class="sub-plan-new">
       <p>${esVencida ? `⚠ Tu plan venció el ${sub.fechaVence}. Elige un paquete para renovar:` : esRenovacion ? '⟳ Tus clases se agotaron. Elige tu paquete para renovar:' : '🎟️ Elige tu paquete de clases:'}</p>
       <div class="sub-planes">${planesHtml}</div>
-      <button type="button" class="sub-contacto-directo" onclick="contactoDirecto()">💬 Contacto directo con el estudio</button>
-      <div class="sub-ilimit-box" onclick="infoIlimitados()">
+      <button type="button" class="sub-contacto-directo rb-press" onclick="contactoDirecto()">💬 Contacto directo con el estudio</button>
+      <div class="sub-ilimit-box rb-trigger" onclick="infoIlimitados()">
         <div class="sub-ilimit-txt">
           <strong>♾️ Suscripciones ilimitadas</strong>
           <span>Mensual · 3 meses · 6 meses — clases sin límite</span>
         </div>
-        <span class="sub-ilimit-cta">Click para más información →</span>
+        <span class="sub-ilimit-cta ring-btn">${bellSVG()}Más información →</span>
       </div>
     </div>`;
   selectedSubPlan = null;
   document.getElementById('btnPagar').disabled = true;
+  rbObservar(result);   /* la campana de "ilimitadas" acaba de crearse aquí */
 }
 
 function selectSubPlan(planKey) {
@@ -6778,6 +6882,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.location.hash === '#admin') openAdminPanel();
     abrirEspecialPorHash();
   });
+
+  /* Campanas de suscripción: en celular suenan al entrar en pantalla */
+  rbObservar();
 
   /* Link único de clase especial: presenzastudioni.com/#<id de CLASES_ESPECIALES> */
   abrirEspecialPorHash();
