@@ -4129,6 +4129,18 @@ let SUBS = [];
 /* Ids que existen en la nube. Se actualiza solo al sincronizar y al guardar,
    así sirve de "estado anterior" fiable para saber cuáles hay que borrar. */
 let SUBS_IDS = [];
+/* Foto de cómo está cada fila en la nube (id → JSON). Sirve para mandar SOLO
+   las que de verdad cambiaron.
+   Antes se subía el arreglo COMPLETO en cada guardado. Como el celular de cada
+   alumna tiene su propia copia en memoria, al reservar reescribía las 10 fichas
+   con lo que ella tenía cargado desde que abrió la página: si mientras tanto
+   corregiste el saldo de otra alumna, esa corrección se perdía. */
+let SUBS_SNAP = {};
+function snapSubs(arr) {
+  const m = {};
+  arr.forEach(s => { if (s.id) m[s.id] = JSON.stringify(subToRow(s)); });
+  return m;
+}
 
 /* Devuelve una COPIA del arreglo. Los objetos de adentro son los mismos (por
    eso confirmarPagoSub y compañía pueden seguir modificándolos), pero quitar
@@ -4179,7 +4191,8 @@ async function sincronizarSubs() {
   if (!SB_ON) return false;
   const filas = await sbFetch('suscriptoras?select=*');
   SUBS = filas.map(rowToSub);
-  SUBS_IDS = SUBS.map(s => s.id).filter(Boolean);   /* lo que hay en la nube */
+  SUBS_IDS  = SUBS.map(s => s.id).filter(Boolean);   /* lo que hay en la nube */
+  SUBS_SNAP = snapSubs(SUBS);
   localStorage.setItem('presenza_subs', JSON.stringify(SUBS));
   return true;
 }
@@ -4240,21 +4253,26 @@ async function saveSuscriptoras(arr) {
   const idsAhora = arr.map(s => s.id).filter(Boolean);
   const borradas = SUBS_IDS.filter(id => !idsAhora.includes(id));
 
+  /* Solo las filas que cambiaron: así el celular de una alumna nunca reescribe
+     la ficha de otra con una copia vieja. */
+  const cambiadas = arr.filter(s => s.id && JSON.stringify(subToRow(s)) !== SUBS_SNAP[s.id]);
+
   SUBS = arr;
   localStorage.setItem('presenza_subs', JSON.stringify(arr)); /* respaldo */
   if (!SB_ON) return true;
   try {
-    if (arr.length) {
+    if (cambiadas.length) {
       await sbFetch('suscriptoras?on_conflict=id', {
         method: 'POST',
         headers: { Prefer: 'resolution=merge-duplicates' },
-        body: JSON.stringify(arr.map(subToRow))
+        body: JSON.stringify(cambiadas.map(subToRow))
       });
     }
     for (const id of borradas) {
       await sbFetch(`suscriptoras?id=eq.${encodeURIComponent(id)}`, { method:'DELETE' });
     }
-    SUBS_IDS = idsAhora;   /* lo recién guardado es ahora el estado de la nube */
+    SUBS_IDS  = idsAhora;
+    SUBS_SNAP = snapSubs(arr);   /* lo recién guardado es el nuevo estado de la nube */
     return true;
   } catch (e) {
     /* 404 = la tabla `suscriptoras` todavía no se creó en Supabase: el sitio
@@ -4998,6 +5016,12 @@ async function proceedToConfirm() {
   const tel    = document.getElementById('mTel').value.trim();
   const nivel  = document.getElementById('mNivel').value;
   const notas  = document.getElementById('mNotas').value.trim();
+
+  /* Saldo fresco antes de cobrar. La página pudo quedar abierta horas: si en
+     ese rato la alumna reservó desde otro celular o el estudio le corrigió las
+     clases, el número en memoria ya no sirve para descontar. */
+  if (SB_ON && pagoMetodo === 'sub') { try { await sincronizarSubs(); } catch(e) {} }
+
   const { clase, dateStr, hora, instructor } = booking;
   const info   = INFO[clase];
   const d      = new Date(dateStr+'T12:00:00');
@@ -7356,7 +7380,8 @@ document.addEventListener('DOMContentLoaded', () => {
      datos reales de la nube (los de todos los dispositivos) */
   SLOTS = cargarRespaldoLocal();
   try { SUBS = JSON.parse(localStorage.getItem('presenza_subs')||'[]'); } catch(e) { SUBS = []; }
-  SUBS_IDS = SUBS.map(s => s.id).filter(Boolean);   /* sincronizarSubs lo corrige enseguida */
+  SUBS_IDS  = SUBS.map(s => s.id).filter(Boolean);   /* sincronizarSubs lo corrige enseguida */
+  SUBS_SNAP = snapSubs(SUBS);
   renderSched();
   renderEventosPublic();
   if (SB_ON) {
