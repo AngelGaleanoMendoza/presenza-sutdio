@@ -4315,12 +4315,37 @@ function findSubIndex(arr, email, tel, nombre) {
     if (idx >= 0) return idx;
   }
 
-  /* Último recurso: mismo nombre sin teléfono útil (registros viejos) */
+  /* Por nombre y apellido, SOLO contra fichas cargadas a mano por el estudio
+     (las que todavía no tienen correo real, `${DOM_PENDIENTE}`).
+     Son las alumnas que ya venían pagando antes de la app: el estudio sabe su
+     saldo pero no su correo. Cuando se registran, esta línea las reconoce y su
+     ficha se completa con los datos reales en vez de crear una duplicada.
+     No se compara contra fichas ya reclamadas: dos alumnas pueden llamarse
+     igual, y ahí manda el correo o el teléfono, que sí son únicos. */
   const nm = normNombre(nombre);
-  if (nm && td.length < 8) {
-    idx = arr.findIndex(x => normNombre(x.nombre) === nm && normTel(x.tel).length < 8);
+  if (nm) {
+    idx = arr.findIndex(x => esFichaSinReclamar(x) && normNombre(x.nombre) === nm);
   }
   return idx;
+}
+
+/* Correo de relleno de las fichas cargadas a mano (la tabla exige correo
+   único y no vacío, y el estudio no lo tiene hasta que la alumna se registra) */
+const DOM_PENDIENTE = '@pendiente.presenza';
+function esFichaSinReclamar(s) {
+  return (s.email || '').toLowerCase().endsWith(DOM_PENDIENTE);
+}
+
+/* Completa la ficha cargada a mano con el correo y teléfono reales la primera
+   vez que la alumna usa la app. A partir de ahí se reconoce por correo. */
+async function vincularFicha(subId, email, tel) {
+  const arr = getSuscriptoras();
+  const idx = arr.findIndex(s => s.id === subId);
+  if (idx < 0 || !esFichaSinReclamar(arr[idx])) return false;
+  if (email) arr[idx].email = email.trim().toLowerCase();
+  if (tel)   arr[idx].tel   = tel;
+  await saveSuscriptoras(arr);
+  return true;
 }
 
 function findSuscriptora(email, tel, nombre) {
@@ -4906,6 +4931,8 @@ async function autoRegisterSub(nombre, email, tel, nivel, planKey) {
     arr[idx].pendiente = { plan: planKey, fecha: hoy };
     arr[idx].nombre    = nombre || arr[idx].nombre;
     arr[idx].tel       = tel    || arr[idx].tel;
+    /* Ficha cargada a mano que se reconoció por nombre: ya tiene dueña */
+    if (esFichaSinReclamar(arr[idx]) && email) arr[idx].email = email.trim().toLowerCase();
   } else {
     arr.push({
       id:              'SUB-'+Date.now().toString(36).toUpperCase().slice(-6),
@@ -5080,6 +5107,12 @@ async function proceedToConfirm() {
      Las ilimitadas no descuentan (cobrarClase devuelve false). */
   let cobro = false;
   if (usaSubActiva) {
+    /* Si es una ficha que el estudio cargó a mano y se reconoció por nombre,
+       se le pegan ya su correo y teléfono reales: de aquí en adelante la
+       reserva y su plan quedan enlazados por correo, como todas las demás. */
+    if (esFichaSinReclamar(subActiva)) {
+      try { await vincularFicha(subActiva.id, email, tel); } catch(e) {}
+    }
     if (!esIlimitada(subActiva)) {
       cobro = await cobrarClase(subActiva.id);
       if (!cobro) {
@@ -6009,7 +6042,7 @@ function buildSAdminSubs() {
         <div class="sa-sub-avatar">${initials}</div>
         <div class="sa-sub-card-info">
           <strong>${sub.nombre}</strong>
-          <span>${sub.email}</span>
+          <span>${esFichaSinReclamar(sub) ? '<em style="color:var(--gray)">📇 cargada a mano · se enlaza al registrarse</em>' : sub.email}</span>
           <span class="sa-sub-tel">${sub.tel||'Sin teléfono'}</span>
         </div>
         <div class="sa-sub-card-meta">
