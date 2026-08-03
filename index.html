@@ -4069,8 +4069,14 @@ async function marcarPagoOkDB(key, ts) {
    SUBS es la copia en memoria: toda la app lee de aquí sin esperar, igual
    que SLOTS con las reservas. localStorage queda como respaldo offline. */
 let SUBS = [];
+/* Ids que existen en la nube. Se actualiza solo al sincronizar y al guardar,
+   así sirve de "estado anterior" fiable para saber cuáles hay que borrar. */
+let SUBS_IDS = [];
 
-function getSuscriptoras() { return SUBS; }
+/* Devuelve una COPIA del arreglo. Los objetos de adentro son los mismos (por
+   eso confirmarPagoSub y compañía pueden seguir modificándolos), pero quitar
+   o agregar elementos ya no toca SUBS a espaldas de saveSuscriptoras. */
+function getSuscriptoras() { return SUBS.slice(); }
 
 /* id es la llave primaria en la tabla (SUB-XXXXXX, la misma que ya genera
    la app); pendiente vive como pendiente_plan/pendiente_fecha en la base
@@ -4116,6 +4122,7 @@ async function sincronizarSubs() {
   if (!SB_ON) return false;
   const filas = await sbFetch('suscriptoras?select=*');
   SUBS = filas.map(rowToSub);
+  SUBS_IDS = SUBS.map(s => s.id).filter(Boolean);   /* lo que hay en la nube */
   localStorage.setItem('presenza_subs', JSON.stringify(SUBS));
   return true;
 }
@@ -4166,9 +4173,15 @@ async function marcarAsistenciaDB(clase, dateStr, hora, email, subId) {
    Todas las filas ya traen `id` (autoRegisterSub y guardarNuevaSub lo generan
    antes de llegar aquí), así que el upsert va sobre esa llave. */
 async function saveSuscriptoras(arr) {
-  const idsAntes = SUBS.map(s => s.id).filter(Boolean);
+  /* Las borradas se calculan contra SUBS_IDS, no contra SUBS.
+     SUBS es un arreglo vivo: quien llama aquí lo recibe por referencia desde
+     getSuscriptoras() y a veces lo modifica en el sitio (rechazarPagoSub hace
+     splice). Comparando SUBS con arr se comparaba el mismo arreglo ya
+     modificado, la lista de borradas salía vacía, el DELETE nunca se enviaba
+     y la suscriptora reaparecía al recargar. SUBS_IDS son strings sueltos:
+     nadie puede modificarlos por accidente. */
   const idsAhora = arr.map(s => s.id).filter(Boolean);
-  const borradas = idsAntes.filter(id => !idsAhora.includes(id));
+  const borradas = SUBS_IDS.filter(id => !idsAhora.includes(id));
 
   SUBS = arr;
   localStorage.setItem('presenza_subs', JSON.stringify(arr)); /* respaldo */
@@ -4184,6 +4197,7 @@ async function saveSuscriptoras(arr) {
     for (const id of borradas) {
       await sbFetch(`suscriptoras?id=eq.${encodeURIComponent(id)}`, { method:'DELETE' });
     }
+    SUBS_IDS = idsAhora;   /* lo recién guardado es ahora el estado de la nube */
     return true;
   } catch (e) {
     /* 404 = la tabla `suscriptoras` todavía no se creó en Supabase: el sitio
@@ -7105,6 +7119,7 @@ document.addEventListener('DOMContentLoaded', () => {
      datos reales de la nube (los de todos los dispositivos) */
   SLOTS = cargarRespaldoLocal();
   try { SUBS = JSON.parse(localStorage.getItem('presenza_subs')||'[]'); } catch(e) { SUBS = []; }
+  SUBS_IDS = SUBS.map(s => s.id).filter(Boolean);   /* sincronizarSubs lo corrige enseguida */
   renderSched();
   renderEventosPublic();
   if (SB_ON) {
