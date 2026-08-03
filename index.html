@@ -1764,6 +1764,11 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .sub-ilimit-txt strong { display:block; font-size:.78rem; color:var(--wine-d); }
 .sub-ilimit-txt span   { display:block; font-size:.68rem; color:var(--gray); margin-top:2px; }
 .sub-ilimit-cta { font-size:.7rem; font-weight:700; color:var(--wine); white-space:nowrap; }
+.sub-descuento-nota {
+  font-size:.68rem; color:var(--gray); text-align:center;
+  margin-top:7px; padding:6px 10px; border-radius:8px; background:rgba(107,23,40,.04);
+}
+.sub-descuento-nota strong { color:var(--wine); }
 .sub-start-alert {
   display:flex; align-items:center; gap:14px;
   background:linear-gradient(135deg,rgba(107,23,40,.11),rgba(107,23,40,.05));
@@ -4008,7 +4013,7 @@ async function sincronizarReservas() {
       nombre: f.nombre, email: f.email || '', tel: f.tel || '',
       nivel: f.nivel || '', notas: f.notas || '',
       lugar: f.lugar, metodo: f.metodo || '', instructor: f.instructor || '',
-      pagoOk: f.pago_ok, ts: Number(f.ts)
+      pagoOk: f.pago_ok, claseDescontada: !!f.clase_descontada, ts: Number(f.ts)
     });
   });
   SLOTS = nuevo;
@@ -4021,18 +4026,36 @@ function getOcupados(clase, dateStr, hora) { return getClientes(clase, dateStr, 
 function getClientes(clase, dateStr, hora) { return SLOTS[slotKey(clase, dateStr, hora)] || []; }
 
 /* ── Escritura ── */
+/* Se apaga solo si la columna clase_descontada todavía no existe en Supabase
+   (falta correr supabase-descuento-al-reservar.sql). Así una reserva nunca
+   falla por eso: se guarda igual, solo sin la marca de descuento. */
+let COL_DESCUENTO = true;
+function esColumnaFaltante(e) {
+  return e && e.status === 400 && /clase_descontada/.test(e.body || '');
+}
+
 async function saveSlot(clase, dateStr, hora, datos) {
   const key = slotKey(clase, dateStr, hora);
   const c   = { ...datos, ts: Date.now() };
   if (SB_ON) {
-    /* El índice único (slot_key, lugar) rechaza el mat si otra alumna se
-       adelantó desde otro celular: ahí devolvemos 409 y se elige otro. */
-    await sbFetch('reservas', { method:'POST', body: JSON.stringify({
+    const fila = {
       slot_key:key, clase, fecha:dateStr, hora, ts:c.ts,
       nombre:c.nombre, email:c.email||null, tel:c.tel||null, nivel:c.nivel||null,
       notas:c.notas||null, lugar:c.lugar ?? null, metodo:c.metodo||null,
       instructor:c.instructor||null, pago_ok: c.pagoOk !== false
-    })});
+    };
+    if (COL_DESCUENTO) fila.clase_descontada = !!c.claseDescontada;
+    /* El índice único (slot_key, lugar) rechaza el mat si otra alumna se
+       adelantó desde otro celular: ahí devolvemos 409 y se elige otro. */
+    try {
+      await sbFetch('reservas', { method:'POST', body: JSON.stringify(fila) });
+    } catch (e) {
+      if (!esColumnaFaltante(e)) throw e;
+      COL_DESCUENTO = false;
+      console.warn('Falta correr supabase-descuento-al-reservar.sql en Supabase.');
+      delete fila.clase_descontada;
+      await sbFetch('reservas', { method:'POST', body: JSON.stringify(fila) });
+    }
   }
   (SLOTS[key] = SLOTS[key] || []).push(c);
   guardarRespaldoLocal(key);
@@ -4218,8 +4241,16 @@ function getSuscriptoraByEmail(em) {
   return getSuscriptoras().find(s => s.email.toLowerCase() === em.toLowerCase());
 }
 
-/* Teléfono normalizado (solo dígitos) — identificador secundario */
-function normTel(t) { return (t||'').replace(/\D/g,''); }
+/* Teléfono normalizado a los 8 dígitos locales — identificador secundario.
+   Nicaragua usa 8 dígitos, pero la gente lo escribe de todas las formas:
+   8431 7983 · +505 8431-7983 · 00505 84317983. Si no se quita el código de
+   país, la misma alumna con su número escrito distinto no se reconocía y
+   quedaba sin plan. */
+function normTel(t) {
+  let d = (t||'').replace(/\D/g,'').replace(/^0+/,'');
+  if (d.length > 8 && d.startsWith('505')) d = d.slice(3);
+  return d;
+}
 /* Nombre normalizado (minúsculas, sin tildes ni espacios de más) */
 function normNombre(n) {
   return (n||'').trim().toLowerCase()
@@ -4236,11 +4267,24 @@ function normNombre(n) {
 function findSubIndex(arr, email, tel, nombre) {
   const em = (email||'').trim().toLowerCase();
   let idx = em ? arr.findIndex(x => (x.email||'').trim().toLowerCase() === em) : -1;
-  if (idx < 0) {
-    const td = normTel(tel), nm = normNombre(nombre);
-    if (td.length >= 8 && nm) {
-      idx = arr.findIndex(x => normTel(x.tel) === td && normNombre(x.nombre) === nm);
-    }
+  if (idx >= 0) return idx;
+
+  /* Por teléfono solo. Es seguro porque la base tiene índice único sobre el
+     teléfono normalizado (suscriptoras_tel_unico): no pueden existir dos
+     suscriptoras con el mismo número, así que la coincidencia es una sola.
+     Antes se exigía teléfono + nombre y una alumna que escribía su nombre
+     distinto ("Ma. Carmen" vs "María del Carmen") no se reconocía: se creaba
+     un registro nuevo que la base rechazaba con 409 y quedaba sin plan. */
+  const td = normTel(tel);
+  if (td.length >= 8) {
+    idx = arr.findIndex(x => normTel(x.tel) === td);
+    if (idx >= 0) return idx;
+  }
+
+  /* Último recurso: mismo nombre sin teléfono útil (registros viejos) */
+  const nm = normNombre(nombre);
+  if (nm && td.length < 8) {
+    idx = arr.findIndex(x => normNombre(x.nombre) === nm && normTel(x.tel).length < 8);
   }
   return idx;
 }
@@ -4256,6 +4300,52 @@ function findSuscriptora(email, tel, nombre) {
    de la tarde se guardaban con fecha de mañana y los planes vencían medio día
    antes de tiempo. Se usa la fecha local, igual que el tab Hoy y el Calendario. */
 function hoyISO() { return fmtISO(new Date()); }
+
+/* ── Cobro y devolución de clases ──
+   La clase se descuenta AL RESERVAR, no al marcar asistencia: así el contador
+   de la alumna refleja en el momento lo que ya apartó, y no puede reservar
+   más clases de las que pagó. Si la reserva se elimina, se le devuelve. */
+
+/* Descuenta 1 clase. Devuelve true si de verdad cobró (las ilimitadas no
+   descuentan y las vencidas o sin saldo ni siquiera llegan aquí). */
+async function cobrarClase(subId) {
+  const arr = getSuscriptoras();
+  const idx = arr.findIndex(s => s.id === subId);
+  if (idx < 0) return false;
+  const sub = arr[idx];
+  if (esIlimitada(sub)) return false;
+  if (sub.clasesRestantes <= 0) return false;
+  sub.clasesRestantes = Math.max(0, sub.clasesRestantes - 1);
+  sub.clasesUsadas    = (sub.clasesUsadas || 0) + 1;
+  await saveSuscriptoras(arr);
+  return true;
+}
+
+/* Le regresa la clase (reserva eliminada, rechazada o cupo liberado) */
+async function devolverClase(subId) {
+  const arr = getSuscriptoras();
+  const idx = arr.findIndex(s => s.id === subId);
+  if (idx < 0) return false;
+  const sub = arr[idx];
+  if (esIlimitada(sub)) return false;
+  sub.clasesRestantes = (sub.clasesRestantes || 0) + 1;
+  sub.clasesUsadas    = Math.max(0, (sub.clasesUsadas || 0) - 1);
+  await saveSuscriptoras(arr);
+  return true;
+}
+
+/* Cuántas clases tiene ya apartadas en fechas futuras (para mostrárselo) */
+function reservasConsumidas(email) {
+  const em = (email||'').trim().toLowerCase();
+  if (!em) return 0;
+  let n = 0;
+  for (const k in SLOTS) {
+    for (const c of SLOTS[k]) {
+      if (c.claseDescontada && (c.email||'').trim().toLowerCase() === em) n++;
+    }
+  }
+  return n;
+}
 
 /* Vencimiento: 30 días exactos por cada mes del plan, desde la activación */
 function calcVence(meses) {
@@ -4677,7 +4767,8 @@ function verifySub() {
           <span>${PLANES_SUB[sub.plan]?.nombre || 'Suscripción'} · Vence: ${sub.fechaVence}</span>
         </div>
         <span class="sub-cupos-badge ${cls}">${esIlimitada(sub) ? '∞ ilimitado' : sub.clasesRestantes + ' clases'}</span>
-      </div>`;
+      </div>
+      ${esIlimitada(sub) ? '' : `<p class="sub-descuento-nota">Al confirmar se descuenta 1 clase de tu plan · te quedarían <strong>${Math.max(0, sub.clasesRestantes - 1)}</strong></p>`}`;
     document.getElementById('btnPagar').disabled = false;
     return;
   }
@@ -4915,9 +5006,31 @@ async function proceedToConfirm() {
      verifique el pago (pagoOk:false). El resto se considera resuelto aparte. */
   const btnFinal = document.getElementById('btnPagar');
   if (btnFinal) btnFinal.disabled = true;   /* candado contra el doble toque */
+
+  /* Se cobra la clase del paquete ANTES de guardar: si el saldo ya se agotó
+     desde otro celular, se detiene aquí y no queda una reserva sin pagar.
+     Las ilimitadas no descuentan (cobrarClase devuelve false). */
+  let cobro = false;
+  if (usaSubActiva) {
+    if (!esIlimitada(subActiva)) {
+      cobro = await cobrarClase(subActiva.id);
+      if (!cobro) {
+        if (btnFinal) btnFinal.disabled = false;
+        alert(`Ya usaste todas las clases de tu plan ${PLANES_SUB[subActiva.plan]?.nombre || ''}.\n\nEscríbenos por WhatsApp para renovarlo ✧`);
+        try { await sincronizarSubs(); } catch(e) {}
+        verifySub();
+        const pasoPago = mFlow.findIndex(p => p.panel === 'mp2');
+        if (pasoPago >= 0) mGoStep(pasoPago + 1);
+        return;
+      }
+    }
+  }
+
   try {
-    await saveSlot(clase, dateStr, hora, { nombre, email, tel, nivel, notas, lugar: booking.lugar, metodo: metodoDtxt, instructor, pagoOk: pagoMetodo !== 'transfer' });
+    await saveSlot(clase, dateStr, hora, { nombre, email, tel, nivel, notas, lugar: booking.lugar, metodo: metodoDtxt, instructor, pagoOk: pagoMetodo !== 'transfer', claseDescontada: cobro });
   } catch (err) {
+    /* La reserva no se guardó: hay que regresarle la clase que ya se le cobró */
+    if (cobro) { try { await devolverClase(subActiva.id); } catch(e) {} }
     if (btnFinal) btnFinal.disabled = false;
     /* 409 = el índice único rechazó el mat: otra alumna se adelantó */
     if (err.status === 409 && booking.lugar) {
@@ -5500,7 +5613,7 @@ function buildSAdminHoy() {
         <div class="sa-alumna-info">
           <div class="sa-alumna-nombre">${c.nombre} ${c.lugar ? `<span class="sa-lugar-badge">📍 ${c.lugar}</span>` : ''}</div>
           <div class="sa-alumna-email">${c.email||'—'}</div>
-          <div class="sa-alumna-sub">${c.pagoOk === false ? '🏦 ⏳ pago por confirmar' : esSub ? '💎 Suscriptora' : (sub && sub.pendiente) ? '⏳ Sub pendiente de pago' : (c.metodo||'—').split('·')[0].trim()}</div>
+          <div class="sa-alumna-sub">${c.pagoOk === false ? '🏦 ⏳ pago por confirmar' : esSub ? (c.claseDescontada ? '💎 Suscriptora · clase ya descontada' : '💎 Suscriptora') : (sub && sub.pendiente) ? '⏳ Sub pendiente de pago' : (c.metodo||'—').split('·')[0].trim()}</div>
         </div>
         <span class="sa-alumna-tel">${c.tel||'—'}</span>
         ${esSub
@@ -5589,26 +5702,22 @@ function buildSAdminHoy() {
     ${clasesHtml}`;
 }
 
+/* Marca que la alumna SÍ llegó a la clase.
+   Ya NO descuenta: la clase se cobró al momento de reservar (cobrarClase).
+   Si descontara aquí también, se le estarían quitando dos clases por una. */
 async function registrarAsistencia(email, clase, dateStr, hora) {
   const subs = getSuscriptoras();
   const idx  = subs.findIndex(s => s.email.toLowerCase() === email.toLowerCase());
   if (idx < 0) return;
   const sub = subs[idx];
-  if (sub.clasesRestantes <= 0) { alert('La alumna no tiene clases disponibles en su suscripción.'); return; }
-  if (subVencida(sub)) { alert(`El plan de ${sub.nombre} venció el ${sub.fechaVence}. Renueva su plan primero.`); return; }
 
-  /* Se registra primero la asistencia: si ya estaba marcada (aquí o desde otro
-     dispositivo) no se descuenta la clase de nuevo. */
   if (!await marcarAsistenciaDB(clase, dateStr, hora, email, sub.id)) {
     alert(`${sub.nombre} ya tenía su asistencia registrada en esta clase.`);
     buildSAdminHoy();
     return;
   }
 
-  /* Los planes ilimitados no descuentan clases */
-  if (!esIlimitada(sub)) sub.clasesRestantes = Math.max(0, sub.clasesRestantes - 1);
-  sub.clasesUsadas    = (sub.clasesUsadas || 0) + 1;
-  sub.historial       = sub.historial || [];
+  sub.historial = sub.historial || [];
   sub.historial.push({ fecha: dateStr, clase, hora, ts: Date.now() });
   subs[idx] = sub;
   await saveSuscriptoras(subs);
@@ -5617,8 +5726,15 @@ async function registrarAsistencia(email, clase, dateStr, hora) {
 
 /* Elimina una reservación (ej. no pagó / no se concretó el contacto) */
 async function eliminarReserva(clase, dateStr, hora, ts, origen) {
-  if (!confirm('¿Eliminar esta reservación? Se liberará el cupo. Esta acción no se puede deshacer.')) return;
-  if (!await borrarReservaDB(slotKey(clase, dateStr, hora), ts)) return;
+  const key = slotKey(clase, dateStr, hora);
+  const res = (SLOTS[key] || []).find(c => c.ts === ts);
+  const sub = res && res.claseDescontada ? getSuscriptoraByEmail(res.email) : null;
+
+  if (!confirm(sub
+    ? `¿Eliminar esta reservación?\n\nSe liberará el cupo y se le devolverá 1 clase a ${sub.nombre} (le quedarían ${sub.clasesRestantes + 1}).`
+    : '¿Eliminar esta reservación? Se liberará el cupo. Esta acción no se puede deshacer.')) return;
+  if (!await borrarReservaDB(key, ts)) return;
+  if (sub) await devolverClase(sub.id);
   renderCards(); /* refresca los cupos en las tarjetas públicas del horario */
 
   if (origen === 'cal') {
@@ -5683,7 +5799,11 @@ async function confirmarPagoReserva(clase, dateStr, hora, ts) {
 
 async function rechazarPagoReserva(clase, dateStr, hora, ts) {
   if (!confirm('¿Rechazar esta reserva? Se eliminará y se liberará el cupo.')) return;
-  if (!await borrarReservaDB(slotKey(clase, dateStr, hora), ts)) return;
+  const key = slotKey(clase, dateStr, hora);
+  const res = (SLOTS[key] || []).find(c => c.ts === ts);
+  const sub = res && res.claseDescontada ? getSuscriptoraByEmail(res.email) : null;
+  if (!await borrarReservaDB(key, ts)) return;
+  if (sub) await devolverClase(sub.id);   /* no se le cobra una clase rechazada */
   renderCards(); /* refresca los cupos en las tarjetas públicas del horario */
   sadminTab(sadminTabActual);
 }
@@ -6017,13 +6137,17 @@ async function agendarSubAClase(email, clase, dateStr, hora, instructor) {
   for (let i = 1; i <= total; i++) if (!tomados.has(i)) { lugarLibre = i; break; }
 
   const planN = PLANES_SUB[sub.plan]?.nombre || 'Membresía';
+  /* Agendarla desde el panel cobra igual que si reservara ella misma */
+  const cobro = esIlimitada(sub) ? false : await cobrarClase(sub.id);
+  if (!cobro && !esIlimitada(sub)) { alert(`${sub.nombre} ya no tiene clases disponibles.`); return false; }
   try {
     await saveSlot(clase, dateStr, hora, {
       nombre: sub.nombre, email: sub.email, tel: sub.tel||'',
       nivel: '', notas: 'Agendada por admin', lugar: lugarLibre,
-      metodo: `💎 Suscripción · ${planN}`, instructor
+      metodo: `💎 Suscripción · ${planN}`, instructor, claseDescontada: cobro
     });
   } catch (e) {
+    if (cobro) { try { await devolverClase(sub.id); } catch(e2) {} }
     /* 409 = el índice único rechazó el mat (alguien lo tomó en ese instante) */
     if (e.status === 409) {
       try { await sincronizarReservas(); } catch(e2) {}
