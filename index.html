@@ -2226,6 +2226,34 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   gap:8px; align-items:center; padding:5px 0;
   border-bottom:1px solid rgba(107,23,40,.05);
 }
+
+/* ── Clases libres dentro del tab Horarios ── */
+.hor-esp-card {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:10px 12px; margin-bottom:7px; border-radius:10px;
+  background:linear-gradient(135deg,rgba(107,23,40,.05),rgba(224,169,59,.09));
+  border:1px solid rgba(107,23,40,.12);
+}
+.hor-esp-card.esp-pasada { opacity:.6; }
+.hor-esp-info { min-width:0; display:flex; flex-direction:column; gap:2px; }
+.hor-esp-info strong { font-size:.8rem; color:var(--wine-d); }
+.hor-esp-info span   { font-size:.69rem; color:var(--gray); }
+.hor-esp-link {
+  font-size:.64rem; color:var(--wine); background:rgba(255,255,255,.7);
+  border-radius:5px; padding:2px 6px; margin-top:3px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;
+}
+.hor-esp-btns { display:flex; align-items:center; gap:6px; flex:none; }
+.hor-esp-form {
+  display:grid; grid-template-columns:1.4fr 130px 100px 1fr 70px 80px 1.2fr auto;
+  gap:7px; align-items:center; padding:10px 4px 4px; margin-top:6px;
+  border-top:2px dashed rgba(107,23,40,.14);
+}
+@media (max-width:760px) {
+  .hor-esp-form { grid-template-columns:1fr 1fr; }
+  .hor-esp-form .btn-hor-add { grid-column:1 / -1; padding:8px; }
+  .hor-esp-card { flex-direction:column; align-items:stretch; }
+}
 .hor-row:last-child { border-bottom:none; }
 .hor-sel, .hor-inp {
   padding:7px 10px; border:1.5px solid rgba(107,23,40,.15); border-radius:8px;
@@ -3779,11 +3807,61 @@ const INFO = {
    presenzastudioni.com/#<id>. Para desactivarla, borra el objeto.
    El id es un token aleatorio a propósito: es la única llave del link, así que
    NO usar palabras adivinables (gratis, promo, clase…) ni enlazarlo desde la web. */
-const CLASES_ESPECIALES = [
-  { id:'naytn5h25g', clase:'pilates', dateStr:'2026-07-29', hora:'10:30',
-    instructor:'Jimena', cupos:11, precio:0,
-    titulo:'Clase gratis · Presenza Sculpt' },
-];
+let CLASES_ESPECIALES = [];
+
+/* Token del link: 10 caracteres al azar, sin letras que se confundan (l/1, o/0).
+   Es la única llave de la clase, así que se genera con crypto, no con Math.random. */
+function nuevoTokenEsp() {
+  const abc = 'abcdefghijkmnpqrstuvwxyz23456789';
+  const b = new Uint8Array(10);
+  (window.crypto || window.msCrypto).getRandomValues(b);
+  return [...b].map(x => abc[x % abc.length]).join('');
+}
+
+function espToRow(e) {
+  return { id:e.id, clase:e.clase, fecha:e.dateStr, hora:e.hora,
+           instructor:e.instructor || null, cupos:e.cupos, precio:e.precio,
+           titulo:e.titulo || null };
+}
+function rowToEsp(f) {
+  return { id:f.id, clase:f.clase, dateStr:f.fecha, hora:f.hora,
+           instructor:f.instructor || '', cupos:f.cupos, precio:f.precio,
+           titulo:f.titulo || '' };
+}
+
+async function sincronizarEspeciales() {
+  if (!SB_ON) return false;
+  const filas = await sbFetch('clases_especiales?select=*&activa=is.true&order=fecha,hora');
+  CLASES_ESPECIALES = filas.map(rowToEsp);
+  return true;
+}
+
+async function guardarEspecialDB(esp) {
+  if (!SB_ON) { CLASES_ESPECIALES.push(esp); return true; }
+  try {
+    await sbFetch('clases_especiales', { method:'POST', body: JSON.stringify(espToRow(esp)) });
+  } catch (e) {
+    /* 409 = ya existe una clase libre en esa misma clase, fecha y hora */
+    if (e.status === 409) { alert('Ya existe una clase libre en esa clase, fecha y hora.'); return false; }
+    alert('No se pudo crear la clase libre: ' + e.message);
+    return false;
+  }
+  CLASES_ESPECIALES.push(esp);
+  CLASES_ESPECIALES.sort((a,b) => (a.dateStr+a.hora).localeCompare(b.dateStr+b.hora));
+  return true;
+}
+
+/* Se desactiva en vez de borrarse: así las reservas que ya se hicieron
+   conservan su referencia y el link simplemente deja de servir. */
+async function borrarEspecialDB(id) {
+  if (SB_ON) {
+    try { await sbFetch(`clases_especiales?id=eq.${encodeURIComponent(id)}`,
+      { method:'PATCH', body: JSON.stringify({ activa:false }) }); }
+    catch (e) { alert('No se pudo desactivar: ' + e.message); return false; }
+  }
+  CLASES_ESPECIALES = CLASES_ESPECIALES.filter(e => e.id !== id);
+  return true;
+}
 function getEspecial(clase, dateStr, hora) {
   return CLASES_ESPECIALES.find(e => e.clase===clase && e.dateStr===dateStr && e.hora===hora) || null;
 }
@@ -3843,7 +3921,12 @@ const HORARIO = {
     { clase:'essenza', hora:'08:30', instructor:'M. Carmen' },
     { clase:'burn',    hora:'09:30', instructor:'Jimena'    },
   ],
+  6: [ /* Sábado — se llena desde el Super Admin → Horarios */ ],
 };
+
+/* Días que se pueden editar en el panel (1=Lun … 6=Sáb). El domingo el
+   estudio no abre, así que no aparece ni en el horario público ni aquí. */
+const DIAS_EDITABLES = [1,2,3,4,5,6];
 
 /* Cargar horario personalizado si el admin lo editó */
 (function() {
@@ -4359,9 +4442,21 @@ function closeModal() {
 /* Abre la reserva de una clase especial desde su link único (#id).
    Avisa si la clase ya pasó o si se llenaron los cupos. */
 async function abrirEspecialPorHash() {
-  const id  = (window.location.hash || '').replace('#','');
+  const id = (window.location.hash || '').replace('#','');
+  /* #admin y los anclajes normales (#clases, #reserva…) no son clases libres */
+  if (!id || id.length < 8 || document.getElementById(id)) return;
+
+  /* La lista vive en la nube y se carga sola: si el link se abre antes de que
+     llegue, hay que esperarla o el token no se encontraría y no pasaría nada. */
+  if (SB_ON && !CLASES_ESPECIALES.length) {
+    try { await sincronizarEspeciales(); } catch(e) {}
+  }
   const esp = CLASES_ESPECIALES.find(e => e.id === id);
-  if (!esp) return;
+  if (!esp) {
+    alert('Este link de clase ya no está disponible. Escríbenos por WhatsApp para conocer los próximos horarios ✧');
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    return;
+  }
   history.replaceState(null, '', window.location.pathname + window.location.search);
 
   if (esp.dateStr < hoyISO()) {
@@ -5287,7 +5382,7 @@ function checkSuperPin() {
     sadminTab(sadminRol === 'coach' ? 'calendario' : 'hoy');
     /* Traer lo hecho desde otros celulares antes de mostrar el panel */
     if (SB_ON) {
-      Promise.all([sincronizarReservas(), sincronizarSubs(), sincronizarAsistencias(), sincronizarHorarios()])
+      Promise.all([sincronizarReservas(), sincronizarSubs(), sincronizarAsistencias(), sincronizarHorarios(), sincronizarEspeciales()])
         .then(() => { sadminTab(sadminTabActual); updateSubsBadge(); })
         .catch(err => alert('No se pudieron cargar los datos de la nube.\nMostrando la última copia local.\n\n' + err.message));
     }
@@ -6460,7 +6555,7 @@ function printReportePeriodo() {
 /* ── Tab: Horarios ── */
 function buildSAdminHorarios() {
   const body  = document.getElementById('sadminBody');
-  const DNOM  = { 1:'Lunes', 2:'Martes', 3:'Miércoles', 4:'Jueves', 5:'Viernes' };
+  const DNOM  = { 1:'Lunes', 2:'Martes', 3:'Miércoles', 4:'Jueves', 5:'Viernes', 6:'Sábado' };
 
   let html = `
     <div class="hor-toolbar">
@@ -6473,7 +6568,7 @@ function buildSAdminHorarios() {
       </div>
     </div>`;
 
-  [1,2,3,4,5].forEach(dia => {
+  DIAS_EDITABLES.forEach(dia => {
     const slots = HORARIO[dia] || [];
     const filas = slots.map((s,i) => `
       <div class="hor-row" id="horRow_${dia}_${i}">
@@ -6494,7 +6589,108 @@ function buildSAdminHorarios() {
     </div>`;
   });
 
+  html += buildEspecialesHtml();
   body.innerHTML = html;
+}
+
+/* ── Clases libres (de un solo día, con link único) ──
+   No salen en el horario público: la única forma de entrar es su link. */
+function buildEspecialesHtml() {
+  const hoy   = hoyISO();
+  const lista = CLASES_ESPECIALES.map(e => {
+    const info   = INFO[e.clase] || { nombre:e.clase, emoji:'🎁' };
+    const d      = new Date(e.dateStr+'T12:00:00');
+    const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
+    const ocup   = getOcupados(e.clase, e.dateStr, e.hora);
+    const pasada = e.dateStr < hoy;
+    return `<div class="hor-esp-card${pasada ? ' esp-pasada' : ''}">
+      <div class="hor-esp-info">
+        <strong>${info.emoji} ${e.titulo || info.nombre}</strong>
+        <span>${diaStr} · ${e.hora} hrs · ${e.instructor || 'sin instructora'} · ${ocup}/${e.cupos} cupos
+          · ${e.precio === 0 ? '🎁 Gratis' : fmtC(e.precio)}${pasada ? ' · ⚠ ya pasó' : ''}</span>
+        <code class="hor-esp-link" id="espLink_${e.id}">${espLink(e.id)}</code>
+      </div>
+      <div class="hor-esp-btns">
+        <button class="btn-hor-add" onclick="espCopiar('${e.id}')">🔗 Copiar link</button>
+        <button class="btn-hor-del" onclick="espDel('${e.id}')" title="Desactivar">✕</button>
+      </div>
+    </div>`;
+  }).join('') || '<p style="color:var(--gray);font-size:.76rem;padding:8px">Todavía no hay clases libres. Crea una abajo.</p>';
+
+  if (sadminRol === 'coach') {
+    return `<div class="hor-dia-blk">
+      <div class="hor-dia-hd"><strong>🎁 Clases libres</strong></div>
+      ${lista}
+    </div>`;
+  }
+
+  const opcClase = Object.entries(INFO)
+    .map(([k,v]) => `<option value="${k}">${v.emoji} ${v.nombre}</option>`).join('');
+
+  return `<div class="hor-dia-blk">
+    <div class="hor-dia-hd"><strong>🎁 Clases libres (link único)</strong></div>
+    <p class="hor-note" style="padding:0 8px 10px">
+      No aparecen en el horario público: solo entra quien tenga el link.
+      Comparte el link por WhatsApp o Instagram.
+    </p>
+    ${lista}
+    <div class="hor-esp-form">
+      <select class="hor-sel" id="espClase">${opcClase}</select>
+      <input class="hor-inp" type="date" id="espFecha" min="${hoy}"/>
+      <input class="hor-inp hor-time" type="time" id="espHora" value="10:30"/>
+      <input class="hor-inp hor-instr" type="text" id="espInstr" placeholder="Instructora"/>
+      <input class="hor-inp" type="number" id="espCupos" value="${CUPOS_SALON}" min="1" max="${CUPOS_SALON}" title="Cupos"/>
+      <input class="hor-inp" type="number" id="espPrecio" value="0" min="0" step="10" title="Precio en C$ · 0 = gratis"/>
+      <input class="hor-inp" type="text" id="espTitulo" placeholder="Título (opcional)"/>
+      <button class="btn-hor-add" onclick="espAdd()">+ Crear clase libre</button>
+    </div>
+  </div>`;
+}
+
+function espLink(id) {
+  return `${location.origin}${location.pathname}#${id}`;
+}
+
+function espCopiar(id) {
+  const url = espLink(id);
+  const ok  = () => alert('Link copiado ✓\n\n' + url + '\n\nPégalo en WhatsApp o Instagram.');
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(url).then(ok).catch(() => prompt('Copia este link:', url));
+  } else {
+    prompt('Copia este link:', url);   /* Safari viejo sin portapapeles */
+  }
+}
+
+async function espAdd() {
+  const clase  = document.getElementById('espClase').value;
+  const fecha  = document.getElementById('espFecha').value;
+  const hora   = document.getElementById('espHora').value;
+  const instr  = document.getElementById('espInstr').value.trim();
+  const cupos  = parseInt(document.getElementById('espCupos').value, 10);
+  const precio = parseInt(document.getElementById('espPrecio').value, 10);
+  const titulo = document.getElementById('espTitulo').value.trim();
+
+  if (!fecha || !hora)            { alert('Pon la fecha y la hora de la clase.'); return; }
+  if (fecha < hoyISO())           { alert('Esa fecha ya pasó.'); return; }
+  if (!(cupos >= 1 && cupos <= CUPOS_SALON)) { alert(`Los cupos van de 1 a ${CUPOS_SALON} (el salón tiene 12 mats y uno es de la instructora).`); return; }
+  if (!(precio >= 0))             { alert('El precio no puede ser negativo.'); return; }
+
+  const esp = { id:nuevoTokenEsp(), clase, dateStr:fecha, hora, instructor:instr,
+                cupos, precio: precio || 0,
+                titulo: titulo || `${precio ? 'Clase especial' : 'Clase gratis'} · ${INFO[clase].nombre}` };
+  if (!await guardarEspecialDB(esp)) return;
+  buildSAdminHorarios();
+  espCopiar(esp.id);
+}
+
+async function espDel(id) {
+  const e = CLASES_ESPECIALES.find(x => x.id === id);
+  const ocup = e ? getOcupados(e.clase, e.dateStr, e.hora) : 0;
+  if (!confirm(ocup
+    ? `Esta clase libre ya tiene ${ocup} alumna(s) inscrita(s).\n\nSe desactiva el link, pero las reservas se quedan. ¿Continuar?`
+    : '¿Desactivar esta clase libre? El link dejará de funcionar.')) return;
+  if (!await borrarEspecialDB(id)) return;
+  buildSAdminHorarios();
 }
 
 function horDel(dia, idx) {
@@ -6514,7 +6710,7 @@ function horAdd(dia) {
 }
 
 function saveHorarios() {
-  [1,2,3,4,5].forEach(dia => {
+  DIAS_EDITABLES.forEach(dia => {
     const rows = document.querySelectorAll(`#horSlots${dia} .hor-row`);
     const newSlots = [];
     rows.forEach((_, i) => {
@@ -6524,6 +6720,9 @@ function saveHorarios() {
       if (claseEl && horaEl && horaEl.value)
         newSlots.push({ clase:claseEl.value, hora:horaEl.value, instructor:instrEl?.value.trim()||'' });
     });
+    /* Ordenar por hora: una clase añadida al final quedaba pintada al final del
+       día en la web pública (la de 08:00 salía después de la de 19:30). */
+    newSlots.sort((a,b) => a.hora.localeCompare(b.hora));
     HORARIO[dia] = newSlots;
   });
   localStorage.setItem('presenza_horario_custom', JSON.stringify(HORARIO));
@@ -6542,7 +6741,7 @@ function saveHorarios() {
 async function guardarHorariosDB() {
   if (!SB_ON) return;
   const filas = [];
-  [1,2,3,4,5].forEach(dia => (HORARIO[dia]||[]).forEach((s, i) => {
+  DIAS_EDITABLES.forEach(dia => (HORARIO[dia]||[]).forEach((s, i) => {
     filas.push({ dia, clase:s.clase, hora:s.hora, instructor:s.instructor||null, orden:i });
   }));
   if (!filas.length) throw new Error('El horario no puede quedar vacío.');
@@ -6565,7 +6764,10 @@ async function sincronizarHorarios() {
   filas.forEach(f => (nuevo[f.dia] = nuevo[f.dia] || []).push({
     clase:f.clase, hora:f.hora, instructor:f.instructor||''
   }));
-  [1,2,3,4,5].forEach(d => { HORARIO[d] = nuevo[d] || []; });
+  /* Por hora, no por el orden en que se fueron agregando en el panel */
+  DIAS_EDITABLES.forEach(d => {
+    HORARIO[d] = (nuevo[d] || []).sort((a,b) => a.hora.localeCompare(b.hora));
+  });
   localStorage.setItem('presenza_horario_custom', JSON.stringify(HORARIO));
   return true;
 }
@@ -6910,7 +7112,8 @@ document.addEventListener('DOMContentLoaded', () => {
        recargan primero y luego se vuelve a dibujar la agenda */
     Promise.all([
       sincronizarHorarios().catch(e => console.warn('Horarios:', e.message)),
-      sincronizarEventos().catch(e => console.warn('Eventos:', e.message))
+      sincronizarEventos().catch(e => console.warn('Eventos:', e.message)),
+      sincronizarEspeciales().catch(e => console.warn('Clases libres:', e.message))
     ]).then(() => { renderSched(); renderEventosPublic(); });
 
     sincronizarReservas()
