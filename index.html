@@ -1769,6 +1769,19 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   margin-top:7px; padding:6px 10px; border-radius:8px; background:rgba(107,23,40,.04);
 }
 .sub-descuento-nota strong { color:var(--wine); }
+
+/* Aviso de que falta correr el SQL en Supabase (solo Super Admin) */
+.sa-aviso-sql {
+  background:rgba(220,53,69,.09); border:1.5px solid rgba(220,53,69,.4);
+  border-radius:12px; padding:13px 16px; margin-bottom:14px;
+}
+.sa-aviso-sql strong { display:block; font-size:.84rem; color:#842029; margin-bottom:6px; }
+.sa-aviso-sql p { font-size:.73rem; color:#842029; line-height:1.6; margin-bottom:4px; }
+.sa-aviso-sql code {
+  background:rgba(255,255,255,.75); border-radius:4px; padding:1px 5px; font-size:.71rem;
+}
+/* Desglose de a dónde se fueron las clases de la alumna */
+.sa-desglose { font-size:.66rem; color:var(--gray); margin-top:3px; }
 .sub-start-alert {
   display:flex; align-items:center; gap:14px;
   background:linear-gradient(135deg,rgba(107,23,40,.11),rgba(107,23,40,.05));
@@ -4031,7 +4044,28 @@ function getClientes(clase, dateStr, hora) { return SLOTS[slotKey(clase, dateStr
    falla por eso: se guarda igual, solo sin la marca de descuento. */
 let COL_DESCUENTO = true;
 function esColumnaFaltante(e) {
-  return e && e.status === 400 && /clase_descontada/.test(e.body || '');
+  return e && /clase_descontada/.test(e.body || '');
+}
+
+/* Se pregunta al entrar al panel, sin esperar a que falle una reserva: si la
+   columna no está, las devoluciones de clases NO son fiables (al recargar se
+   pierde la marca de qué reserva cobró) y hay que avisarlo en grande. */
+async function verificarColumnaDescuento() {
+  if (!SB_ON) return;
+  try { await sbFetch('reservas?select=clase_descontada&limit=1'); COL_DESCUENTO = true; }
+  catch (e) { if (esColumnaFaltante(e)) COL_DESCUENTO = false; }
+}
+
+function avisoSqlPendienteHtml() {
+  if (COL_DESCUENTO) return '';
+  return `<div class="sa-aviso-sql">
+    <strong>⚠ Falta un paso en Supabase</strong>
+    <p>Las clases se descuentan al reservar, pero todavía no se puede registrar
+       <em>cuál</em> reserva cobró. Mientras no lo corras, al eliminar una reserva
+       <strong>no se le devuelve la clase a la alumna</strong>.</p>
+    <p>Abre Supabase → SQL Editor y corre el archivo
+       <code>supabase-descuento-al-reservar.sql</code> del repositorio. Toma 10 segundos.</p>
+  </div>`;
 }
 
 async function saveSlot(clase, dateStr, hora, datos) {
@@ -4332,6 +4366,40 @@ async function devolverClase(subId) {
   sub.clasesUsadas    = Math.max(0, (sub.clasesUsadas || 0) - 1);
   await saveSuscriptoras(arr);
   return true;
+}
+
+/* Corrección manual del saldo (Super Admin). Es la red de seguridad: si por
+   lo que sea el contador de una alumna quedó mal, se arregla en el momento
+   sin tener que renovarle el plan ni tocar la base a mano. */
+async function ajustarClases(email) {
+  const sub = getSuscriptoraByEmail(email);
+  if (!sub) return;
+  if (esIlimitada(sub)) { alert(`${sub.nombre} tiene plan ilimitado: no se le descuentan clases.`); return; }
+
+  const apartadas = reservasConsumidas(sub.email);
+  const val = prompt(
+    `Corregir clases de ${sub.nombre}\n\n` +
+    `Ahora tiene: ${sub.clasesRestantes} clases disponibles\n` +
+    `Ya apartadas en reservas: ${apartadas}\n\n` +
+    `Escribe el número correcto de clases disponibles:`,
+    String(sub.clasesRestantes));
+  if (val === null) return;
+
+  const n = parseInt(val, 10);
+  if (!Number.isFinite(n) || n < 0) { alert('Escribe un número igual o mayor que 0.'); return; }
+  if (n > 999) { alert('Para un plan ilimitado usa ⟳ Renovar plan.'); return; }
+
+  const arr = getSuscriptoras();
+  const idx = arr.findIndex(s => s.id === sub.id);
+  if (idx < 0) return;
+  const antes = arr[idx].clasesRestantes;
+  arr[idx].clasesRestantes = n;
+  /* Las usadas se mueven en sentido contrario para que el total siga cuadrando */
+  arr[idx].clasesUsadas = Math.max(0, (arr[idx].clasesUsadas || 0) + (antes - n));
+  if (n > 0) arr[idx].activa = true;
+  await saveSuscriptoras(arr);
+  buildSAdminSubs();
+  alert(`${sub.nombre}: ${antes} → ${n} clases disponibles ✓`);
 }
 
 /* Cuántas clases tiene ya apartadas en fechas futuras (para mostrárselo) */
@@ -5509,7 +5577,7 @@ function checkSuperPin() {
     sadminTab(sadminRol === 'coach' ? 'calendario' : 'hoy');
     /* Traer lo hecho desde otros celulares antes de mostrar el panel */
     if (SB_ON) {
-      Promise.all([sincronizarReservas(), sincronizarSubs(), sincronizarAsistencias(), sincronizarHorarios(), sincronizarEspeciales()])
+      Promise.all([sincronizarReservas(), sincronizarSubs(), sincronizarAsistencias(), sincronizarHorarios(), sincronizarEspeciales(), verificarColumnaDescuento()])
         .then(() => { sadminTab(sadminTabActual); updateSubsBadge(); })
         .catch(err => alert('No se pudieron cargar los datos de la nube.\nMostrando la última copia local.\n\n' + err.message));
     }
@@ -5651,6 +5719,7 @@ function buildSAdminHoy() {
   }).join('');
 
   body.innerHTML = `
+    ${avisoSqlPendienteHtml()}
     <div class="sa-fecha">${diaStr}</div>
     ${buildPendientesHtml()}
     ${buildPendPagoHtml()}
@@ -5950,11 +6019,13 @@ function buildSAdminSubs() {
             <div class="sa-clases-track"><div class="sa-clases-fill" style="width:${pct}%"></div></div>
           </div>
           <div class="sa-vence">Vence: ${sub.fechaVence||'—'}</div>
+          ${ilim ? '' : `<div class="sa-desglose">📅 ${reservasConsumidas(sub.email)} apartadas en reservas · ✓ ${(sub.historial||[]).length} asistencias</div>`}
         </div>
       </div>
       <div class="sa-sub-actions">
         <button class="btn-sa-agendar" onclick="toggleAgendarSub(this)">📅 Agendar ▾</button>
         <button class="btn-sa-renovar" onclick="renovarSub('${sub.email}')">⟳ Renovar plan</button>
+        ${ilim ? '' : `<button class="btn-sa-historial" onclick="ajustarClases('${sub.email}')">✏️ Corregir clases</button>`}
         <button class="btn-sa-historial" onclick="comprobanteSub('${sub.email}')">📄 Comprobante</button>
         <button class="btn-sa-historial" onclick="toggleHistSub(this)">Historial ▾</button>
         <button class="btn-sa-del" onclick="eliminarSub('${sub.email}')">🗑 Eliminar</button>
@@ -5971,8 +6042,16 @@ function buildSAdminSubs() {
     </div>`;
   };
 
-  /* Separar tarjetas en dos apartados, conservando el índice global */
-  const conIdx        = subs.map((s, i) => [s, i]);
+  /* Separar tarjetas en dos apartados, conservando el índice global.
+     Dentro de cada uno se ordenan por lo que necesita tu atención:
+     primero las que esperan que confirmes el pago, luego las que están
+     activas, y al final las agotadas y las vencidas. */
+  const rango = s => s.pendiente ? 0
+                   : subVencida(s) ? 3
+                   : (!esIlimitada(s) && s.clasesRestantes <= 0) ? 2
+                   : 1;
+  const conIdx = subs.map((s, i) => [s, i])
+    .sort(([a],[b]) => rango(a) - rango(b) || a.nombre.localeCompare(b.nombre, 'es'));
   const cardsPrimera  = conIdx.filter(([s]) => esPrimeraVez(s.plan));
   const cardsPaquete  = conIdx.filter(([s]) => !esPrimeraVez(s.plan));
 
@@ -5994,6 +6073,7 @@ function buildSAdminSubs() {
     + renderSeccion('Suscripciones · paquetes (5+ clases)', '💎', cardsPaquete, 'Aún no hay suscriptoras con paquete.');
 
   body.innerHTML = `
+    ${avisoSqlPendienteHtml()}
     ${pendHtml}
     <div class="sa-subs-toolbar">
       <h3>Suscriptoras (${subs.length})</h3>
