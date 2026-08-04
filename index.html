@@ -4730,6 +4730,58 @@ async function ajustarClases(email) {
   alert(`${sub.nombre}: ${antes} → ${n} clases disponibles ✓`);
 }
 
+/* Editar nombre, celular y correo de una suscriptora.
+
+   El celular importa más que antes: desde que existe "Mis clases" es el
+   usuario con el que la alumna entra. Las fichas que el estudio carga a mano
+   suelen quedar sin número, y hasta ahora completarlo obligaba a entrar a la
+   base de datos. */
+async function editarDatosSub(email) {
+  const sub = getSuscriptoraByEmail(email);
+  if (!sub) return;
+
+  const nombre = prompt(`Nombre completo de la alumna:`, sub.nombre || '');
+  if (nombre === null) return;
+  if (!nombre.trim()) { alert('El nombre no puede quedar vacío.'); return; }
+
+  const tel = prompt(
+    `Celular de ${nombre.trim()}\n\n` +
+    `Es el usuario con el que entra a "Mis clases".\n` +
+    `8 dígitos. Se puede escribir con espacios o +505.`,
+    sub.tel || '');
+  if (tel === null) return;
+
+  const telLimpio = normTel(tel);
+  if (telLimpio && telLimpio.length !== 8) {
+    alert('El celular debe tener 8 dígitos.');
+    return;
+  }
+  /* Choque con otra ficha: se avisa acá con nombre y todo, en vez de dejar
+     que la base lo rechace después con un 409 sin explicar de quién es. */
+  if (telLimpio) {
+    const otra = getSuscriptoras().find(s => s.id !== sub.id && normTel(s.tel) === telLimpio);
+    if (otra) { alert(`Ese celular ya es de ${otra.nombre}. Cada alumna necesita el suyo.`); return; }
+  }
+
+  const arr = getSuscriptoras();
+  const idx = arr.findIndex(s => s.id === sub.id);
+  if (idx < 0) return;
+
+  const telAntes = normTel(arr[idx].tel);
+  arr[idx].nombre = nombre.trim();
+  arr[idx].tel    = tel.trim();
+
+  if (!await saveSuscriptoras(arr)) return;   /* saveSuscriptoras ya avisa si falla */
+  buildSAdminSubs();
+
+  /* Si ya había creado su acceso con otro número, su login sigue con el viejo:
+     la tabla `alumnas` no se puede tocar con la llave pública, a propósito. */
+  const aviso = (telAntes && telLimpio && telAntes !== telLimpio)
+    ? '\n\n⚠️ Si ella ya había creado su acceso a "Mis clases", va a seguir entrando con el número anterior. Avísame para cambiárselo.'
+    : '';
+  alert(`Datos actualizados ✓${aviso}`);
+}
+
 /* Cuántas clases tiene ya apartadas en fechas futuras (para mostrárselo) */
 function reservasConsumidas(email) {
   const em = (email||'').trim().toLowerCase();
@@ -6367,6 +6419,7 @@ function buildSAdminSubs() {
       <div class="sa-sub-actions">
         <button class="btn-sa-agendar" onclick="toggleAgendarSub(this)">📅 Agendar ▾</button>
         <button class="btn-sa-renovar" onclick="renovarSub('${sub.email}')">⟳ Renovar plan</button>
+        <button class="btn-sa-historial" onclick="editarDatosSub('${sub.email}')">✏️ Editar datos</button>
         ${ilim ? '' : `<button class="btn-sa-historial" onclick="ajustarClases('${sub.email}')">✏️ Corregir clases</button>`}
         <button class="btn-sa-historial" onclick="comprobanteSub('${sub.email}')">📄 Comprobante</button>
         <button class="btn-sa-historial" onclick="toggleHistSub(this)">Historial ▾</button>
