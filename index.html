@@ -2586,6 +2586,77 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .al-pie { display:flex; justify-content:space-between; margin-top:20px; padding-top:14px; border-top:1px solid rgba(107,23,40,.1); }
 .al-pie button { background:none; border:none; color:var(--gray); font-family:inherit; font-size:.72rem; cursor:pointer; text-decoration:underline; }
 .al-pie button:hover { color:var(--wine); }
+
+/* ═══════════════════════════════════════════════════════════
+   BUSCADOR DE SUSCRIPTORAS
+   ═══════════════════════════════════════════════════════════ */
+.sa-subs-buscar {
+  display:flex; align-items:center; gap:8px; margin-bottom:14px;
+  background:var(--white); border:1.5px solid rgba(107,23,40,.15);
+  border-radius:50px; padding:2px 6px 2px 14px;
+}
+.sa-subs-buscar:focus-within { border-color:var(--wine); }
+.ssb-ico { font-size:.82rem; opacity:.55; flex-shrink:0; }
+.sa-subs-buscar input {
+  flex:1; min-width:0; border:none; outline:none; background:transparent;
+  font-family:inherit; font-size:.82rem; color:var(--text); padding:9px 0;
+}
+.sa-subs-buscar input::-webkit-search-cancel-button { display:none; }
+.ssb-limpiar {
+  flex-shrink:0; width:28px; height:28px; border:none; border-radius:50%;
+  background:rgba(107,23,40,.07); color:var(--wine); cursor:pointer; font-size:.7rem;
+}
+.ssb-limpiar:hover { background:rgba(107,23,40,.14); }
+.sa-subs-sinres {
+  text-align:center; color:var(--gray); font-size:.8rem;
+  padding:26px 14px; background:var(--white);
+  border:1px dashed rgba(107,23,40,.18); border-radius:12px; margin-bottom:14px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PANEL ADMIN EN EL TELÉFONO
+   Va al final del <style> a propósito: estas reglas tienen la misma
+   especificidad que las base, así que solo ganan si van después.
+   (Es justo el error que hacía que se cortaran los botones de la
+   fila de alumna.)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width:620px) {
+
+  /* Barra de título: el botón no cabe al lado del encabezado */
+  .sa-subs-toolbar { flex-direction:column; align-items:stretch; gap:9px; }
+  .sa-subs-toolbar h3 { text-align:center; }
+  .btn-nueva-sub { width:100%; padding:10px 18px; }
+
+  /* Tarjeta de suscriptora: el bloque de la derecha se iba fuera del panel */
+  .sa-sub-card-hd { flex-wrap:wrap; }
+  .sa-sub-card-info { flex:1 1 0; min-width:0; }
+  .sa-sub-card-info span,
+  .sa-sub-card-info strong { overflow-wrap:anywhere; }   /* correos largos */
+  .sa-sub-card-meta {
+    margin-left:0; text-align:left;
+    flex:1 1 100%; margin-top:9px;
+    padding-top:9px; border-top:1px solid rgba(107,23,40,.07);
+  }
+  .sa-clases-bar { justify-content:flex-start; }
+
+  /* Botones de acción: 6 en una línea no caben; van de a dos */
+  .sa-sub-actions { flex-wrap:wrap; gap:7px; }
+  /* Van de a dos por línea; el último sobrante toma el ancho que queda. */
+  .sa-sub-actions > button { flex:1 1 calc(50% - 4px); padding:10px 8px; }
+
+  /* Formulario de nueva suscriptora: una columna */
+  .nsm-grid { grid-template-columns:1fr; }
+
+  /* Historial y agendar */
+  .sa-hist-row { flex-wrap:wrap; gap:4px 10px; }
+  .agp-sel { min-width:0; flex:1 1 100%; }
+  .agp-inp { flex:1 1 100%; }
+  .agp-row .btn-agp { flex:1 1 100%; padding:9px; }
+
+  /* Nada dentro del panel debe empujar el ancho */
+  .sadmin-body, .sadmin-body * { max-width:100%; }
+  .sa-sub-card { overflow-wrap:anywhere; }
+}
 </style>
 </head>
 <body>
@@ -6398,6 +6469,62 @@ function buildPendientesHtml() {
 }
 
 /* ── Tab: Suscriptoras ── */
+/* ── Búsqueda de suscriptoras ──
+   Filtra ocultando tarjetas en vez de volver a dibujar la lista: así el
+   cursor no se pierde mientras escribe y el resultado es instantáneo.
+   El texto se guarda aparte porque buildSAdminSubs() se vuelve a llamar
+   después de cada acción (renovar, editar…) y si no, se perdería. */
+let subsFiltro = '';
+
+function filtrarSubs(txt) {
+  subsFiltro = txt;
+  aplicarFiltroSubs();
+}
+
+function limpiarBusquedaSubs() {
+  subsFiltro = '';
+  const el = document.getElementById('subsBuscar');
+  if (el) { el.value = ''; el.focus(); }
+  aplicarFiltroSubs();
+}
+
+function aplicarFiltroSubs() {
+  const txt = (subsFiltro || '').trim();
+  const q   = normNombre(txt);
+
+  /* Si escribió un teléfono, se prueban dos formas. normTel solo quita el
+     505 cuando el número viene completo, así que al escribir "+505 8431"
+     a medias quedaba "5058431" y no coincidía con nada. */
+  const qt    = normTel(txt);
+  const cands = [qt];
+  if (qt.startsWith('505') && qt.length > 3) cands.push(qt.slice(3));
+  const coincideTel = hay => cands.some(c => c.length >= 3 && hay.includes(c));
+
+  let total = 0;
+
+  document.querySelectorAll('.sa-subs-seccion').forEach(sec => {
+    let visibles = 0;
+    sec.querySelectorAll('.sa-sub-card').forEach(card => {
+      const hay = card.dataset.buscar || '';
+      const ok  = !txt || hay.includes(q) || coincideTel(hay);
+      card.style.display = ok ? '' : 'none';
+      if (ok) visibles++;
+    });
+    const cnt = sec.querySelector('.sa-subs-count');
+    if (cnt) cnt.textContent = visibles;
+    /* Buscando, una sección sin coincidencias solo estorba */
+    sec.style.display = (txt && visibles === 0) ? 'none' : '';
+    total += visibles;
+  });
+
+  const aviso = document.getElementById('subsSinResultados');
+  if (aviso) {
+    const hay = !!txt && total === 0;
+    aviso.style.display = hay ? 'block' : 'none';
+    if (hay) aviso.textContent = `Ninguna suscriptora coincide con “${txt}”`;
+  }
+}
+
 function buildSAdminSubs() {
   const body = document.getElementById('sadminBody');
   const subs = getSuscriptoras();
@@ -6423,7 +6550,12 @@ function buildSAdminSubs() {
     }).join('') || '<div style="color:var(--gray);font-size:.74rem;padding:6px 0">Sin asistencias aún</div>';
 
     const esUnica = esPrimeraVez(sub.plan);
-    return `<div class="sa-sub-card ${esUnica ? 'pc-unica' : 'pc-paquete'}">
+    /* Texto contra el que busca el filtro: nombre y correo normalizados
+       (sin tildes ni mayúsculas) más el teléfono en puros dígitos, para
+       que "María" encuentre a "MARIA" y "+505 8888" encuentre a "88881234". */
+    const buscarTxt = (normNombre(`${sub.nombre} ${sub.email||''}`) + ' ' + normTel(sub.tel))
+                        .replace(/"/g, '');
+    return `<div class="sa-sub-card ${esUnica ? 'pc-unica' : 'pc-paquete'}" data-buscar="${buscarTxt}">
       <div class="sa-sub-card-hd">
         <div class="sa-sub-avatar">${initials}</div>
         <div class="sa-sub-card-info">
@@ -6499,6 +6631,15 @@ function buildSAdminSubs() {
       <h3>Suscriptoras (${subs.length})</h3>
       <button class="btn-nueva-sub" onclick="toggleNuevaSub()">+ Nueva suscriptora</button>
     </div>
+    <div class="sa-subs-buscar">
+      <span class="ssb-ico">🔍</span>
+      <input id="subsBuscar" type="search" autocomplete="off"
+             placeholder="Buscar por nombre, correo o teléfono…"
+             value="${(subsFiltro||'').replace(/"/g,'&quot;')}"
+             oninput="filtrarSubs(this.value)">
+      <button class="ssb-limpiar" onclick="limpiarBusquedaSubs()" title="Limpiar búsqueda">✕</button>
+    </div>
+    <div class="sa-subs-sinres" id="subsSinResultados" style="display:none"></div>
     <div class="nueva-sub-modal" id="nuevaSubModal">
       <p class="nsm-title">Registrar nueva suscriptora</p>
       <div class="nsm-grid">
@@ -6518,6 +6659,10 @@ function buildSAdminSubs() {
       </div>
     </div>
     ${cards}`;
+
+  /* Se vuelve a aplicar: si venía buscando algo, la lista recién dibujada
+     debe respetar el filtro en vez de mostrarse completa otra vez. */
+  aplicarFiltroSubs();
 }
 
 function toggleHistSub(btn) {
