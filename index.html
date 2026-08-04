@@ -2467,6 +2467,100 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .rep-tipo-dist { display:flex; flex-wrap:wrap; gap:6px; }
 .rep-tipo-dist span { font-size:.72rem; background:var(--white); border:1px solid rgba(107,23,40,.1); border-radius:50px; padding:5px 12px; color:var(--text); }
 .rep-tipo-dist strong { color:var(--wine-d); }
+
+/* ═══════════════════════════════════════════════════════════
+   MIS CLASES · pantalla de la alumna
+   Estética del sitio (crema/vino), no la oscura del Super Admin:
+   esto lo usan las alumnas, no el estudio.
+   ═══════════════════════════════════════════════════════════ */
+.al-backdrop {
+  display:none; position:fixed; inset:0; z-index:2100;
+  background:rgba(44,24,16,.55); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center; padding:18px;
+}
+.al-backdrop.open { display:flex; }
+.al-modal {
+  background:var(--cream); border-radius:var(--radius); width:100%; max-width:420px;
+  max-height:88vh; overflow-y:auto; position:relative;
+  box-shadow:0 18px 50px rgba(44,24,16,.3);
+}
+.al-topline { height:3px; background:linear-gradient(90deg,transparent,var(--blush) 30%,#e8c49a 50%,var(--blush) 70%,transparent); }
+.al-close {
+  position:absolute; top:12px; right:14px; width:30px; height:30px; border:none; z-index:2;
+  border-radius:50%; background:rgba(107,23,40,.07); color:var(--wine); cursor:pointer; font-size:.85rem;
+}
+.al-body { padding:30px 26px 26px; }
+.al-hd { text-align:center; margin-bottom:22px; }
+.al-hd .al-ico { font-size:1.9rem; display:block; margin-bottom:6px; }
+.al-hd h3 { font-family:'Playfair Display',serif; font-size:1.4rem; color:var(--wine-d); }
+.al-hd p  { font-size:.76rem; color:var(--gray); margin-top:4px; }
+
+.al-campo { margin-bottom:14px; }
+.al-campo label { display:block; font-size:.63rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--gray); margin-bottom:6px; }
+.al-campo input {
+  width:100%; padding:12px 14px; border:1.5px solid rgba(107,23,40,.16); border-radius:12px;
+  background:var(--white); font-family:inherit; font-size:.92rem; color:var(--text);
+}
+.al-campo input:focus { outline:none; border-color:var(--wine); }
+.al-campo .al-hint { font-size:.66rem; color:var(--gray); margin-top:5px; }
+.al-err {
+  display:none; background:rgba(155,44,69,.08); border:1px solid rgba(155,44,69,.22);
+  color:var(--wine); font-size:.76rem; border-radius:10px; padding:9px 12px; margin-bottom:12px;
+}
+.al-err.show { display:block; }
+.btn-al {
+  width:100%; padding:13px; border:none; border-radius:50px; cursor:pointer;
+  background:linear-gradient(145deg,var(--wine),var(--wine-d)); color:var(--cream);
+  font-family:inherit; font-weight:600; font-size:.88rem; letter-spacing:.3px;
+  transition:transform .18s, box-shadow .18s;
+}
+.btn-al:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 8px 20px rgba(107,23,40,.28); }
+.btn-al:disabled { opacity:.55; cursor:wait; }
+.al-alt { text-align:center; margin-top:14px; font-size:.76rem; color:var(--gray); }
+.al-alt button {
+  background:none; border:none; color:var(--wine); font-family:inherit; font-weight:600;
+  font-size:.76rem; cursor:pointer; text-decoration:underline; padding:0;
+}
+
+/* Tarjeta del plan */
+.al-plan {
+  background:linear-gradient(145deg,var(--wine),var(--wine-d)); color:var(--cream);
+  border-radius:16px; padding:16px 18px; margin-bottom:18px;
+}
+.al-plan-top { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+.al-plan-nom { font-family:'Playfair Display',serif; font-size:1.05rem; }
+.al-plan-clases { font-size:1.5rem; font-weight:700; line-height:1; }
+.al-plan-clases small { font-size:.6rem; font-weight:400; opacity:.7; display:block; letter-spacing:1px; text-transform:uppercase; }
+.al-plan-pie { font-size:.68rem; opacity:.75; margin-top:8px; }
+.al-plan.sin { background:var(--white); color:var(--text); border:1px dashed rgba(107,23,40,.25); }
+.al-plan.sin .al-plan-nom { color:var(--wine-d); }
+.al-plan.vencido .al-plan-pie { color:#ffd9d9; }
+
+/* Lista de clases */
+.al-sec-tit {
+  font-size:.63rem; letter-spacing:2px; text-transform:uppercase; color:var(--gray);
+  margin:18px 0 8px; display:flex; align-items:center; gap:8px;
+}
+.al-sec-tit::after { content:''; flex:1; height:1px; background:rgba(107,23,40,.12); }
+.al-clase {
+  display:flex; align-items:center; gap:12px; background:var(--white);
+  border:1px solid rgba(107,23,40,.1); border-radius:13px; padding:11px 14px; margin-bottom:8px;
+}
+.al-clase.pasada { opacity:.55; }
+.al-clase-fecha { text-align:center; min-width:38px; }
+.al-clase-dia { font-size:1.05rem; font-weight:700; color:var(--wine-d); line-height:1; }
+.al-clase-mes { font-size:.58rem; letter-spacing:1px; text-transform:uppercase; color:var(--gray); }
+.al-clase-info { flex:1; min-width:0; }
+.al-clase-nom { font-weight:600; font-size:.86rem; color:var(--text); }
+.al-clase-meta { font-size:.7rem; color:var(--gray); }
+/* En columna: con dos chips en línea, el nombre de la clase se partía en dos. */
+.al-clase-chips { display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
+.al-chip-mat { font-size:.62rem; background:rgba(201,149,106,.18); color:#8B5A30; border-radius:50px; padding:2px 8px; font-weight:600; white-space:nowrap; }
+.al-chip-pend { font-size:.62rem; background:rgba(155,44,69,.1); color:var(--wine); border-radius:50px; padding:2px 8px; font-weight:600; white-space:nowrap; }
+.al-vacio { text-align:center; color:var(--gray); font-size:.8rem; padding:22px 10px; }
+.al-pie { display:flex; justify-content:space-between; margin-top:20px; padding-top:14px; border-top:1px solid rgba(107,23,40,.1); }
+.al-pie button { background:none; border:none; color:var(--gray); font-family:inherit; font-size:.72rem; cursor:pointer; text-decoration:underline; }
+.al-pie button:hover { color:var(--wine); }
 </style>
 </head>
 <body>
@@ -2484,6 +2578,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
     <li><a href="#galeria">Galería</a></li>
     <li><a href="#pagos">Planes</a></li>
     <li><a href="#ubicacion">Ubicación</a></li>
+    <li><a href="#" onclick="event.preventDefault();abrirMisClases()">Mis clases</a></li>
     <li><a href="#reserva" class="nav-cta" id="navReservar">Reservar</a></li>
   </ul>
   <button class="nav-info-btn" onclick="openSuperAdmin()" aria-label="Info">ⓘ</button>
@@ -2499,6 +2594,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   <a href="#opiniones" onclick="toggleMenu()">Opiniones</a>
   <a href="#pagos"     onclick="toggleMenu()">Planes</a>
   <a href="#ubicacion" onclick="toggleMenu()">Ubicación</a>
+  <a href="#" onclick="event.preventDefault();toggleMenu();abrirMisClases()">🧘‍♀️ Mis clases</a>
   <a href="#reserva"   onclick="toggleMenu()">Reservar</a>
 </div>
 
@@ -3988,6 +4084,195 @@ async function sbFetch(path, opts = {}) {
      en Safari), y la reserva se veía como fallida aunque sí quedó guardada. */
   if (!txt) return null;
   try { return JSON.parse(txt); } catch(e) { return null; }
+}
+
+/* ════════════════════════════════════════
+   MIS CLASES · acceso de la alumna
+
+   La alumna entra con su celular y un PIN que ella elige, y ve solo SUS
+   clases. El filtrado NO se hace acá: se hace en la base. Estas funciones
+   solo llaman a mis_clases(token) / mi_perfil(token), que resuelven la
+   identidad desde la sesión. Aunque alguien manipule este JavaScript, la
+   base no le va a entregar las reservas de otra persona.
+════════════════════════════════════════ */
+const AL_TOKEN_KEY = 'presenza_alumna_token';
+
+/* Llama una función de Postgres (RPC). PostgREST devuelve el error que
+   lanza la función dentro de un JSON {"message": "..."}: se extrae para
+   poder mostrárselo tal cual a la alumna. */
+async function sbRpc(fn, args) {
+  try {
+    return await sbFetch(`rpc/${fn}`, { method:'POST', body: JSON.stringify(args||{}) });
+  } catch (e) {
+    let msg = 'No se pudo conectar. Revisa tu internet.';
+    try { const j = JSON.parse(e.body||''); if (j && j.message) msg = j.message; } catch(_) {}
+    const err = new Error(msg); err.rpc = true; throw err;
+  }
+}
+
+function abrirMisClases() {
+  document.getElementById('alBackdrop').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  const tok = localStorage.getItem(AL_TOKEN_KEY);
+  if (tok) { alVista('panel'); alCargarPanel(); }
+  else     { alVista('login'); }
+}
+function cerrarMisClases() {
+  document.getElementById('alBackdrop').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function alVista(v) {
+  ['login','registro','panel'].forEach(x =>
+    document.getElementById('al'+x[0].toUpperCase()+x.slice(1)).style.display = (x===v ? 'block' : 'none'));
+  alError('alLoginErr',''); alError('alRegErr','');
+}
+function alError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.toggle('show', !!msg);
+}
+
+async function alEntrar() {
+  const btn = document.getElementById('alBtnEntrar');
+  const tel = document.getElementById('alTel').value;
+  const pin = document.getElementById('alPin').value;
+  if (!tel || !pin) { alError('alLoginErr','Escribe tu celular y tu PIN.'); return; }
+
+  btn.disabled = true; alError('alLoginErr','');
+  try {
+    /* login_alumna devuelve el error como dato, no como excepción: así el
+       intento fallido alcanza a registrarse y el bloqueo funciona. */
+    const r = (await sbRpc('login_alumna', { p_tel: tel, p_pin: pin }) || [])[0];
+    if (!r || r.error) { alError('alLoginErr', (r && r.error) || 'No se pudo entrar.'); return; }
+    localStorage.setItem(AL_TOKEN_KEY, r.sesion);
+    document.getElementById('alPin').value = '';
+    alVista('panel'); alCargarPanel();
+  } catch (e) {
+    alError('alLoginErr', e.message);
+  } finally { btn.disabled = false; }
+}
+
+async function alCrear() {
+  const btn = document.getElementById('alBtnCrear');
+  const tel = document.getElementById('alRegTel').value;
+  const nom = document.getElementById('alRegNombre').value;
+  const pin = document.getElementById('alRegPin').value;
+  if (!tel || !nom || !pin) { alError('alRegErr','Completa los tres campos.'); return; }
+  if (!/^\d{4}$/.test(pin)) { alError('alRegErr','El PIN debe ser de 4 dígitos.'); return; }
+
+  btn.disabled = true; alError('alRegErr','');
+  try {
+    const r = (await sbRpc('registrar_alumna', { p_tel: tel, p_nombre: nom, p_pin: pin }) || [])[0];
+    if (!r || !r.sesion) { alError('alRegErr','No se pudo crear el acceso.'); return; }
+    localStorage.setItem(AL_TOKEN_KEY, r.sesion);
+    document.getElementById('alRegPin').value = '';
+    alVista('panel'); alCargarPanel();
+  } catch (e) {
+    alError('alRegErr', e.message);
+  } finally { btn.disabled = false; }
+}
+
+async function alSalir() {
+  const tok = localStorage.getItem(AL_TOKEN_KEY);
+  localStorage.removeItem(AL_TOKEN_KEY);
+  if (tok) { try { await sbRpc('cerrar_sesion', { p_token: tok }); } catch(e) {} }
+  document.getElementById('alTel').value = '';
+  document.getElementById('alPin').value = '';
+  alVista('login');
+}
+
+async function alCambiarPin() {
+  const tok = localStorage.getItem(AL_TOKEN_KEY);
+  const actual = prompt('Tu PIN actual:');           if (!actual) return;
+  const nuevo  = prompt('Tu PIN nuevo (4 dígitos):'); if (!nuevo)  return;
+  try {
+    await sbRpc('cambiar_pin', { p_token: tok, p_pin_actual: actual, p_pin_nuevo: nuevo });
+    alert('Listo, tu PIN quedó cambiado ✧');
+  } catch (e) { alert(e.message); }
+}
+
+async function alCargarPanel() {
+  const tok = localStorage.getItem(AL_TOKEN_KEY);
+  const cont = document.getElementById('alListado');
+  const plan = document.getElementById('alPlan');
+  cont.innerHTML = '<div class="al-vacio">Cargando tus clases…</div>';
+  plan.innerHTML = '';
+
+  let clases, perfil;
+  try {
+    [clases, perfil] = await Promise.all([
+      sbRpc('mis_clases', { p_token: tok }),
+      sbRpc('mi_perfil',  { p_token: tok })
+    ]);
+  } catch (e) {
+    /* Sesión vencida o token inválido: de vuelta al login. */
+    localStorage.removeItem(AL_TOKEN_KEY);
+    alVista('login');
+    alError('alLoginErr', e.message);
+    return;
+  }
+
+  const p = (perfil||[])[0];
+  document.getElementById('alSaludo').textContent =
+    'Hola, ' + ((p && p.nombre) || '').split(' ')[0];
+
+  /* ── Tarjeta del plan ── */
+  if (!p || !p.activa) {
+    plan.innerHTML = `<div class="al-plan sin">
+      <div class="al-plan-nom">Sin plan activo</div>
+      <div class="al-plan-pie">Escríbenos por WhatsApp para activar tu membresía ✧</div>
+    </div>`;
+  } else {
+    const venceTxt = p.fecha_vence
+      ? (p.vencido ? `⚠️ Venció el ${alFecha(p.fecha_vence)}` : `Vigente hasta el ${alFecha(p.fecha_vence)}`)
+      : '';
+    plan.innerHTML = `<div class="al-plan${p.vencido?' vencido':''}">
+      <div class="al-plan-top">
+        <div class="al-plan-nom">${(PLANES_SUB[p.plan]||{}).nombre || 'Tu plan'}</div>
+        <div class="al-plan-clases">${p.ilimitado ? '∞' : p.clases_restantes}<small>${p.ilimitado?'ilimitado':'clases'}</small></div>
+      </div>
+      <div class="al-plan-pie">${venceTxt}</div>
+    </div>`;
+  }
+
+  /* ── Listado ── */
+  const arr      = clases || [];
+  const proximas = arr.filter(c => c.estado === 'proxima')
+                      .sort((a,b) => (a.fecha+a.hora).localeCompare(b.fecha+b.hora));
+  const pasadas  = arr.filter(c => c.estado === 'pasada').slice(0, 10);
+
+  cont.innerHTML =
+    `<div class="al-sec-tit">Próximas</div>` +
+    (proximas.length
+      ? proximas.map(c => alFila(c,false)).join('')
+      : `<div class="al-vacio">Aún no tienes clases agendadas.<br>¡Reserva la próxima! ✧</div>`) +
+    (pasadas.length
+      ? `<div class="al-sec-tit">Ya tomadas</div>` + pasadas.map(c => alFila(c,true)).join('')
+      : '');
+}
+
+/* Fecha local: se fija el mediodía para que el huso no corra el día. */
+function alFecha(f) {
+  const d = new Date(f + 'T12:00:00');
+  return `${d.getDate()} ${MESES_ES[d.getMonth()]}`;
+}
+function alFila(c, pasada) {
+  const d    = new Date(c.fecha + 'T12:00:00');
+  const info = INFO[c.clase] || { nombre:c.clase, emoji:'✧' };
+  return `<div class="al-clase${pasada?' pasada':''}">
+    <div class="al-clase-fecha">
+      <div class="al-clase-dia">${d.getDate()}</div>
+      <div class="al-clase-mes">${MESES_ES[d.getMonth()]}</div>
+    </div>
+    <div class="al-clase-info">
+      <div class="al-clase-nom">${info.emoji} ${info.nombre}</div>
+      <div class="al-clase-meta">${DIAS_ES[d.getDay()]} · ${c.hora} hrs${c.instructor ? ' · '+c.instructor : ''}</div>
+    </div>
+    <div class="al-clase-chips">
+      ${c.lugar ? `<span class="al-chip-mat">Mat ${c.lugar}</span>` : ''}
+      ${c.pago_ok === false ? `<span class="al-chip-pend">Por confirmar</span>` : ''}
+    </div>
+  </div>`;
 }
 
 const RE_SLOT = /^presenza_(\w+)_(\d{4}-\d{2}-\d{2})_(\d{4})$/;
@@ -7435,6 +7720,76 @@ document.addEventListener('DOMContentLoaded', () => {
   abrirEspecialPorHash();
 });
 </script>
+
+<!-- ═══ MIS CLASES · pantalla de la alumna ═══ -->
+<div class="al-backdrop" id="alBackdrop" onclick="if(event.target===this)cerrarMisClases()">
+  <div class="al-modal">
+    <div class="al-topline"></div>
+    <button class="al-close" onclick="cerrarMisClases()">✕</button>
+
+    <!-- Paso 1: iniciar sesión -->
+    <div class="al-body" id="alLogin">
+      <div class="al-hd">
+        <span class="al-ico">🧘‍♀️</span>
+        <h3>Mis clases</h3>
+        <p>Entra con tu celular y tu PIN</p>
+      </div>
+      <div class="al-err" id="alLoginErr"></div>
+      <div class="al-campo">
+        <label>Celular</label>
+        <input type="tel" id="alTel" inputmode="numeric" maxlength="15" placeholder="8888 8888"
+               onkeydown="if(event.key==='Enter')document.getElementById('alPin').focus()">
+      </div>
+      <div class="al-campo">
+        <label>PIN (4 dígitos)</label>
+        <input type="password" id="alPin" inputmode="numeric" maxlength="4" placeholder="····"
+               onkeydown="if(event.key==='Enter')alEntrar()">
+      </div>
+      <button class="btn-al" id="alBtnEntrar" onclick="alEntrar()">Entrar →</button>
+      <p class="al-alt">¿Primera vez? <button onclick="alVista('registro')">Crea tu acceso</button></p>
+    </div>
+
+    <!-- Paso 1b: crear acceso -->
+    <div class="al-body" id="alRegistro" style="display:none">
+      <div class="al-hd">
+        <span class="al-ico">✧</span>
+        <h3>Crear mi acceso</h3>
+        <p>Usa el mismo celular con el que reservas</p>
+      </div>
+      <div class="al-err" id="alRegErr"></div>
+      <div class="al-campo">
+        <label>Celular</label>
+        <input type="tel" id="alRegTel" inputmode="numeric" maxlength="15" placeholder="8888 8888">
+      </div>
+      <div class="al-campo">
+        <label>Tu nombre</label>
+        <input type="text" id="alRegNombre" maxlength="60" placeholder="Como te registraste">
+      </div>
+      <div class="al-campo">
+        <label>Elige un PIN de 4 dígitos</label>
+        <input type="password" id="alRegPin" inputmode="numeric" maxlength="4" placeholder="····">
+        <p class="al-hint">Será tu clave para entrar. No uses los primeros números de tu celular.</p>
+      </div>
+      <button class="btn-al" id="alBtnCrear" onclick="alCrear()">Crear acceso →</button>
+      <p class="al-alt">¿Ya tienes acceso? <button onclick="alVista('login')">Inicia sesión</button></p>
+    </div>
+
+    <!-- Paso 2: sus clases -->
+    <div class="al-body" id="alPanel" style="display:none">
+      <div class="al-hd">
+        <span class="al-ico">✧</span>
+        <h3 id="alSaludo">Hola</h3>
+        <p>Tus clases en Presenza</p>
+      </div>
+      <div id="alPlan"></div>
+      <div id="alListado"></div>
+      <div class="al-pie">
+        <button onclick="alCambiarPin()">Cambiar mi PIN</button>
+        <button onclick="alSalir()">Cerrar sesión</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ SUPER ADMIN PIN ═══ -->
 <div class="super-pin-backdrop" id="superPinBackdrop" onclick="if(event.target===this)closeSuperPin()">
