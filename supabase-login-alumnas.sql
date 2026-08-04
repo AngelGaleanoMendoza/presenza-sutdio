@@ -39,11 +39,29 @@ returns text language sql immutable as $$
 $$;
 
 -- Espejo de normNombre(): minúsculas, sin tildes, sin espacios de más.
+-- Además quita puntuación: el estudio tiene fichas cargadas como
+-- "Ma. Carmen", y el punto hacía que el nombre nunca coincidiera.
 create or replace function norm_nombre(n text)
 returns text language sql immutable as $$
   select regexp_replace(
-           translate(lower(trim(coalesce(n, ''))), 'áéíóúüñ', 'aeiouun'),
+           regexp_replace(
+             translate(lower(trim(coalesce(n, ''))), 'áéíóúüñ', 'aeiouun'),
+             '[^a-z0-9 ]', '', 'g'),
            '\s+', ' ', 'g');
+$$;
+
+-- ¿El nombre que escribió corresponde al que tiene el estudio?
+-- No se compara palabra por palabra en orden: basta que compartan UNA
+-- palabra de 3 letras o más. Así "Ma. Carmen Rodríguez" reconoce a quien
+-- escribe "María del Carmen", pero un "Pedro" cualquiera no pasa.
+create or replace function nombre_coincide(a text, b text)
+returns boolean language sql immutable as $$
+  select exists (
+    select 1
+      from unnest(string_to_array(norm_nombre(a), ' ')) w1
+      join unnest(string_to_array(norm_nombre(b), ' ')) w2 on w1 = w2
+     where length(w1) >= 3
+  );
 $$;
 
 -- El día de hoy EN NICARAGUA. Postgres corre en UTC: a partir de las 6pm
@@ -163,8 +181,8 @@ begin
       using errcode = 'P0001';
   end if;
 
-  -- El primer nombre tiene que coincidir con el que el estudio ya tiene.
-  if split_part(norm_nombre(v_registro), ' ', 1) <> split_part(norm_nombre(p_nombre), ' ', 1) then
+  -- El nombre tiene que corresponder al que el estudio ya tiene.
+  if not nombre_coincide(v_registro, p_nombre) then
     raise exception 'El nombre no coincide con el registrado para ese número.' using errcode = 'P0001';
   end if;
 
