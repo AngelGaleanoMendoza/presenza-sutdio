@@ -1916,8 +1916,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   .sadmin-body { padding:16px 14px; }
   .sadmin-tab { flex:0 0 auto; padding:13px 16px; }
   .sa-kpi-grid { grid-template-columns:repeat(2,1fr); }
-  .sa-alumna-row { grid-template-columns:1fr auto; row-gap:6px; padding-left:14px; }
-  .sa-alumna-row .sa-alumna-tel { grid-column:2; }
+  /* La fila de alumna se adapta más abajo, DESPUÉS de su regla base:
+     acá quedaba pisada por tener la misma especificidad. */
 }
 .sa-alumna-row {
   display:grid; grid-template-columns:1fr auto auto auto auto auto;
@@ -1953,6 +1953,31 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   display:flex; align-items:center; justify-content:center;
 }
 .btn-sa-alumna-del:hover { background:rgba(220,53,69,.1); }
+
+/* ── La fila de alumna en el teléfono ──────────────────────────────
+   Las 6 columnas fijas no caben en un celular: el botón "Marcar ✓" se
+   salía del panel y, como .sadmin-panel usa overflow:hidden, quedaba
+   cortado sin poder tocarlo.
+
+   Acá pasa a flex con wrap: el nombre y el correo toman toda la primera
+   línea, y teléfono, clases y botones fluyen en la segunda. Si aun así
+   no cabe (teléfonos muy angostos), baja a una tercera línea en vez de
+   cortarse. Va después de la regla base a propósito: antes tenía la
+   misma especificidad y nunca llegaba a aplicarse. */
+@media (max-width:620px) {
+  .sa-alumna-row {
+    display:flex; flex-wrap:wrap; align-items:center;
+    gap:7px; padding:10px 14px;
+  }
+  .sa-alumna-info  { flex:1 1 100%; min-width:0; }
+  .sa-alumna-email { overflow-wrap:anywhere; }        /* correos largos no empujan */
+  .sa-alumna-row > span:empty { display:none; }       /* los huecos de las no suscriptoras */
+  .sa-alumna-tel   { margin-right:auto; }             /* empuja los botones a la derecha */
+
+  /* Objetivos de toque más cómodos: esto se usa con el dedo, en clase */
+  .btn-sa-asist      { padding:8px 14px; font-size:.72rem; }
+  .btn-sa-alumna-del { width:32px; height:32px; font-size:.8rem; }
+}
 
 /* Tab Suscriptoras */
 .sa-subs-seccion { margin-bottom:22px; }
