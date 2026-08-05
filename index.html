@@ -2588,6 +2588,30 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .al-pie button:hover { color:var(--wine); }
 
 /* ═══════════════════════════════════════════════════════════
+   ELEGIR MAT AL AGENDAR DESDE EL PANEL
+   ═══════════════════════════════════════════════════════════ */
+.agm-wrap { flex:1 1 100%; }          /* línea propia dentro de la fila flex */
+.agm-wrap:empty { display:none; }
+.agm-tit { font-size:.7rem; color:var(--gray); margin:10px 0 6px; }
+.agm-tit strong { color:var(--wine); }
+.agm-grid { display:flex; flex-wrap:wrap; gap:5px; }
+.agm-mat {
+  width:34px; height:34px; border-radius:9px; flex-shrink:0;
+  border:1.5px solid rgba(107,23,40,.2); background:var(--white);
+  color:var(--wine-d); font-family:inherit; font-size:.72rem; font-weight:700;
+  cursor:pointer; transition:all .15s;
+}
+.agm-mat:hover:not(:disabled) { border-color:var(--wine); background:rgba(107,23,40,.06); }
+.agm-mat.sel {
+  background:linear-gradient(145deg,var(--wine),var(--wine-d));
+  color:#fff; border-color:var(--wine);
+}
+.agm-mat.ocupado {
+  background:#ece6e0; color:#a89a92; border-color:transparent; cursor:not-allowed;
+}
+.agm-lleno { font-size:.72rem; color:#c0392b; margin-top:6px; }
+
+/* ═══════════════════════════════════════════════════════════
    BUSCADOR DE SUSCRIPTORAS
    ═══════════════════════════════════════════════════════════ */
 .sa-subs-buscar {
@@ -6586,9 +6610,10 @@ function buildSAdminSubs() {
         <p class="agp-title">Agendar a ${sub.nombre.split(' ')[0]} en una clase:</p>
         <div class="agp-row">
           <input type="date" id="agpFecha_${si}" class="agp-inp" min="${fmtISO(new Date())}" onchange="agpLoadSlots(${si})"/>
-          <select id="agpSlot_${si}" class="agp-sel"><option value="">Elige una fecha</option></select>
+          <select id="agpSlot_${si}" class="agp-sel" onchange="agpMats(${si})"><option value="">Elige una fecha</option></select>
           <button class="btn-agp" onclick="agpConfirm(${si},'${sub.email}')">Agendar →</button>
         </div>
+        <div class="agm-wrap" id="agpMats_${si}"></div>
       </div>
       <div class="sa-sub-historial">${histRows}</div>
     </div>`;
@@ -6757,7 +6782,58 @@ async function eliminarSub(email) {
 }
 
 /* ── Agendar suscriptora a una clase futura ── */
-async function agendarSubAClase(email, clase, dateStr, hora, instructor) {
+/* ── Elegir el mat al agendar desde el panel ──
+   Antes se asignaba el primer libre y el estudio no podía decidir. Acá se
+   dibujan todos los de esa sesión: los tomados salen apagados y no se pueden
+   tocar, y se marca cuántos quedan. Si no se elige ninguno, se sigue
+   asignando el primero libre como siempre. */
+let matSel = {};
+
+function renderMatsAdmin(destinoId, clase, dateStr, hora) {
+  const cont = document.getElementById(destinoId);
+  if (!cont) return;
+  matSel[destinoId] = null;
+  if (!clase || !dateStr || !hora) { cont.innerHTML = ''; return; }
+
+  const total   = cuposDe(clase, dateStr, hora);
+  const tomados = new Set(getClientes(clase, dateStr, hora)
+                            .filter(c => c.lugar).map(c => Number(c.lugar)));
+  const libres  = total - tomados.size;
+
+  let html = `<div class="agm-tit">Mat · <strong>${libres}</strong> de ${total} libres</div>
+              <div class="agm-grid">`;
+  for (let i = 1; i <= total; i++) {
+    const ocupado = tomados.has(i);
+    html += `<button type="button" class="agm-mat${ocupado ? ' ocupado' : ''}" data-n="${i}"
+      ${ocupado ? 'disabled title="Ya reservado"' : `onclick="selMatAdmin('${destinoId}',${i})"`}>${i}</button>`;
+  }
+  html += `</div>`;
+  if (libres === 0) html += `<div class="agm-lleno">Esta clase ya está llena</div>`;
+  cont.innerHTML = html;
+}
+
+function selMatAdmin(destinoId, n) {
+  matSel[destinoId] = n;
+  document.querySelectorAll(`#${destinoId} .agm-mat`).forEach(b =>
+    b.classList.toggle('sel', Number(b.dataset.n) === n));
+}
+
+/* Suscriptoras: los mats se cargan al elegir fecha + clase */
+function agpMats(i) {
+  const fecha = document.getElementById(`agpFecha_${i}`).value;
+  const val   = document.getElementById(`agpSlot_${i}`).value;
+  if (!fecha || !val) { renderMatsAdmin(`agpMats_${i}`, null); return; }
+  const [clase, hora] = val.split('|');
+  renderMatsAdmin(`agpMats_${i}`, clase, fecha, hora);
+}
+
+/* Calendario: la clase ya se conoce, se cargan al elegir a la alumna */
+function calMats(idx, clase, dateStr, hora) {
+  const email = document.getElementById(`calAg_${idx}`).value;
+  renderMatsAdmin(`calMats_${idx}`, email ? clase : null, dateStr, hora);
+}
+
+async function agendarSubAClase(email, clase, dateStr, hora, instructor, lugarPedido) {
   const sub = getSuscriptoraByEmail(email);
   if (!sub) { alert('Suscriptora no encontrada.'); return false; }
   if (!sub.activa || sub.clasesRestantes <= 0 || subVencida(sub)) {
@@ -6775,11 +6851,22 @@ async function agendarSubAClase(email, clase, dateStr, hora, instructor) {
   const total = cuposDe(clase, dateStr, hora);
   if (clientes.length >= total) { alert('Esta clase ya está llena.'); return false; }
 
-  /* Se le asigna el primer mat libre. Sin lugar, el grid le mostraría a las
+  /* Se le asigna un mat sí o sí. Sin lugar, el grid le mostraría a las
      demás alumnas un mat disponible que en realidad ya está ocupado por ella. */
   const tomados = new Set(clientes.filter(c => c.lugar).map(c => Number(c.lugar)));
   let lugarLibre = null;
-  for (let i = 1; i <= total; i++) if (!tomados.has(i)) { lugarLibre = i; break; }
+
+  if (lugarPedido) {
+    /* Se revalida contra los datos frescos: entre que se dibujó la grilla y
+       se apretó Agendar, alguien pudo haber tomado ese mat desde otro lado. */
+    if (tomados.has(Number(lugarPedido))) {
+      alert(`El mat ${lugarPedido} acaba de ser ocupado. Elige otro.`);
+      return false;
+    }
+    lugarLibre = Number(lugarPedido);
+  } else {
+    for (let i = 1; i <= total; i++) if (!tomados.has(i)) { lugarLibre = i; break; }
+  }
 
   const planN = PLANES_SUB[sub.plan]?.nombre || 'Membresía';
   /* Agendarla desde el panel cobra igual que si reservara ella misma */
@@ -6832,6 +6919,8 @@ function agpLoadSlots(i) {
       ${info.emoji} ${info.nombre} · ${s.hora} hrs · ${s.instructor} (${ocup}/${cupo}${full?' LLENA':''})
     </option>`;
   }).join('');
+  /* Al cambiar de fecha, los mats de la clase anterior ya no valen */
+  agpMats(i);
 }
 
 async function agpConfirm(i, email) {
@@ -6839,18 +6928,19 @@ async function agpConfirm(i, email) {
   const val   = document.getElementById(`agpSlot_${i}`).value;
   if (!fecha || !val) { alert('Elige fecha y clase.'); return; }
   const [clase, hora, instructor] = val.split('|');
-  if (await agendarSubAClase(email, clase, fecha, hora, instructor)) {
+  const mat = matSel[`agpMats_${i}`];
+  if (await agendarSubAClase(email, clase, fecha, hora, instructor, mat)) {
     const d = new Date(fecha+'T12:00:00');
-    alert(`✅ Agendada para ${INFO[clase].nombre} · ${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]} · ${hora} hrs`);
+    alert(`✅ Agendada para ${INFO[clase].nombre} · ${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]} · ${hora} hrs${mat ? ` · Mat ${mat}` : ''}`);
     buildSAdminSubs();
   }
 }
 
 /* Agendar desde el detalle de día del calendario */
-async function calAgendar(clase, dateStr, hora, instructor, selId) {
+async function calAgendar(clase, dateStr, hora, instructor, selId, matsId) {
   const email = document.getElementById(selId).value;
   if (!email) { alert('Elige una suscriptora.'); return; }
-  if (await agendarSubAClase(email, clase, dateStr, hora, instructor)) {
+  if (await agendarSubAClase(email, clase, dateStr, hora, instructor, matSel[matsId])) {
     buildSAdminCalendario();
     const cell = document.querySelector(`.cal-cell[data-date="${dateStr}"]`);
     sadminVerDia(dateStr, cell);
@@ -6939,11 +7029,12 @@ function sadminVerDia(dateStr, el) {
     const llena = clientes.length >= cuposCl;
     const agendarRow = subs.length === 0 ? '' : `
       <div class="sa-agendar-inline">
-        <select id="calAg_${idx}" class="agp-sel">
+        <select id="calAg_${idx}" class="agp-sel" onchange="calMats(${idx},'${clase}','${dateStr}','${hora}')">
           <option value="">+ Agendar suscriptora…</option>
           ${subs.map(s => `<option value="${s.email}">${s.nombre} (${s.clasesRestantes >= 1000 ? '∞' : s.clasesRestantes} clases)</option>`).join('')}
         </select>
-        <button class="btn-agp" ${llena?'disabled':''} onclick="calAgendar('${clase}','${dateStr}','${hora}','${instructor}','calAg_${idx}')">${llena?'Llena':'Agendar →'}</button>
+        <button class="btn-agp" ${llena?'disabled':''} onclick="calAgendar('${clase}','${dateStr}','${hora}','${instructor}','calAg_${idx}','calMats_${idx}')">${llena?'Llena':'Agendar →'}</button>
+        <div class="agm-wrap" id="calMats_${idx}"></div>
       </div>`;
     return `<div class="sa-clase-blk">
       <div class="sa-clase-hd">
