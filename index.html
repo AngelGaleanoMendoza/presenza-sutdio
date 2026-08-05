@@ -3975,11 +3975,14 @@ let sadminRol    = 'duena';       /* 'duena' (todo) | 'coach' (solo sus clases) 
    horario están escritos cortos ("M. Carmen", "Yeni") y acá completos.
    Para cambiar una clave, se edita acá y se publica. */
 const COACHES = [
-  { nombre:'María Del Carmen Somarriba', pin:'carmen2026'    },
-  { nombre:'Alejandra Mondragón',        pin:'alejandra2026' },
-  { nombre:'Gladys Pastora',             pin:'gladys2026'    },
-  { nombre:'Yeni Noreña',                pin:'yeni2026'      },
+  { usuario:'carmen',    nombre:'María Del Carmen Somarriba', pin:'carmen2026'    },
+  { usuario:'alejandra', nombre:'Alejandra Mondragón',        pin:'alejandra2026' },
+  { usuario:'gladys',    nombre:'Gladys Pastora',             pin:'gladys2026'    },
+  { usuario:'yeni',      nombre:'Yeni Noreña',                pin:'yeni2026'      },
 ];
+/* El usuario del estudio. Deja entrar con o sin escribirlo, para no cambiarle
+   la costumbre a quien ya entra solo con la contraseña. */
+const USUARIO_DUENA = 'jimena';
 let coachActual = null;           /* la coach que inició sesión, o null */
 
 /* ¿El instructor de una clase corresponde a esta coach?
@@ -6160,10 +6163,11 @@ function closePin() {
 
 function openSuperAdmin() {
   document.getElementById('superPinBackdrop').classList.add('open');
+  document.getElementById('superUserInput').value = '';
   document.getElementById('superPinInput').value = '';
   document.getElementById('superPinInput').type = 'password';
   document.getElementById('superPinErr').textContent = '';
-  setTimeout(() => document.getElementById('superPinInput').focus(), 100);
+  setTimeout(() => document.getElementById('superUserInput').focus(), 100);
 }
 function toggleSpmVis() {
   const inp = document.getElementById('superPinInput');
@@ -6171,10 +6175,25 @@ function toggleSpmVis() {
 }
 function checkSuperPin() {
   const val = document.getElementById('superPinInput').value;
-  /* La clave de una coach la identifica: entra a su propio panel, con sus
-     clases y nada más. COACH_PIN sigue siendo el acceso general de vista. */
-  const coach = COACHES.find(c => c.pin === val);
-  if (val === SUPER_PIN || val === COACH_PIN || coach) {
+  const usr = (document.getElementById('superUserInput').value || '').trim().toLowerCase();
+
+  /* Con usuario escrito, la clave tiene que ser la de ESE usuario: así dos
+     coaches no pueden entrar una con la clave de la otra por descuido.
+     Sin usuario se mantiene el acceso de siempre, solo con contraseña. */
+  let coach = null, valido = false;
+  if (usr) {
+    if (usr === USUARIO_DUENA) {
+      valido = (val === SUPER_PIN);
+    } else {
+      const c = COACHES.find(x => x.usuario === usr);
+      if (c && c.pin === val) { coach = c; valido = true; }
+    }
+  } else {
+    coach  = COACHES.find(c => c.pin === val) || null;
+    valido = (val === SUPER_PIN || val === COACH_PIN || !!coach);
+  }
+
+  if (valido) {
     sadminRol   = (val === SUPER_PIN) ? 'duena' : 'coach';
     coachActual = coach || null;
     const bd = document.getElementById('sadminBackdrop');
@@ -8355,7 +8374,14 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="spm-crown">👑</div>
       <div class="spm-brand">Presenza</div>
       <span class="spm-brand-sub">Super Admin</span>
-      <span class="spm-label">Contraseña de acceso</span>
+      <span class="spm-label">Usuario</span>
+      <div class="spm-input-wrap">
+        <input type="text" id="superUserInput" class="spm-input" maxlength="30"
+          autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false"
+          placeholder="Tu usuario"
+          onkeydown="if(event.key==='Enter')document.getElementById('superPinInput').focus(); if(event.key==='Escape')closeSuperPin()"/>
+      </div>
+      <span class="spm-label" style="margin-top:14px">Contraseña de acceso</span>
       <div class="spm-input-wrap">
         <input type="password" id="superPinInput" class="spm-input" maxlength="40"
           placeholder="Ingresa tu contraseña"
