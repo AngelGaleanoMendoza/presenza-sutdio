@@ -2153,6 +2153,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .coach-mode .sadmin-tab[data-tab="reportes"],
 .coach-mode .sadmin-tab[data-tab="subs"],
 .coach-mode .sadmin-tab[data-tab="eventos"] { display:none; }
+/* Con clave propia, la coach sí ve Hoy: es donde marca la asistencia */
+.coach-mode.coach-hoy .sadmin-tab[data-tab="hoy"] { display:block; }
 .coach-mode .sa-agendar-inline,
 .coach-mode .btn-sa-alumna-del,
 .coach-mode .btn-hor-save,
@@ -2586,6 +2588,13 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .al-pie { display:flex; justify-content:space-between; margin-top:20px; padding-top:14px; border-top:1px solid rgba(107,23,40,.1); }
 .al-pie button { background:none; border:none; color:var(--gray); font-family:inherit; font-size:.72rem; cursor:pointer; text-decoration:underline; }
 .al-pie button:hover { color:var(--wine); }
+
+/* Aviso en el panel de la coach */
+.sa-coach-aviso {
+  background:rgba(201,149,106,.13); border:1px solid rgba(201,149,106,.35);
+  border-radius:12px; padding:10px 14px; margin-bottom:16px;
+  font-size:.78rem; color:var(--wine-d); text-align:center;
+}
 
 /* ═══════════════════════════════════════════════════════════
    ELEGIR MAT AL AGENDAR DESDE EL PANEL
@@ -3957,8 +3966,37 @@ const MESES_ES  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','
 
 const ADMIN_PIN  = '7835';
 const SUPER_PIN  = 'JimenaMorenopresenza2026';
-const COACH_PIN  = 'coach2026';   /* acceso solo-vista para coaches: Calendario + Horarios */
-let sadminRol    = 'duena';       /* 'duena' (todo) | 'coach' (solo vista) */
+const COACH_PIN  = 'coach2026';   /* acceso general solo-vista: Calendario + Horarios */
+let sadminRol    = 'duena';       /* 'duena' (todo) | 'coach' (solo sus clases) */
+
+/* ── Una clave por coach ──
+   Cada una entra con la suya y solo ve y marca SUS clases. El nombre se
+   compara contra el instructor del horario con coincideCoach(): en el
+   horario están escritos cortos ("M. Carmen", "Yeni") y acá completos.
+   Para cambiar una clave, se edita acá y se publica. */
+const COACHES = [
+  { nombre:'María Del Carmen Somarriba', pin:'carmen2026'    },
+  { nombre:'Alejandra Mondragón',        pin:'alejandra2026' },
+  { nombre:'Gladys Pastora',             pin:'gladys2026'    },
+  { nombre:'Yeni Noreña',                pin:'yeni2026'      },
+];
+let coachActual = null;           /* la coach que inició sesión, o null */
+
+/* ¿El instructor de una clase corresponde a esta coach?
+   Basta que compartan una palabra de 3 letras o más, en cualquier orden:
+   así "M. Carmen" reconoce a "María Del Carmen Somarriba" y "Yeni" a
+   "Yeni Noreña", sin depender de cómo esté escrito el horario. */
+function coincideCoach(instructor, nombreCoach) {
+  const pal = s => normNombre(s).replace(/[^a-z0-9 ]/g,'').split(' ').filter(w => w.length >= 3);
+  const a = pal(instructor), b = pal(nombreCoach);
+  return a.some(w => b.includes(w));
+}
+
+/* Las clases de hoy que le tocan a la coach que entró */
+function slotsDeCoach(slots) {
+  if (!coachActual) return slots;
+  return slots.filter(s => coincideCoach(s.instructor, coachActual.nombre));
+}
 let sadminTabActual = 'hoy';      /* pestaña activa, para refrescar la vista correcta */
 
 const PLANES_SUB = {
@@ -6133,18 +6171,27 @@ function toggleSpmVis() {
 }
 function checkSuperPin() {
   const val = document.getElementById('superPinInput').value;
-  if (val === SUPER_PIN || val === COACH_PIN) {
-    sadminRol = (val === COACH_PIN) ? 'coach' : 'duena';
-    document.getElementById('sadminBackdrop').classList.toggle('coach-mode', sadminRol === 'coach');
+  /* La clave de una coach la identifica: entra a su propio panel, con sus
+     clases y nada más. COACH_PIN sigue siendo el acceso general de vista. */
+  const coach = COACHES.find(c => c.pin === val);
+  if (val === SUPER_PIN || val === COACH_PIN || coach) {
+    sadminRol   = (val === SUPER_PIN) ? 'duena' : 'coach';
+    coachActual = coach || null;
+    const bd = document.getElementById('sadminBackdrop');
+    bd.classList.toggle('coach-mode', sadminRol === 'coach');
+    /* La coach con clave propia sí pasa lista, así que necesita la pestaña Hoy */
+    bd.classList.toggle('coach-hoy', !!coachActual);
     document.getElementById('sadminHdTitle').textContent =
-      sadminRol === 'coach' ? '🩰 Panel Coach · solo vista' : '👑 Super Admin';
+      coachActual ? `🩰 ${coachActual.nombre.split(' ')[0]} · mis clases`
+      : sadminRol === 'coach' ? '🩰 Panel Coach · solo vista' : '👑 Super Admin';
     document.getElementById('superPinBackdrop').classList.remove('open');
     document.getElementById('sadminBackdrop').classList.add('open');
     document.body.style.overflow = 'hidden';
     const h = new Date();
     document.getElementById('sadminHdFecha').textContent =
       `${DIAS_ES[h.getDay()]} ${h.getDate()} ${MESES_ES[h.getMonth()]} ${h.getFullYear()}`;
-    sadminTab(sadminRol === 'coach' ? 'calendario' : 'hoy');
+    /* La coach con clave propia arranca en Hoy: es donde pasa lista */
+    sadminTab((sadminRol === 'coach' && !coachActual) ? 'calendario' : 'hoy');
     /* Traer lo hecho desde otros celulares antes de mostrar el panel */
     if (SB_ON) {
       Promise.all([sincronizarReservas(), sincronizarSubs(), sincronizarAsistencias(), sincronizarHorarios(), sincronizarEspeciales(), sincronizarCanceladas(), verificarColumnaDescuento()])
@@ -6165,7 +6212,9 @@ function closeSuperAdmin() {
 
 function sadminTab(tab) {
   /* El perfil coach solo puede ver Calendario y Horarios */
-  if (sadminRol === 'coach' && !['calendario','horarios'].includes(tab)) tab = 'calendario';
+  /* La coach con clave propia además entra a Hoy, para pasar lista */
+  const permitidas = coachActual ? ['hoy','calendario','horarios'] : ['calendario','horarios'];
+  if (sadminRol === 'coach' && !permitidas.includes(tab)) tab = permitidas[0];
   sadminTabActual = tab;
   document.querySelectorAll('.sadmin-tab').forEach(t =>
     t.classList.toggle('active', t.dataset.tab === tab));
@@ -6196,16 +6245,17 @@ function buildSAdminHoy() {
   const dateStr = fmtISO(hoy);   // fecha LOCAL (igual que reservas y Calendario); toISOString() usa UTC y desincroniza el día
   const dow     = hoy.getDay();
   const diaStr  = `${DIAS_ES[dow]} ${hoy.getDate()} ${MESES_ES[hoy.getMonth()]} ${hoy.getFullYear()}`;
-  const slots   = slotsDelDia(dateStr, dow);
+  /* Una coach ve únicamente las clases que le tocan hoy */
+  const slots   = slotsDeCoach(slotsDelDia(dateStr, dow));
+  const esCoach = !!coachActual;
 
   if (slots.length === 0) {
     body.innerHTML = `<div class="sa-fecha">${diaStr}</div>
-      ${buildPendientesHtml()}
-      ${buildPendPagoHtml()}
+      ${esCoach ? '' : buildPendientesHtml() + buildPendPagoHtml()}
       <div class="sa-empty">
         <span class="sa-empty-ico">🌙</span>
-        <strong>Día de descanso</strong>
-        <span>No hay clases programadas para hoy.</span>
+        <strong>${esCoach ? 'Sin clases tuyas hoy' : 'Día de descanso'}</strong>
+        <span>${esCoach ? 'No tenés clases programadas para hoy.' : 'No hay clases programadas para hoy.'}</span>
       </div>`;
     return;
   }
@@ -6260,10 +6310,11 @@ function buildSAdminHoy() {
                ${asistio ? '✓ Asistió' : 'Marcar ✓'}
              </button>`
           : `<span></span><span></span>`}
+        ${esCoach ? '<span></span><span></span>' : `
         ${c.pagoOk === false
           ? '<span></span>'
           : `<button class="btn-sa-alumna-del" title="Generar comprobante" style="color:#2e7d32;border-color:rgba(46,125,50,.35)" onclick="comprobanteReserva('${clase}','${dateStr}','${hora}',${c.ts})">📄</button>`}
-        <button class="btn-sa-alumna-del" title="Eliminar reserva" onclick="eliminarReserva('${clase}','${dateStr}','${hora}',${c.ts},'hoy')">🗑</button>
+        <button class="btn-sa-alumna-del" title="Eliminar reserva" onclick="eliminarReserva('${clase}','${dateStr}','${hora}',${c.ts},'hoy')">🗑</button>`}
       </div>`;
     }).join('') || `<div style="padding:7px 20px;font-size:.76rem;color:var(--gray)">Sin inscripciones</div>`;
 
@@ -6288,7 +6339,13 @@ function buildSAdminHoy() {
     </div>`;
   }).join('');
 
-  body.innerHTML = `
+  /* La coach no ve dinero ni pendientes de pago: solo su lista para
+     pasar asistencia. Todo eso es del estudio, no de ella. */
+  body.innerHTML = esCoach
+    ? `<div class="sa-fecha">${diaStr}</div>
+       <div class="sa-coach-aviso">🩰 Tus clases de hoy · marcá la asistencia de cada alumna</div>
+       ${clasesHtml}`
+    : `
     ${avisoSqlPendienteHtml()}
     <div class="sa-fecha">${diaStr}</div>
     ${buildPendientesHtml()}
