@@ -4070,6 +4070,57 @@ async function sincronizarEspeciales() {
   return true;
 }
 
+/* ── Clases canceladas en una fecha puntual ──────────────────────────
+   El espejo de CLASES_ESPECIALES: aquellas AGREGAN una clase suelta,
+   estas QUITAN una. Sirve para cuando una sesión no se puede dar ese día
+   sin tener que borrarla del horario semanal, que la eliminaría de todas
+   las semanas. */
+let CLASES_CANCELADAS = [];
+
+async function sincronizarCanceladas() {
+  if (!SB_ON) return false;
+  const hoy = fmtISO(new Date());
+  /* Solo de hoy en adelante: las viejas no cambian nada de lo que se ve */
+  const filas = await sbFetch(`clases_canceladas?select=*&fecha=gte.${hoy}&order=fecha,hora`);
+  CLASES_CANCELADAS = (filas || []).map(f => ({
+    id:f.id, clase:f.clase, dateStr:f.fecha, hora:f.hora, motivo:f.motivo || ''
+  }));
+  return true;
+}
+
+function estaCancelada(clase, dateStr, hora) {
+  return CLASES_CANCELADAS.some(c =>
+    c.clase === clase && c.dateStr === dateStr && c.hora === hora);
+}
+
+async function cancelarClaseDB(clase, dateStr, hora, motivo) {
+  const fila = { clase, fecha: dateStr, hora, motivo: motivo || null };
+  if (!SB_ON) { CLASES_CANCELADAS.push({ id:Date.now(), clase, dateStr, hora, motivo:motivo||'' }); return true; }
+  try {
+    const r = await sbFetch('clases_canceladas?select=*', {
+      method:'POST', headers:{ Prefer:'return=representation' },
+      body: JSON.stringify(fila)
+    });
+    const id = (r && r[0] && r[0].id) || Date.now();
+    CLASES_CANCELADAS.push({ id, clase, dateStr, hora, motivo: motivo || '' });
+    return true;
+  } catch (e) {
+    if (e.status === 404) { alert('Falta crear la tabla clases_canceladas en Supabase.'); return false; }
+    if (e.status === 409) { alert('Esa clase ya estaba cancelada.'); return false; }
+    alert('No se pudo cancelar: ' + e.message);
+    return false;
+  }
+}
+
+async function reactivarClaseDB(id) {
+  if (SB_ON) {
+    try { await sbFetch(`clases_canceladas?id=eq.${encodeURIComponent(id)}`, { method:'DELETE' }); }
+    catch (e) { alert('No se pudo reactivar: ' + e.message); return false; }
+  }
+  CLASES_CANCELADAS = CLASES_CANCELADAS.filter(c => String(c.id) !== String(id));
+  return true;
+}
+
 async function guardarEspecialDB(esp) {
   if (!SB_ON) { CLASES_ESPECIALES.push(esp); return true; }
   try {
@@ -4111,7 +4162,8 @@ function precioDe(clase, dateStr, hora) {
 /* Slots del horario semanal + clases especiales de esa fecha */
 function slotsDelDia(dateStr, dow) {
   return [ ...(HORARIO[dow] || []),
-           ...CLASES_ESPECIALES.filter(e => e.dateStr === dateStr) ];
+           ...CLASES_ESPECIALES.filter(e => e.dateStr === dateStr) ]
+         .filter(s => !estaCancelada(s.clase, dateStr, s.hora));
 };
 
 /* ── Horario semanal (jsDay: 1=Lun … 5=Vie) ── */
@@ -4969,7 +5021,9 @@ function renderSched() {
       dateStr: fmtISO(d),
       isPast:  d < today,
       isToday: d.getTime() === today.getTime(),
-      tieneClases: (HORARIO[d.getDay()] || []).length > 0
+      /* Un día donde se cancelaron todas las clases no debe ofrecerse */
+      tieneClases: (HORARIO[d.getDay()] || [])
+                     .some(s => !estaCancelada(s.clase, fmtISO(d), s.hora))
     });
   }
 
@@ -5015,7 +5069,9 @@ function renderCards() {
 
   const d = new Date(schedSelDay+'T12:00:00');
   const jsDay = d.getDay();
-  const sesiones = HORARIO[jsDay];
+  /* Las canceladas ese día no se le muestran a las alumnas */
+  const sesiones = (HORARIO[jsDay] || [])
+                     .filter(s => !estaCancelada(s.clase, schedSelDay, s.hora));
 
   if (!sesiones || sesiones.length===0) {
     grid.innerHTML = '<div class="sched-empty">Sin clases este día · descansa y recarga ✧</div>';
@@ -6091,7 +6147,7 @@ function checkSuperPin() {
     sadminTab(sadminRol === 'coach' ? 'calendario' : 'hoy');
     /* Traer lo hecho desde otros celulares antes de mostrar el panel */
     if (SB_ON) {
-      Promise.all([sincronizarReservas(), sincronizarSubs(), sincronizarAsistencias(), sincronizarHorarios(), sincronizarEspeciales(), verificarColumnaDescuento()])
+      Promise.all([sincronizarReservas(), sincronizarSubs(), sincronizarAsistencias(), sincronizarHorarios(), sincronizarEspeciales(), sincronizarCanceladas(), verificarColumnaDescuento()])
         .then(() => { sadminTab(sadminTabActual); updateSubsBadge(); })
         .catch(err => alert('No se pudieron cargar los datos de la nube.\nMostrando la última copia local.\n\n' + err.message));
     }
@@ -6905,7 +6961,9 @@ function agpLoadSlots(i) {
   const sel   = document.getElementById(`agpSlot_${i}`);
   if (!fecha) { sel.innerHTML = '<option value="">Elige una fecha</option>'; return; }
   const dow   = new Date(fecha+'T12:00:00').getDay();
-  const slots = HORARIO[dow] || [];
+  /* Sin las canceladas: no tiene sentido agendar a alguien en una clase
+     que ese día no se va a dar */
+  const slots = (HORARIO[dow] || []).filter(s => !estaCancelada(s.clase, fecha, s.hora));
   if (slots.length === 0) {
     sel.innerHTML = '<option value="">Sin clases ese día</option>';
     return;
@@ -7464,6 +7522,7 @@ function buildSAdminHorarios() {
   });
 
   html += buildEspecialesHtml();
+  html += buildCanceladasHtml();
   body.innerHTML = html;
 }
 
@@ -7523,6 +7582,130 @@ function buildEspecialesHtml() {
 
 function espLink(id) {
   return `${location.origin}${location.pathname}#${id}`;
+}
+
+/* ── Cancelar una clase en una fecha puntual ──
+   Borrarla del horario semanal la quitaría de TODAS las semanas. Acá se
+   marca solo esa sesión: la semana siguiente vuelve sola. */
+function buildCanceladasHtml() {
+  const hoy = fmtISO(new Date());
+
+  const lista = CLASES_CANCELADAS
+    .slice().sort((a,b) => (a.dateStr+a.hora).localeCompare(b.dateStr+b.hora))
+    .map(c => {
+      const info = INFO[c.clase] || { emoji:'📋', nombre:c.clase };
+      const d    = new Date(c.dateStr+'T12:00:00');
+      const fecha = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
+      return `<div class="hor-esp-card">
+        <div class="hor-esp-info">
+          <strong>${info.emoji} ${info.nombre} · ${c.hora} hrs</strong>
+          <span>${fecha}${c.motivo ? ' · ' + c.motivo : ''}</span>
+        </div>
+        <div class="hor-esp-btns">
+          <button class="btn-hor-del" title="Reactivar esta clase"
+                  onclick="reactivarClase('${c.id}')">↺</button>
+        </div>
+      </div>`;
+    }).join('') || '<p style="color:var(--gray);font-size:.76rem;padding:8px">Ninguna clase cancelada.</p>';
+
+  if (sadminRol === 'coach') {
+    return `<div class="hor-dia-blk">
+      <div class="hor-dia-hd"><strong>🚫 Clases canceladas</strong></div>
+      ${lista}
+    </div>`;
+  }
+
+  return `<div class="hor-dia-blk">
+    <div class="hor-dia-hd"><strong>🚫 Cancelar una clase (solo ese día)</strong></div>
+    <p class="hor-note" style="padding:0 8px 10px">
+      La clase desaparece del horario únicamente en la fecha elegida.
+      El horario semanal no se toca: la semana siguiente vuelve sola.
+    </p>
+    ${lista}
+    <div class="hor-esp-form">
+      <input class="hor-inp" type="date" id="canFecha" min="${hoy}" onchange="canLoadSlots()"/>
+      <select class="hor-sel" id="canSlot"><option value="">Elige una fecha</option></select>
+      <input class="hor-inp" type="text" id="canMotivo" placeholder="Motivo (opcional)"/>
+      <button class="btn-hor-add" onclick="cancelarClase()">🚫 Cancelar esa clase</button>
+    </div>
+  </div>`;
+}
+
+/* Muestra las clases de ese día, con cuántas alumnas hay inscritas */
+function canLoadSlots() {
+  const fecha = document.getElementById('canFecha').value;
+  const sel   = document.getElementById('canSlot');
+  if (!fecha) { sel.innerHTML = '<option value="">Elige una fecha</option>'; return; }
+  const dow   = new Date(fecha+'T12:00:00').getDay();
+  const slots = (HORARIO[dow] || []).filter(s => !estaCancelada(s.clase, fecha, s.hora));
+  if (!slots.length) { sel.innerHTML = '<option value="">Sin clases ese día</option>'; return; }
+  sel.innerHTML = '<option value="">Elige la clase…</option>' + slots.map(s => {
+    const info = INFO[s.clase];
+    const n    = getClientes(s.clase, fecha, s.hora).length;
+    return `<option value="${s.clase}|${s.hora}">
+      ${info.emoji} ${info.nombre} · ${s.hora} hrs${n ? ` · ${n} inscrita(s)` : ''}
+    </option>`;
+  }).join('');
+}
+
+async function cancelarClase() {
+  const fecha  = document.getElementById('canFecha').value;
+  const val    = document.getElementById('canSlot').value;
+  const motivo = document.getElementById('canMotivo').value.trim();
+  if (!fecha || !val) { alert('Elige la fecha y la clase.'); return; }
+
+  const [clase, hora] = val.split('|');
+  const info     = INFO[clase];
+  const clientes = getClientes(clase, fecha, hora);
+  const d        = new Date(fecha+'T12:00:00');
+  const cuando   = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]} · ${hora} hrs`;
+
+  /* Si ya hay alumnas inscritas hay que avisarles: el sistema no manda
+     mensajes, así que se listan para que el estudio las contacte. */
+  if (clientes.length) {
+    const quienes = clientes.map(c => `· ${c.nombre}${c.tel ? ' — ' + c.tel : ''}`).join('\n');
+    if (!confirm(
+      `${info.nombre} · ${cuando}\n\n` +
+      `Hay ${clientes.length} alumna(s) inscrita(s):\n${quienes}\n\n` +
+      `Al cancelar se les libera la reserva y, a quienes se les había descontado, ` +
+      `se les devuelve la clase a su paquete.\n\n` +
+      `TENÉS QUE AVISARLES VOS: el sistema no manda mensajes.\n\n¿Cancelar la clase?`)) return;
+  } else {
+    if (!confirm(`¿Cancelar ${info.nombre} del ${cuando}?`)) return;
+  }
+
+  if (!await cancelarClaseDB(clase, fecha, hora, motivo)) return;
+
+  /* Se eliminan las reservas devolviendo la clase a quien la había pagado
+     con su paquete. eliminarReserva ya se encarga de la devolución. */
+  const key = slotKey(clase, fecha, hora);
+  let devueltas = 0;
+  for (const c of clientes.slice()) {
+    try {
+      if (!await borrarReservaDB(key, c.ts)) continue;
+      if (c.claseDescontada) {
+        const sub = getSuscriptoraByEmail(c.email);
+        if (sub) { await devolverClase(sub.id); devueltas++; }
+      }
+    } catch (e) { console.warn('No se pudo liberar una reserva:', e.message); }
+  }
+  renderCards();   /* los cupos de las tarjetas públicas cambian */
+
+  document.getElementById('canMotivo').value = '';
+  sadminTab('horarios');
+  alert(`🚫 ${info.nombre} · ${cuando} quedó cancelada.` +
+        (clientes.length ? `\n\nSe liberaron ${clientes.length} reserva(s)` +
+                           (devueltas ? ` y se devolvieron ${devueltas} clase(s) a sus paquetes.` : '.') +
+                           `\n\nRecordá avisarles.` : ''));
+}
+
+async function reactivarClase(id) {
+  const c = CLASES_CANCELADAS.find(x => String(x.id) === String(id));
+  if (!c) return;
+  const info = INFO[c.clase] || { nombre:c.clase };
+  const d    = new Date(c.dateStr+'T12:00:00');
+  if (!confirm(`¿Volver a poner ${info.nombre} el ${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]} · ${c.hora} hrs?`)) return;
+  if (await reactivarClaseDB(id)) { sadminTab('horarios'); }
 }
 
 function espCopiar(id) {
@@ -7989,7 +8172,8 @@ document.addEventListener('DOMContentLoaded', () => {
     Promise.all([
       sincronizarHorarios().catch(e => console.warn('Horarios:', e.message)),
       sincronizarEventos().catch(e => console.warn('Eventos:', e.message)),
-      sincronizarEspeciales().catch(e => console.warn('Clases libres:', e.message))
+      sincronizarEspeciales().catch(e => console.warn('Clases libres:', e.message)),
+      sincronizarCanceladas().catch(e => console.warn('Clases canceladas:', e.message))
     ]).then(() => { renderSched(); renderEventosPublic(); });
 
     sincronizarReservas()
