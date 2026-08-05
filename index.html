@@ -2589,6 +2589,39 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .al-pie button { background:none; border:none; color:var(--gray); font-family:inherit; font-size:.72rem; cursor:pointer; text-decoration:underline; }
 .al-pie button:hover { color:var(--wine); }
 
+/* ── Vista de semana de la coach ── */
+.cs-nav {
+  display:flex; align-items:center; gap:10px; margin-bottom:12px;
+}
+.btn-cs-nav {
+  width:38px; height:38px; flex-shrink:0; border-radius:50%;
+  border:1.5px solid rgba(107,23,40,.2); background:var(--white);
+  color:var(--wine); font-size:1rem; cursor:pointer;
+}
+.btn-cs-nav:disabled { opacity:.35; cursor:default; }
+.cs-rango { flex:1; text-align:center; min-width:0; }
+.cs-rango strong { display:block; font-family:'Playfair Display',serif; font-size:1rem; color:var(--wine-d); }
+.cs-rango span   { font-size:.7rem; color:var(--gray); letter-spacing:.5px; }
+.cs-resumen {
+  background:rgba(201,149,106,.13); border:1px solid rgba(201,149,106,.35);
+  border-radius:12px; padding:9px 14px; margin-bottom:16px;
+  font-size:.76rem; color:var(--wine-d); text-align:center;
+}
+.cs-dia { margin-bottom:18px; }
+.cs-dia-hd {
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  font-size:.68rem; letter-spacing:2px; text-transform:uppercase;
+  color:var(--gray); margin-bottom:8px; padding-left:2px;
+}
+.cs-dia.cs-hoy .cs-dia-hd { color:var(--wine); font-weight:700; }
+.cs-chip-hoy {
+  font-size:.58rem; letter-spacing:.5px; font-weight:700;
+  background:var(--wine); color:var(--cream);
+  border-radius:50px; padding:3px 9px;
+}
+.cs-vacio { padding:9px 20px; font-size:.75rem; color:var(--gray); }
+.cs-marcada { font-size:.68rem; color:#1a5c1a; font-weight:600; white-space:nowrap; }
+
 /* Aviso en el panel de la coach */
 .sa-coach-aviso {
   background:rgba(201,149,106,.13); border:1px solid rgba(201,149,106,.35);
@@ -7082,7 +7115,104 @@ async function calAgendar(clase, dateStr, hora, instructor, selId, matsId) {
 }
 
 /* ── Tab: Calendario ── */
+/* ── Calendario de la coach: su semana ──
+   A la coach no le sirve el mes entero del estudio: necesita ver qué le toca
+   esta semana y quién se anotó cada día. Marcar asistencia queda solo para
+   el día de hoy, que es cuando la clase realmente sucede. */
+let coachSemanaOff = 0;   /* 0 = esta semana, 1 = la siguiente… */
+
+function coachSemana(dir) {
+  coachSemanaOff = Math.max(0, coachSemanaOff + dir);
+  buildSAdminCalendario();
+}
+
+function buildCoachSemana() {
+  const body = document.getElementById('sadminBody');
+  const hoyD = new Date(); hoyD.setHours(0,0,0,0);
+  const hoyS = fmtISO(hoyD);
+
+  /* Semana de lunes a domingo */
+  const lunes = new Date(hoyD);
+  lunes.setDate(lunes.getDate() - ((lunes.getDay() + 6) % 7) + coachSemanaOff * 7);
+
+  let totalClases = 0, totalAlumnas = 0;
+
+  const dias = Array.from({length:7}, (_, i) => {
+    const d = new Date(lunes); d.setDate(d.getDate() + i);
+    const ds    = fmtISO(d);
+    const esHoy = ds === hoyS;
+    const slots = slotsDeCoach(slotsDelDia(ds, d.getDay()));
+    totalClases += slots.length;
+
+    const bloques = slots.map(({ clase, hora, instructor }) => {
+      const info     = INFO[clase] || { emoji:'📋', nombre:clase };
+      const clientes = getClientes(clase, ds, hora);
+      const cupos    = cuposDe(clase, ds, hora);
+      totalAlumnas  += clientes.length;
+
+      const filas = clientes.map(c => {
+        const sub    = getSuscriptoraByEmail(c.email);
+        const esSub  = !!(sub && sub.activa);
+        const marcado = yaAsistio(clase, ds, hora, c.email);
+        return `<div class="sa-alumna-row">
+          <div class="sa-alumna-info">
+            <div class="sa-alumna-nombre">${c.nombre} ${c.lugar ? `<span class="sa-lugar-badge">📍 ${c.lugar}</span>` : ''}</div>
+            <div class="sa-alumna-email">${c.tel || c.email || '—'}</div>
+          </div>
+          <span class="sa-alumna-tel">${esSub ? '💎' : ''}</span>
+          <span></span>
+          ${esSub && esHoy
+            ? `<button class="btn-sa-asist" ${marcado?'disabled':''}
+                 onclick="registrarAsistencia('${c.email}','${clase}','${ds}','${hora}')">
+                 ${marcado ? '✓ Asistió' : 'Marcar ✓'}
+               </button>`
+            : marcado ? '<span class="cs-marcada">✓ Asistió</span>' : '<span></span>'}
+          <span></span>
+        </div>`;
+      }).join('') || `<div class="cs-vacio">Sin reservas todavía</div>`;
+
+      return `<div class="sa-clase-blk">
+        <div class="sa-clase-hd">
+          <span>${info.emoji}</span><strong>${info.nombre}</strong>
+          <span class="sa-clase-meta">${hora} hrs · ${clientes.length}/${cupos}</span>
+        </div>
+        ${filas}
+      </div>`;
+    }).join('');
+
+    if (!slots.length) return '';
+    return `<div class="cs-dia${esHoy ? ' cs-hoy' : ''}">
+      <div class="cs-dia-hd">
+        ${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}
+        ${esHoy ? '<span class="cs-chip-hoy">HOY · podés marcar</span>' : ''}
+      </div>
+      ${bloques}
+    </div>`;
+  }).join('');
+
+  const dom = new Date(lunes); dom.setDate(dom.getDate() + 6);
+  const rango = `${lunes.getDate()} ${MESES_ES[lunes.getMonth()]} — ${dom.getDate()} ${MESES_ES[dom.getMonth()]}`;
+
+  body.innerHTML = `
+    <div class="cs-nav">
+      <button class="btn-cs-nav" ${coachSemanaOff === 0 ? 'disabled' : ''} onclick="coachSemana(-1)">←</button>
+      <div class="cs-rango">
+        <strong>${coachSemanaOff === 0 ? 'Esta semana' : coachSemanaOff === 1 ? 'Próxima semana' : 'En ' + coachSemanaOff + ' semanas'}</strong>
+        <span>${rango}</span>
+      </div>
+      <button class="btn-cs-nav" onclick="coachSemana(1)">→</button>
+    </div>
+    <div class="cs-resumen">🩰 ${totalClases} clase(s) tuyas · ${totalAlumnas} alumna(s) anotada(s)</div>
+    ${dias || `<div class="sa-empty">
+        <span class="sa-empty-ico">🌙</span>
+        <strong>Sin clases esta semana</strong>
+        <span>No tenés clases programadas en este rango.</span>
+      </div>`}`;
+}
+
 function buildSAdminCalendario() {
+  if (coachActual) return buildCoachSemana();
+
   const body  = document.getElementById('sadminBody');
   const hoy   = new Date();
   const year  = hoy.getFullYear();
