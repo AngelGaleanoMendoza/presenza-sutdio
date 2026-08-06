@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Presenza · Diagnóstico del sistema</title>
+<style>
+  /* Página interna de chequeo. No muestra ningún dato de alumnas: solo
+     conteos y estados. Las pruebas del panel piden la contraseña real. */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+         background: #faf7f4; color: #2d2a26; padding: 20px; max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 1.3rem; margin: 16px 0 4px; }
+  .sub { color: #8a8078; font-size: .9rem; margin-bottom: 20px; }
+  .card { background: #fff; border: 1px solid #eee5dc; border-radius: 14px;
+          padding: 14px 16px; margin-bottom: 10px; }
+  .card h2 { font-size: .95rem; font-weight: 600; display: flex; gap: 8px; align-items: center; }
+  .card p { font-size: .85rem; color: #6b635b; margin-top: 6px; line-height: 1.45; }
+  .icono { font-size: 1.1rem; width: 24px; text-align: center; flex: none; }
+  .ok   { border-left: 4px solid #3a9d5d; }
+  .mal  { border-left: 4px solid #d9534f; }
+  .espera { border-left: 4px solid #d8cfc6; }
+  .aviso  { border-left: 4px solid #e8a33d; }
+  #resumen { border-radius: 14px; padding: 16px; margin: 18px 0; font-size: .92rem;
+             line-height: 1.5; display: none; }
+  #resumen.mal { display: block; background: #fdf0ef; border: 1px solid #f0c9c7; }
+  #resumen.ok  { display: block; background: #eef8f1; border: 1px solid #c8e6d2; }
+  form { background: #fff; border: 1px solid #eee5dc; border-radius: 14px; padding: 16px; margin-top: 22px; }
+  form h2 { font-size: 1rem; margin-bottom: 4px; }
+  form p  { font-size: .82rem; color: #8a8078; margin-bottom: 12px; }
+  input { width: 100%; padding: 11px 12px; border: 1px solid #ddd2c8; border-radius: 10px;
+          font-size: 1rem; margin-bottom: 10px; }
+  button { width: 100%; padding: 12px; border: 0; border-radius: 10px; background: #2d2a26;
+           color: #fff; font-size: 1rem; cursor: pointer; }
+  button:disabled { opacity: .5; }
+  .pie { text-align: center; font-size: .78rem; color: #b3a99f; margin: 26px 0 10px; }
+</style>
+</head>
+<body>
+  <h1>🔎 Diagnóstico Presenza</h1>
+  <p class="sub">Cada tarjeta se pone verde ✅ o roja ❌ sola. Si algo sale rojo, manda una captura de esta pantalla.</p>
+
+  <div class="card espera" id="t-version"><h2><span class="icono">⏳</span> Versión de la página publicada</h2><p>Revisando…</p></div>
+  <div class="card espera" id="t-cupos"><h2><span class="icono">⏳</span> Cupos de la web pública (cupos_del_dia)</h2><p>Revisando…</p></div>
+  <div class="card espera" id="t-reservas"><h2><span class="icono">⏳</span> Reservas cerradas al público</h2><p>Revisando…</p></div>
+  <div class="card espera" id="t-subs"><h2><span class="icono">⏳</span> Suscriptoras cerradas al público</h2><p>Revisando…</p></div>
+
+  <div id="resumen"></div>
+
+  <form onsubmit="probarPanel(event)">
+    <h2>🔐 Prueba del panel (opcional)</h2>
+    <p>Entra con tu usuario y contraseña del panel para confirmar que, con sesión,
+       sí se ven las reservas. Aquí no se muestra ningún nombre: solo cuántas hay.</p>
+    <input id="usr" placeholder="Usuario (ej. jimena)" autocapitalize="none" autocomplete="username">
+    <input id="pwd" type="password" placeholder="Contraseña" autocomplete="current-password">
+    <button id="btn">Probar mi acceso</button>
+    <div class="card espera" id="t-panel" style="margin-top:12px; display:none"><h2><span class="icono">⏳</span> Acceso del panel</h2><p>Probando…</p></div>
+  </form>
+
+  <p class="pie">Esta página no guarda nada y no enseña datos de alumnas.</p>
+
+<script>
+const URL_SB = 'https://sdsjhmtugtfndsxilzge.supabase.co';
+const KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkc2pobXR1Z3RmbmRzeGlsemdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNjM0MjIsImV4cCI6MjEwMDczOTQyMn0.iJu7nQoEr-hFYkBGvlVrjdckvXtes0vTawTKrzVv1Yo';
+let fallas = 0, hechas = 0;
+const TOTAL = 4;
+
+function pinta(id, estado, titulo, detalle) {
+  const el = document.getElementById(id);
+  el.className = 'card ' + estado;
+  el.querySelector('.icono').textContent = estado === 'ok' ? '✅' : (estado === 'aviso' ? '⚠️' : '❌');
+  el.querySelector('h2').childNodes[1].textContent = ' ' + titulo;
+  el.querySelector('p').textContent = detalle;
+}
+function cerrarPrueba(exito) {
+  hechas++; if (!exito) fallas++;
+  if (hechas < TOTAL) return;
+  const r = document.getElementById('resumen');
+  if (fallas === 0) {
+    r.className = 'ok';
+    r.innerHTML = '<strong>✅ Todo en orden del lado público.</strong> La web ya debería mostrar los cupos ocupados. Si abajo la prueba del panel también sale verde, no queda nada pendiente.';
+  } else {
+    r.className = 'mal';
+    r.innerHTML = '<strong>❌ Falta aplicar la reparación en Supabase.</strong> Abre Supabase → SQL Editor, pega COMPLETO el archivo <code>supabase-reparacion-total.sql</code> y dale Run. Después recarga esta página: todo debe quedar verde.';
+  }
+}
+
+/* La fecha de hoy EN NICARAGUA, no en UTC */
+function hoyNI() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Managua' }).format(new Date());
+}
+
+async function api(ruta, opts = {}, token = KEY) {
+  const r = await fetch(URL_SB + ruta, { ...opts, headers: {
+    apikey: KEY, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json',
+    ...(opts.headers || {}) } });
+  return { status: r.status, texto: await r.text(), headers: r.headers };
+}
+
+(async () => {
+  /* 1 · ¿La página publicada es la versión nueva? (caché viejo = todo falla) */
+  try {
+    const r = await fetch('index.html', { cache: 'no-store' });
+    const html = await r.text();
+    if (html.includes('sincronizarCuposPublico') && html.includes('signInWithPassword')) {
+      pinta('t-version', 'ok', 'La página publicada es la versión nueva', 'El sitio ya tiene el login real y la lectura segura de cupos.');
+      cerrarPrueba(true);
+    } else {
+      pinta('t-version', 'aviso', 'La página publicada parece VIEJA', 'GitHub Pages todavía sirve una versión anterior. Espera unos minutos y recarga; si sigue igual, avísame.');
+      cerrarPrueba(false);
+    }
+  } catch (e) {
+    pinta('t-version', 'aviso', 'No se pudo revisar la versión', e.message); cerrarPrueba(true);
+  }
+
+  /* 2 · cupos_del_dia: de aquí salen los cupos de la web pública */
+  try {
+    const hoy = hoyNI();
+    const hasta = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Managua' }).format(new Date(Date.now() + 7 * 86400000));
+    const r = await api('/rest/v1/rpc/cupos_del_dia', { method: 'POST', body: JSON.stringify({ p_desde: hoy, p_hasta: hasta }) });
+    if (r.status === 200) {
+      const filas = JSON.parse(r.texto || '[]');
+      const deHoy = filas.filter(f => f.fecha === hoy).reduce((n, f) => n + Number(f.ocupados || 0), 0);
+      pinta('t-cupos', 'ok', 'Los cupos públicos funcionan',
+        `Hoy (${hoy}) hay ${deHoy} reserva(s) ocupando cupo, y ${filas.length} horario(s) con gente en los próximos 7 días. La web puede pintar esto sin ver nombres.`);
+      cerrarPrueba(true);
+    } else {
+      pinta('t-cupos', 'mal', 'FALTA la función de cupos — por esto la web se ve en 0',
+        'La base no tiene cupos_del_dia (o quedó una versión vieja). Las reservas están guardadas, pero la página no tiene de dónde leer los cupos. Lo arregla supabase-reparacion-total.sql.');
+      cerrarPrueba(false);
+    }
+  } catch (e) { pinta('t-cupos', 'mal', 'No se pudo probar los cupos', e.message); cerrarPrueba(false); }
+
+  /* 3 y 4 · Las tablas con datos de alumnas deben estar CERRADAS al público */
+  for (const [id, tabla, nombre] of [['t-reservas', 'reservas', 'reservas'], ['t-subs', 'suscriptoras', 'suscriptoras']]) {
+    try {
+      const r = await api(`/rest/v1/${tabla}?select=id&limit=1`);
+      if (r.status === 200) {
+        pinta(id, 'mal', `¡La tabla ${nombre} está ABIERTA al público!`,
+          'Cualquiera con la dirección podría descargarla. Corre supabase-reparacion-total.sql para cerrarla.');
+        cerrarPrueba(false);
+      } else {
+        pinta(id, 'ok', `La tabla ${nombre} está protegida`,
+          'El público no puede leerla (respuesta: ' + r.status + '). Así debe estar.');
+        cerrarPrueba(true);
+      }
+    } catch (e) { pinta(id, 'mal', `No se pudo probar ${nombre}`, e.message); cerrarPrueba(false); }
+  }
+})();
+
+/* 5 · Con sesión del panel: contar reservas (solo números, ningún nombre) */
+async function probarPanel(ev) {
+  ev.preventDefault();
+  const btn = document.getElementById('btn');
+  const tarj = document.getElementById('t-panel');
+  tarj.style.display = 'block';
+  btn.disabled = true;
+  try {
+    const usr = (document.getElementById('usr').value || '').trim().toLowerCase();
+    const pwd = document.getElementById('pwd').value;
+    const login = await api('/auth/v1/token?grant_type=password', {
+      method: 'POST', body: JSON.stringify({ email: usr + '@presenza.auth', password: pwd })
+    });
+    if (login.status !== 200) {
+      pinta('t-panel', 'mal', 'Usuario o contraseña incorrectos', 'Supabase no aceptó el acceso (respuesta ' + login.status + '). Revisa que la cuenta exista en Supabase → Authentication.');
+      return;
+    }
+    const token = JSON.parse(login.texto).access_token;
+    const cuenta = async (filtro) => {
+      const r = await api(`/rest/v1/reservas?select=id${filtro}`, {
+        method: 'HEAD', headers: { Prefer: 'count=exact' } }, token);
+      if (r.status >= 400) throw new Error('respuesta ' + r.status);
+      return (r.headers.get('content-range') || '/?').split('/')[1];
+    };
+    const total = await cuenta('');
+    const hoy   = await cuenta('&fecha=eq.' + hoyNI());
+    pinta('t-panel', 'ok', 'Tu acceso del panel funciona',
+      `Con tu sesión se leen las reservas: ${total} guardadas en total y ${hoy} para hoy (${hoyNI()}). Nada se borró: todo está en la base.`);
+  } catch (e) {
+    pinta('t-panel', 'mal', 'Con sesión tampoco se pudo leer',
+      'El login funcionó pero la base negó la lectura (' + e.message + '). Eso lo arregla supabase-reparacion-total.sql (le falta el permiso del rol authenticated).');
+  } finally { btn.disabled = false; }
+}
+</script>
+</body>
+</html>

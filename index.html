@@ -6023,10 +6023,11 @@ function buildCapacityAlert(clase, dateStr, hora, libres) {
    PANEL ADMINISTRATIVO
 ════════════════════════════════════════ */
 function openAdminPanel() {
-  document.getElementById('pinBackdrop').classList.add('open');
-  document.getElementById('pinInput').value = '';
-  document.getElementById('pinErr').style.display = 'none';
-  setTimeout(() => document.getElementById('pinInput').focus(), 100);
+  /* El panel viejo con PIN quedó fuera de servicio: entraba sin sesión real,
+     así que la base (con el candado nuevo) le niega todo — parecía que las
+     reservas "no estaban" cuando en realidad no las podía leer. #admin ahora
+     lleva al login de verdad. */
+  openSuperAdmin();
 }
 
 function checkPin() {
@@ -6384,7 +6385,19 @@ async function checkSuperPin() {
   if (SB_ON) {
     Promise.all([sincronizarReservas(), sincronizarSubs(), sincronizarAsistencias(), sincronizarHorarios(), sincronizarEspeciales(), sincronizarCanceladas(), verificarColumnaDescuento()])
       .then(() => { sadminTab(sadminTabActual); updateSubsBadge(); })
-      .catch(err => alert('No se pudieron cargar los datos de la nube.\nMostrando la última copia local.\n\n' + err.message));
+      .catch(err => {
+        /* "permission denied" con sesión iniciada = a la base le falta correr
+           el SQL de permisos. Sin este aviso parece que las reservas se
+           borraron, cuando en realidad están y solo no se pueden leer. */
+        if (/permission denied|42501/.test(err.message || '')) {
+          alert('Tus reservas ESTÁN en la base de datos, pero a Supabase le falta ' +
+                'aplicar los permisos nuevos y por eso el panel no las puede leer.\n\n' +
+                'Abre Supabase → SQL Editor, pega COMPLETO el archivo ' +
+                'supabase-reparacion-total.sql y dale Run. Luego recarga esta página.');
+        } else {
+          alert('No se pudieron cargar los datos de la nube.\nMostrando la última copia local.\n\n' + err.message);
+        }
+      });
   }
 }
 function closeSuperAdmin() {
