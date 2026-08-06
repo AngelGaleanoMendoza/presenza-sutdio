@@ -4326,6 +4326,28 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    Para activarlo: pega la anon key (Supabase → Settings → API → anon public).
    Con la key vacía el sitio funciona como antes, cada dispositivo por su lado.
 ════════════════════════════════════════ */
+/* ── Versión de esta copia de la página ──
+   Los navegadores (y las pestañas que quedan abiertas días) siguen usando
+   copias viejas de la página aunque ya haya una nueva publicada. Una copia
+   vieja manda todo a la base "como público" y, con las tablas ya cerradas,
+   recibe "permission denied": parece que las reservas se borraron cuando en
+   realidad la que falla es la copia. verificarVersion() compara este número
+   contra version.json (que se pide SIN caché) y recarga una sola vez.
+   OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
+const BUILD = '2026-08-06.2';
+async function verificarVersion() {
+  try {
+    const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
+    const v = ((await r.json()) || {}).build;
+    if (v && v !== BUILD && sessionStorage.getItem('presenza_reload_por') !== v) {
+      /* La marca evita recargar en bucle si la nueva versión aún no llega
+         al CDN: un intento por versión y por pestaña, no más. */
+      sessionStorage.setItem('presenza_reload_por', v);
+      location.reload();
+    }
+  } catch (e) {}
+}
+
 const SUPABASE_URL = 'https://sdsjhmtugtfndsxilzge.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkc2pobXR1Z3RmbmRzeGlsemdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNjM0MjIsImV4cCI6MjEwMDczOTQyMn0.iJu7nQoEr-hFYkBGvlVrjdckvXtes0vTawTKrzVv1Yo';
 const SB_ON = !!(SUPABASE_URL && SUPABASE_KEY);
@@ -6316,11 +6338,16 @@ function closePin() {
 }
 
 function openSuperAdmin() {
+  /* Justo antes de entrar al panel es cuando más duele una copia vieja:
+     se revisa la versión aquí también, no solo al cargar la página. */
+  verificarVersion();
   document.getElementById('superPinBackdrop').classList.add('open');
   document.getElementById('superUserInput').value = '';
   document.getElementById('superPinInput').value = '';
   document.getElementById('superPinInput').type = 'password';
   document.getElementById('superPinErr').textContent = '';
+  const ver = document.getElementById('spmVersion');
+  if (ver) ver.textContent = 'v' + BUILD;
   setTimeout(() => document.getElementById('superUserInput').focus(), 100);
 }
 function toggleSpmVis() {
@@ -6656,12 +6683,10 @@ function buildPendPagoHtml() {
   pend.sort((a,b) => (a.dateStr+a.hora).localeCompare(b.dateStr+b.hora));
 
   const hoyStr = hoyISO();
-  const cards = pend.map(c => {
+  const card = c => {
     const info   = INFO[c.clase];
     const d      = new Date(c.dateStr+'T12:00:00');
     const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
-    /* Las de clases ya pasadas se quedan a la vista (no se pierde el cobro),
-       pero marcadas: son las que hay que resolver o eliminar. */
     const vencida = c.dateStr < hoyStr;
     return `<div class="sa-pend-card pc-unica"${vencida ? ' style="opacity:.72"' : ''}>
       <div class="sa-pend-info">
@@ -6675,12 +6700,23 @@ function buildPendPagoHtml() {
         <button class="btn-pend-no" onclick="rechazarPagoReserva('${c.clase}','${c.dateStr}','${c.hora}',${c.ts})">✕ Rechazar</button>
       </div>
     </div>`;
-  }).join('');
+  };
+
+  /* Las de clases que ya pasaron no se borran solas (cada una es un cobro
+     que la dueña decide confirmar o rechazar), pero tampoco estorban: van
+     plegadas en su propia sección y las vigentes quedan arriba, a la vista. */
+  const vigentes = pend.filter(c => c.dateStr >= hoyStr);
+  const pasadas  = pend.filter(c => c.dateStr <  hoyStr);
 
   return `<div class="sa-pend-blk">
-    <div class="sa-pend-title">🏦 Reservas por transferencia · por confirmar (${pend.length})</div>
+    <div class="sa-pend-title">🏦 Reservas por transferencia · por confirmar (${vigentes.length})</div>
     <div class="sa-pend-hint">Verifica que la transferencia llegó a tu cuenta y confirma. Rechazar elimina la reserva y libera el cupo.</div>
-    ${cards}
+    ${vigentes.map(card).join('') || '<p style="font-size:.85rem;color:var(--gray);margin:6px 0 2px">Nada pendiente de clases por venir ✓</p>'}
+    ${pasadas.length ? `<details style="margin-top:10px">
+      <summary style="cursor:pointer;font-size:.85rem;color:var(--gray);padding:6px 0">⚠ De clases que ya pasaron (${pasadas.length}) — toca para revisarlas</summary>
+      <p class="sa-pend-hint" style="margin-top:6px">Son viejas: la clase ya se dio. Si el pago nunca llegó, recházalas para limpiar la lista; si sí llegó, confírmalo para que quede en los reportes.</p>
+      ${pasadas.map(card).join('')}
+    </details>` : ''}
   </div>`;
 }
 
@@ -8508,6 +8544,8 @@ function evSaveAll() {
 
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {
+  /* ¿Esta copia de la página sigue siendo la publicada? Si no, se recarga. */
+  verificarVersion();
   /* Primero el respaldo local para pintar algo al instante, y en seguida los
      datos reales de la nube (los de todos los dispositivos) */
   SLOTS = cargarRespaldoLocal();
@@ -8665,6 +8703,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
       <div class="spm-err" id="superPinErr"></div>
       <button class="btn-spm-enter" onclick="checkSuperPin()">Acceder al panel →</button>
+      <div class="spm-version" id="spmVersion" style="margin-top:14px;font-size:.62rem;letter-spacing:1px;color:rgba(255,255,255,.35);text-align:center"></div>
     </div>
   </div>
 </div>
