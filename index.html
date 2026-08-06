@@ -4334,7 +4334,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-06.2';
+const BUILD = '2026-08-06.3';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -4372,6 +4372,15 @@ async function sbFetch(path, opts = {}) {
       const { data } = await sbClient.auth.getSession();
       if (data && data.session) token = data.session.access_token;
     } catch (e) {}
+  }
+  /* Con el panel del estudio abierto, ninguna llamada debe salir sin sesión:
+     iría "como público" y la base la rechazaría con un "permission denied"
+     que no explica nada. Si la sesión se perdió, decirlo claro vale más que
+     dejar que la llamada muera con un error confuso. */
+  const panel = document.getElementById('sadminBackdrop');
+  if (token === SUPABASE_KEY && panel && panel.classList.contains('open')) {
+    throw new Error('Tu sesión del panel se cerró o expiró. ' +
+      'Cierra el panel y vuelve a entrar con tu usuario y contraseña.');
   }
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...opts,
@@ -6404,8 +6413,11 @@ async function checkSuperPin() {
   document.getElementById('sadminBackdrop').classList.add('open');
   document.body.style.overflow = 'hidden';
   const h = new Date();
+  /* La versión va en el encabezado a propósito: sale en cualquier captura
+     de pantalla, y con eso se sabe al instante si este navegador está
+     corriendo la página publicada o una copia vieja del caché. */
   document.getElementById('sadminHdFecha').textContent =
-    `${DIAS_ES[h.getDay()]} ${h.getDate()} ${MESES_ES[h.getMonth()]} ${h.getFullYear()}`;
+    `${DIAS_ES[h.getDay()]} ${h.getDate()} ${MESES_ES[h.getMonth()]} ${h.getFullYear()} · v${BUILD}`;
   /* La coach con clave propia arranca en Hoy: es donde pasa lista */
   sadminTab((sadminRol === 'coach' && !coachActual) ? 'calendario' : 'hoy');
   /* Traer lo hecho desde otros celulares antes de mostrar el panel */
