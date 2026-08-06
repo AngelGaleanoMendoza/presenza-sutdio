@@ -1734,6 +1734,11 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   border-radius:12px; padding:12px 14px; font-size:.8rem;
   color:#842029; text-align:center; line-height:1.65;
 }
+.sub-cargando {
+  background:rgba(107,23,40,.05); border:1px solid rgba(107,23,40,.12);
+  border-radius:12px; padding:12px 14px; font-size:.8rem;
+  color:var(--gray); text-align:center;
+}
 .sub-plan-new p { font-size:.8rem; color:var(--wine-d); font-weight:600; margin-bottom:10px; }
 .sub-planes { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .sub-plane {
@@ -2724,6 +2729,13 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   .sa-sub-card { overflow-wrap:anywhere; }
 }
 </style>
+<!-- Login real del estudio y las coaches (Supabase Auth). Sin defer/async a
+     propósito: los bloques de JavaScript más abajo en el body leen
+     window.supabase de forma síncrona al cargar, así que esta librería
+     tiene que estar lista ANTES de que el parser llegue ahí, no después.
+     Si no carga (sin internet, CDN caído), sbClient queda null y el sitio
+     sigue funcionando para el público; solo el panel no podría abrirse. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
@@ -3998,24 +4010,29 @@ const DIAS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const MESES_ES  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
 const ADMIN_PIN  = '7835';
-const SUPER_PIN  = 'JimenaMorenopresenza2026';
-const COACH_PIN  = 'coach2026';   /* acceso general solo-vista: Calendario + Horarios */
 let sadminRol    = 'duena';       /* 'duena' (todo) | 'coach' (solo sus clases) */
 
-/* ── Una clave por coach ──
-   Cada una entra con la suya y solo ve y marca SUS clases. El nombre se
-   compara contra el instructor del horario con coincideCoach(): en el
-   horario están escritos cortos ("M. Carmen", "Yeni") y acá completos.
-   Para cambiar una clave, se edita acá y se publica. */
+/* ── Acceso del estudio y las coaches: Supabase Auth de verdad ──
+   Antes esto era un string comparado en el navegador (SUPER_PIN/COACH_PIN):
+   cualquiera que abriera "ver código fuente" se llevaba la clave de todas.
+   Ahora es una sesión real: la contraseña la verifica el servidor, no esta
+   página, y de ahí sale el permiso para leer reservas/suscriptoras (las
+   políticas de la base exigen auth.role() = 'authenticated').
+
+   El "usuario" que se escribe en pantalla (jimena/carmen/…) se traduce acá
+   a un correo interno — así la persona sigue tecleando lo de siempre, y por
+   dentro es un login real de Supabase. Hay que crear estas 5 cuentas una
+   vez desde el Dashboard de Supabase (Authentication → Users → Add user);
+   el sitio no las puede crear solo. */
 const COACHES = [
-  { usuario:'carmen',    nombre:'María Del Carmen Somarriba', pin:'carmen2026'    },
-  { usuario:'alejandra', nombre:'Alejandra Mondragón',        pin:'alejandra2026' },
-  { usuario:'gladys',    nombre:'Gladys Pastora',             pin:'gladys2026'    },
-  { usuario:'yeni',      nombre:'Yeni Noreña',                pin:'yeni2026'      },
+  { usuario:'carmen',    nombre:'María Del Carmen Somarriba' },
+  { usuario:'alejandra', nombre:'Alejandra Mondragón'        },
+  { usuario:'gladys',    nombre:'Gladys Pastora'             },
+  { usuario:'yeni',      nombre:'Yeni Noreña'                },
 ];
-/* El usuario del estudio. Deja entrar con o sin escribirlo, para no cambiarle
-   la costumbre a quien ya entra solo con la contraseña. */
 const USUARIO_DUENA = 'jimena';
+function emailDeUsuario(usr) { return `${usr}@presenza.auth`; }
+
 let coachActual = null;           /* la coach que inició sesión, o null */
 
 /* ¿El instructor de una clase corresponde a esta coach?
@@ -4313,12 +4330,32 @@ const SUPABASE_URL = 'https://sdsjhmtugtfndsxilzge.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkc2pobXR1Z3RmbmRzeGlsemdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNjM0MjIsImV4cCI6MjEwMDczOTQyMn0.iJu7nQoEr-hFYkBGvlVrjdckvXtes0vTawTKrzVv1Yo';
 const SB_ON = !!(SUPABASE_URL && SUPABASE_KEY);
 
+/* Cliente real de Supabase Auth, solo para el login del estudio y las
+   coaches. La llave anon sigue siendo pública (tiene que estarlo, es un
+   sitio estático), pero ya no es lo único que decide qué se puede leer:
+   ahora reservas/suscriptoras/asistencias exigen además una sesión real
+   iniciada (auth.role() = 'authenticated' en las políticas de la base). */
+const sbClient = (window.supabase && SB_ON)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+  : null;
+
 async function sbFetch(path, opts = {}) {
+  /* Si el estudio o una coach iniciaron sesión, sus llamadas van con SU
+     token, no con la llave anon: es lo que hace que puedan leer las tablas
+     que ahora están cerradas al público. Sin sesión (cualquier visitante),
+     se sigue usando la llave anon de siempre. */
+  let token = SUPABASE_KEY;
+  if (sbClient) {
+    try {
+      const { data } = await sbClient.auth.getSession();
+      if (data && data.session) token = data.session.access_token;
+    } catch (e) {}
+  }
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...opts,
     headers: {
       apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
       ...(opts.headers || {})
     }
@@ -4562,6 +4599,38 @@ async function sincronizarReservas() {
   });
   SLOTS = nuevo;
   Object.keys(SLOTS).forEach(guardarRespaldoLocal);
+  return true;
+}
+
+/* ── Lo mismo, pero para un visitante sin iniciar sesión ──
+   sincronizarReservas() lee `reservas?select=*`, que ahora exige sesión
+   (auth.role()='authenticated'): a un visitante público le devolvería un
+   403 y SLOTS se quedaría vacío, mostrando cupos libres en clases que en
+   realidad están llenas.
+
+   Esta versión usa cupos_del_dia(), que da cuántas hay y qué mats están
+   tomados SIN nombres ni teléfonos. El resto del sitio no distingue: la
+   grilla de mats y el conteo de cupos solo miran `clientes.length` y
+   `c.lugar`, así que estos objetos "vacíos" (sin nombre/email/tel) les
+   alcanza igual.
+
+   Ventana de 90 días: cubre de sobra cualquier reserva real; si alguien
+   navega el horario más lejos que eso, el índice único de la base sigue
+   protegiendo contra un mat doble aunque la pantalla muestre algo viejo. */
+async function sincronizarCuposPublico() {
+  if (!SB_ON) return false;
+  const desde = fmtISO(new Date());
+  const hasta = fmtISO(new Date(Date.now() + 90 * 86400000));
+  const filas = await sbRpc('cupos_del_dia', { p_desde: desde, p_hasta: hasta });
+  const nuevo = {};
+  (filas || []).forEach(f => {
+    const key = slotKey(f.clase, f.fecha, f.hora);
+    const arr = [];
+    (f.mats_ocupados || []).forEach(n => arr.push({ lugar: n }));
+    for (let i = arr.length; i < Number(f.ocupados || 0); i++) arr.push({ lugar: null });
+    nuevo[key] = arr;
+  });
+  SLOTS = nuevo;
   return true;
 }
 
@@ -4885,22 +4954,21 @@ function esFichaSinReclamar(s) {
   return (s.email || '').toLowerCase().endsWith(DOM_PENDIENTE);
 }
 
-/* Completa la ficha cargada a mano con el correo y teléfono reales la primera
-   vez que la alumna usa la app. A partir de ahí se reconoce por correo. */
-async function vincularFicha(subId, email, tel) {
-  const arr = getSuscriptoras();
-  const idx = arr.findIndex(s => s.id === subId);
-  if (idx < 0 || !esFichaSinReclamar(arr[idx])) return false;
-  if (email) arr[idx].email = email.trim().toLowerCase();
-  if (tel)   arr[idx].tel   = tel;
-  await saveSuscriptoras(arr);
-  return true;
-}
-
-function findSuscriptora(email, tel, nombre) {
+/* Async a propósito: para el estudio/coaches (con sesión) sigue resolviendo
+   al instante desde la copia en memoria, como siempre. Para quien reserva
+   sin haber iniciado sesión, SUBS ya no trae nada (suscriptoras exige sesión
+   desde que se cerró la lectura pública) — ahí cae a mi_suscripcion_activa(),
+   que da SOLO la fila de esa persona, no la tabla entera. */
+async function findSuscriptora(email, tel, nombre) {
   const arr = getSuscriptoras();
   const idx = findSubIndex(arr, email, tel, nombre);
-  return idx >= 0 ? arr[idx] : null;
+  if (idx >= 0) return arr[idx];
+  if (!SB_ON) return null;
+
+  try {
+    const filas = await sbRpc('mi_suscripcion_activa', { p_email: email, p_tel: tel, p_nombre: nombre });
+    return (filas && filas[0]) ? rowToSub(filas[0]) : null;
+  } catch (e) { return null; }
 }
 
 /* Fecha de HOY en Nicaragua (UTC-6). toISOString() devuelve la fecha en UTC,
@@ -4915,31 +4983,50 @@ function hoyISO() { return fmtISO(new Date()); }
    más clases de las que pagó. Si la reserva se elimina, se le devuelve. */
 
 /* Descuenta 1 clase. Devuelve true si de verdad cobró (las ilimitadas no
-   descuentan y las vencidas o sin saldo ni siquiera llegan aquí). */
-async function cobrarClase(subId) {
+   descuentan y las vencidas o sin saldo ni siquiera llegan aquí).
+
+   email/tel/nombre son opcionales: el estudio y las coaches (con sesión)
+   nunca los necesitan, el subId ya está en su copia de SUBS. Solo hacen
+   falta cuando reserva alguien sin haber iniciado sesión — ahí el cobro
+   pasa por cobrar_clase_publica(), que primero verifica que esos datos
+   correspondan de verdad a esa suscripción antes de tocar nada. */
+async function cobrarClase(subId, email, tel, nombre) {
   const arr = getSuscriptoras();
   const idx = arr.findIndex(s => s.id === subId);
-  if (idx < 0) return false;
-  const sub = arr[idx];
-  if (esIlimitada(sub)) return false;
-  if (sub.clasesRestantes <= 0) return false;
-  sub.clasesRestantes = Math.max(0, sub.clasesRestantes - 1);
-  sub.clasesUsadas    = (sub.clasesUsadas || 0) + 1;
-  await saveSuscriptoras(arr);
-  return true;
+  if (idx >= 0) {
+    const sub = arr[idx];
+    if (esIlimitada(sub)) return false;
+    if (sub.clasesRestantes <= 0) return false;
+    sub.clasesRestantes = Math.max(0, sub.clasesRestantes - 1);
+    sub.clasesUsadas    = (sub.clasesUsadas || 0) + 1;
+    await saveSuscriptoras(arr);
+    return true;
+  }
+  if (!SB_ON) return false;
+  try {
+    const r = await sbRpc('cobrar_clase_publica', { p_sub_id: subId, p_email: email, p_tel: tel, p_nombre: nombre });
+    return !!(r && r[0] && r[0].ok);
+  } catch (e) { return false; }
 }
 
-/* Le regresa la clase (reserva eliminada, rechazada o cupo liberado) */
-async function devolverClase(subId) {
+/* Le regresa la clase (reserva eliminada, rechazada o cupo liberado). Mismo
+   patrón que cobrarClase: email/tel solo hacen falta para el camino público. */
+async function devolverClase(subId, email, tel) {
   const arr = getSuscriptoras();
   const idx = arr.findIndex(s => s.id === subId);
-  if (idx < 0) return false;
-  const sub = arr[idx];
-  if (esIlimitada(sub)) return false;
-  sub.clasesRestantes = (sub.clasesRestantes || 0) + 1;
-  sub.clasesUsadas    = Math.max(0, (sub.clasesUsadas || 0) - 1);
-  await saveSuscriptoras(arr);
-  return true;
+  if (idx >= 0) {
+    const sub = arr[idx];
+    if (esIlimitada(sub)) return false;
+    sub.clasesRestantes = (sub.clasesRestantes || 0) + 1;
+    sub.clasesUsadas    = Math.max(0, (sub.clasesUsadas || 0) - 1);
+    await saveSuscriptoras(arr);
+    return true;
+  }
+  if (!SB_ON) return false;
+  try {
+    const r = await sbRpc('devolver_clase_publica', { p_sub_id: subId, p_email: email, p_tel: tel });
+    return !!r;
+  } catch (e) { return false; }
 }
 
 /* Corrección manual del saldo (Super Admin). Es la red de seguridad: si por
@@ -5268,8 +5355,9 @@ async function abrirEspecialPorHash() {
   /* Esperar los datos de la nube antes de contar cupos: al abrir el link,
      SLOTS todavía trae solo el respaldo de ESTE celular (vacío para una alumna
      nueva), así que el aviso de "cupos agotados" nunca salía y el grid de mats
-     se pintaba entero libre aunque la clase estuviera llena. */
-  if (SB_ON) { try { await sincronizarReservas(); } catch(e) {} }
+     se pintaba entero libre aunque la clase estuviera llena.
+     Es visita pública (nadie inició sesión acá): cupos, no reservas completas. */
+  if (SB_ON) { try { await sincronizarCuposPublico(); } catch(e) {} }
 
   if (esp.cupos - getOcupados(esp.clase, esp.dateStr, esp.hora) <= 0) {
     alert('¡Los cupos de esta clase gratis ya se agotaron! Escríbenos por WhatsApp para apartar tu lugar en la próxima ✧');
@@ -5433,13 +5521,18 @@ function selectMetodo(tipo) {
   subBox.classList.toggle('visible', tipo==='sub');
   if (tipo==='sub') {
     document.getElementById('btnPagar').disabled = true; /* se habilita solo si sub válida */
-    verifySub();
+    verifySub();  /* async: se dispara y sigue sola, ella misma pinta su resultado */
   } else {
     document.getElementById('btnPagar').disabled = false;
   }
 }
 
-function verifySub() {
+/* Async porque findSuscriptora() ahora puede ser una consulta de red (a
+   mi_suscripcion_activa) en vez de leer un arreglo en memoria: quien
+   reserva no tiene sesión iniciada, así que ya no hay una copia local de
+   suscriptoras para mirar. El "Verificando…" es nuevo por lo mismo: antes
+   esto era instantáneo, ahora de verdad espera una respuesta. */
+async function verifySub() {
   const email  = document.getElementById('mEmail').value.trim();
   const nombre = document.getElementById('mNombre').value.trim();
   const result = document.getElementById('subCheckResult');
@@ -5450,8 +5543,9 @@ function verifySub() {
     return;
   }
 
+  result.innerHTML = '<div class="sub-cargando">Verificando tu suscripción…</div>';
   const telInp = document.getElementById('mTel').value.trim();
-  const sub = findSuscriptora(email, telInp, nombre);
+  const sub = await findSuscriptora(email, telInp, nombre);
 
   /* Suscriptora activa, vigente y con clases disponibles */
   if (sub && sub.activa && sub.clasesRestantes > 0 && !subVencida(sub)) {
@@ -5525,34 +5619,40 @@ function selectSubPlan(planKey) {
 
 /* La alumna elige plan → queda PENDIENTE hasta que el admin confirme el pago.
    Las clases del plan NO se pueden usar hasta la confirmación. */
+/* La única que llama esto es proceedToConfirm(), sin sesión iniciada: quien
+   pide un plan nuevo no está logueada en ningún lado. Por eso ya no se toca
+   el arreglo local (SUBS está vacío para un visitante, la lectura pública
+   de suscriptoras está cerrada) — todo el trabajo, incluido el anti-
+   duplicados por correo/teléfono/nombre, lo hace solicitar_plan_publico()
+   del lado de la base. */
 async function autoRegisterSub(nombre, email, tel, nivel, planKey) {
-  const arr = getSuscriptoras();
-  /* Anti-duplicados: email; si no aparece, teléfono + nombre (misma persona) */
-  const idx = findSubIndex(arr, email, tel, nombre);
-  const hoy = hoyISO();
-
-  if (idx >= 0) {
-    /* Renovación solicitada: no tocar su plan actual, solo marcar pendiente */
-    arr[idx].pendiente = { plan: planKey, fecha: hoy };
-    arr[idx].nombre    = nombre || arr[idx].nombre;
-    arr[idx].tel       = tel    || arr[idx].tel;
-    /* Ficha cargada a mano que se reconoció por nombre: ya tiene dueña */
-    if (esFichaSinReclamar(arr[idx]) && email) arr[idx].email = email.trim().toLowerCase();
-  } else {
-    arr.push({
-      id:              'SUB-'+Date.now().toString(36).toUpperCase().slice(-6),
-      nombre, email, tel: tel||'', notas: nivel||'',
-      plan:            planKey,
-      clasesTotal:     0,
-      clasesRestantes: 0,
-      clasesUsadas:    0,
-      activa:          false,
-      pendiente:       { plan: planKey, fecha: hoy },
-      historial:       [],
-      renovaciones:    []
-    });
+  if (!SB_ON) {
+    const arr = getSuscriptoras();
+    const idx = findSubIndex(arr, email, tel, nombre);
+    const hoy = hoyISO();
+    if (idx >= 0) {
+      arr[idx].pendiente = { plan: planKey, fecha: hoy };
+      arr[idx].nombre    = nombre || arr[idx].nombre;
+      arr[idx].tel       = tel    || arr[idx].tel;
+      if (esFichaSinReclamar(arr[idx]) && email) arr[idx].email = email.trim().toLowerCase();
+    } else {
+      arr.push({
+        id: 'SUB-'+Date.now().toString(36).toUpperCase().slice(-6),
+        nombre, email, tel: tel||'', notas: nivel||'', plan: planKey,
+        clasesTotal:0, clasesRestantes:0, clasesUsadas:0, activa:false,
+        pendiente: { plan: planKey, fecha: hoy }, historial:[], renovaciones:[]
+      });
+    }
+    await saveSuscriptoras(arr);
+    return;
   }
-  await saveSuscriptoras(arr);
+  try {
+    await sbRpc('solicitar_plan_publico', {
+      p_nombre: nombre, p_email: email, p_tel: tel, p_nivel: nivel, p_plan: planKey
+    });
+  } catch (e) {
+    alert('No se pudo registrar tu solicitud de plan. Escríbenos por WhatsApp para confirmarla ✧');
+  }
 }
 
 /* ── Confirmación de pago (Super Admin) ── */
@@ -5604,19 +5704,39 @@ async function proceedToConfirm() {
   const nivel  = document.getElementById('mNivel').value;
   const notas  = document.getElementById('mNotas').value.trim();
 
-  /* Saldo fresco antes de cobrar. La página pudo quedar abierta horas: si en
-     ese rato la alumna reservó desde otro celular o el estudio le corrigió las
-     clases, el número en memoria ya no sirve para descontar. */
-  if (SB_ON && pagoMetodo === 'sub') { try { await sincronizarSubs(); } catch(e) {} }
+  /* Ya no hace falta un "saldo fresco" aparte: quien reserva no tiene sesión
+     iniciada, así que findSuscriptora()/cobrarClase() de más abajo van a
+     mi_suscripcion_activa()/cobrar_clase_publica() directo a la base — cada
+     vez consultan el número real, nunca uno guardado en el navegador desde
+     hace rato. (Antes esto llamaba a sincronizarSubs(), que bajaba la tabla
+     completa; ahora esa lectura la bloquea la base para quien no inició
+     sesión, así que solo habría fallado sin lograr nada.) */
 
   const { clase, dateStr, hora, instructor } = booking;
   const info   = INFO[clase];
   const d      = new Date(dateStr+'T12:00:00');
   const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
-  const subActiva  = pagoMetodo==='sub' ? findSuscriptora(email, tel, nombre) : null;
+  const subActiva  = pagoMetodo==='sub' ? await findSuscriptora(email, tel, nombre) : null;
   const usaSubActiva = !!(subActiva && subActiva.activa && subActiva.clasesRestantes > 0 && !subVencida(subActiva));
   const planUsado  = usaSubActiva ? subActiva.plan : selectedSubPlan;
   const esPlanPendiente = pagoMetodo==='sub' && !usaSubActiva && !!selectedSubPlan;
+
+  /* Red de seguridad: pagando con suscripción, tiene que haber O un plan
+     vigente con saldo, O un paquete nuevo elegido. Sin ninguno de los dos la
+     reserva quedaría guardada sin cobrarse nada.
+     En la pantalla no se puede llegar acá (verifySub deja el botón apagado
+     hasta elegir paquete), pero ahora el saldo lo confirma el servidor al
+     momento de reservar: entre que se abre el modal y se aprieta el botón,
+     esa misma alumna pudo haber gastado su última clase desde otro celular. */
+  if (pagoMetodo === 'sub' && !usaSubActiva && !esPlanPendiente) {
+    const btnPagarEl = document.getElementById('btnPagar');
+    if (btnPagarEl) btnPagarEl.disabled = false;
+    alert('Tu plan ya no tiene clases disponibles.\n\nElige un paquete o escríbenos por WhatsApp ✧');
+    await verifySub();
+    const pasoPago = mFlow.findIndex(p => p.panel === 'mp2');
+    if (pasoPago >= 0) mGoStep(pasoPago + 1);
+    return;
+  }
   const metodoDtxt = booking.gratis
     ? '🎁 Clase gratis'
     : pagoMetodo==='transfer'
@@ -5677,8 +5797,9 @@ async function proceedToConfirm() {
   }
 
   /* Seguridad: traer el estado real de la nube antes de tomar el lugar, por si
-     alguien reservó desde otro celular mientras esta alumna llenaba sus datos */
-  if (SB_ON) { try { await sincronizarReservas(); } catch(e) {} }
+     alguien reservó desde otro celular mientras esta alumna llenaba sus datos.
+     Quien reserva no tiene sesión iniciada: cupos, no la tabla completa. */
+  if (SB_ON) { try { await sincronizarCuposPublico(); } catch(e) {} }
   const clientesAhora = getClientes(clase, dateStr, hora);
 
   /* Tope de cupos: red de seguridad además del mat. Ahora que todas las clases
@@ -5718,19 +5839,18 @@ async function proceedToConfirm() {
      Las ilimitadas no descuentan (cobrarClase devuelve false). */
   let cobro = false;
   if (usaSubActiva) {
-    /* Si es una ficha que el estudio cargó a mano y se reconoció por nombre,
-       se le pegan ya su correo y teléfono reales: de aquí en adelante la
-       reserva y su plan quedan enlazados por correo, como todas las demás. */
-    if (esFichaSinReclamar(subActiva)) {
-      try { await vincularFicha(subActiva.id, email, tel); } catch(e) {}
-    }
+    /* Si es una ficha que el estudio cargó a mano (sin correo real todavía),
+       cobrarClase() la enlaza con el correo/teléfono con los que se
+       identificó ahora, en la misma operación con la que cobra: ya no hace
+       falta un paso aparte para vincularla primero. */
     if (!esIlimitada(subActiva)) {
-      cobro = await cobrarClase(subActiva.id);
+      cobro = await cobrarClase(subActiva.id, email, tel, nombre);
       if (!cobro) {
         if (btnFinal) btnFinal.disabled = false;
         alert(`Ya usaste todas las clases de tu plan ${PLANES_SUB[subActiva.plan]?.nombre || ''}.\n\nEscríbenos por WhatsApp para renovarlo ✧`);
-        try { await sincronizarSubs(); } catch(e) {}
-        verifySub();
+        /* verifySub() vuelve a consultar mi_suscripcion_activa: datos frescos
+           de la base directo, sin necesitar un sincronizarSubs() aparte. */
+        await verifySub();
         const pasoPago = mFlow.findIndex(p => p.panel === 'mp2');
         if (pasoPago >= 0) mGoStep(pasoPago + 1);
         return;
@@ -5742,12 +5862,12 @@ async function proceedToConfirm() {
     await saveSlot(clase, dateStr, hora, { nombre, email, tel, nivel, notas, lugar: booking.lugar, metodo: metodoDtxt, instructor, pagoOk: pagoMetodo !== 'transfer', claseDescontada: cobro });
   } catch (err) {
     /* La reserva no se guardó: hay que regresarle la clase que ya se le cobró */
-    if (cobro) { try { await devolverClase(subActiva.id); } catch(e) {} }
+    if (cobro) { try { await devolverClase(subActiva.id, email, tel); } catch(e) {} }
     if (btnFinal) btnFinal.disabled = false;
     /* 409 = el índice único rechazó el mat: otra alumna se adelantó */
     if (err.status === 409 && booking.lugar) {
       alert(`El lugar ${booking.lugar} acaba de ser reservado por alguien más. Por favor elige otro.`);
-      try { await sincronizarReservas(); } catch(e) {}
+      try { await sincronizarCuposPublico(); } catch(e) {}
       renderLugares();
       mGoStep(2);
     } else {
@@ -6206,54 +6326,65 @@ function toggleSpmVis() {
   const inp = document.getElementById('superPinInput');
   inp.type = inp.type === 'password' ? 'text' : 'password';
 }
-function checkSuperPin() {
+async function checkSuperPin() {
   const val = document.getElementById('superPinInput').value;
   const usr = (document.getElementById('superUserInput').value || '').trim().toLowerCase();
+  const btn = document.querySelector('.btn-spm-enter');
 
-  /* Con usuario escrito, la clave tiene que ser la de ESE usuario: así dos
-     coaches no pueden entrar una con la clave de la otra por descuido.
-     Sin usuario se mantiene el acceso de siempre, solo con contraseña. */
-  let coach = null, valido = false;
-  if (usr) {
-    if (usr === USUARIO_DUENA) {
-      valido = (val === SUPER_PIN);
-    } else {
-      const c = COACHES.find(x => x.usuario === usr);
-      if (c && c.pin === val) { coach = c; valido = true; }
-    }
-  } else {
-    coach  = COACHES.find(c => c.pin === val) || null;
-    valido = (val === SUPER_PIN || val === COACH_PIN || !!coach);
+  if (!usr) {
+    document.getElementById('superPinErr').textContent = 'Escribe tu usuario.';
+    return;
+  }
+  if (usr !== USUARIO_DUENA && !COACHES.find(c => c.usuario === usr)) {
+    document.getElementById('superPinErr').textContent = 'Usuario no reconocido.';
+    return;
+  }
+  if (!sbClient) {
+    document.getElementById('superPinErr').textContent =
+      'No se pudo cargar el sistema de acceso. Revisa tu conexión y recarga la página.';
+    return;
   }
 
-  if (valido) {
-    sadminRol   = (val === SUPER_PIN) ? 'duena' : 'coach';
-    coachActual = coach || null;
-    const bd = document.getElementById('sadminBackdrop');
-    bd.classList.toggle('coach-mode', sadminRol === 'coach');
-    /* La coach con clave propia sí pasa lista, así que necesita la pestaña Hoy */
-    bd.classList.toggle('coach-hoy', !!coachActual);
-    document.getElementById('sadminHdTitle').textContent =
-      coachActual ? `🩰 ${coachActual.nombre.split(' ')[0]} · mis clases`
-      : sadminRol === 'coach' ? '🩰 Panel Coach · solo vista' : '👑 Super Admin';
-    document.getElementById('superPinBackdrop').classList.remove('open');
-    document.getElementById('sadminBackdrop').classList.add('open');
-    document.body.style.overflow = 'hidden';
-    const h = new Date();
-    document.getElementById('sadminHdFecha').textContent =
-      `${DIAS_ES[h.getDay()]} ${h.getDate()} ${MESES_ES[h.getMonth()]} ${h.getFullYear()}`;
-    /* La coach con clave propia arranca en Hoy: es donde pasa lista */
-    sadminTab((sadminRol === 'coach' && !coachActual) ? 'calendario' : 'hoy');
-    /* Traer lo hecho desde otros celulares antes de mostrar el panel */
-    if (SB_ON) {
-      Promise.all([sincronizarReservas(), sincronizarSubs(), sincronizarAsistencias(), sincronizarHorarios(), sincronizarEspeciales(), sincronizarCanceladas(), verificarColumnaDescuento()])
-        .then(() => { sadminTab(sadminTabActual); updateSubsBadge(); })
-        .catch(err => alert('No se pudieron cargar los datos de la nube.\nMostrando la última copia local.\n\n' + err.message));
-    }
-  } else {
-    document.getElementById('superPinErr').textContent = 'Contraseña incorrecta, intenta de nuevo.';
+  document.getElementById('superPinErr').textContent = '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Entrando…'; }
+
+  /* La verificación real la hace Supabase, no esta página: si el usuario y
+     la contraseña no coinciden, esto devuelve un error sin abrir nada. */
+  const { error } = await sbClient.auth.signInWithPassword({
+    email: emailDeUsuario(usr), password: val
+  });
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Acceder al panel →'; }
+
+  if (error) {
+    document.getElementById('superPinErr').textContent = 'Usuario o contraseña incorrectos.';
     document.getElementById('superPinInput').value = '';
     document.getElementById('superPinInput').focus();
+    return;
+  }
+
+  const coach = (usr === USUARIO_DUENA) ? null : COACHES.find(c => c.usuario === usr);
+  sadminRol   = coach ? 'coach' : 'duena';
+  coachActual = coach || null;
+  const bd = document.getElementById('sadminBackdrop');
+  bd.classList.toggle('coach-mode', sadminRol === 'coach');
+  /* La coach con clave propia sí pasa lista, así que necesita la pestaña Hoy */
+  bd.classList.toggle('coach-hoy', !!coachActual);
+  document.getElementById('sadminHdTitle').textContent =
+    coachActual ? `🩰 ${coachActual.nombre.split(' ')[0]} · mis clases` : '👑 Super Admin';
+  document.getElementById('superPinBackdrop').classList.remove('open');
+  document.getElementById('sadminBackdrop').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  const h = new Date();
+  document.getElementById('sadminHdFecha').textContent =
+    `${DIAS_ES[h.getDay()]} ${h.getDate()} ${MESES_ES[h.getMonth()]} ${h.getFullYear()}`;
+  /* La coach con clave propia arranca en Hoy: es donde pasa lista */
+  sadminTab((sadminRol === 'coach' && !coachActual) ? 'calendario' : 'hoy');
+  /* Traer lo hecho desde otros celulares antes de mostrar el panel */
+  if (SB_ON) {
+    Promise.all([sincronizarReservas(), sincronizarSubs(), sincronizarAsistencias(), sincronizarHorarios(), sincronizarEspeciales(), sincronizarCanceladas(), verificarColumnaDescuento()])
+      .then(() => { sadminTab(sadminTabActual); updateSubsBadge(); })
+      .catch(err => alert('No se pudieron cargar los datos de la nube.\nMostrando la última copia local.\n\n' + err.message));
   }
 }
 function closeSuperAdmin() {
@@ -8382,7 +8513,8 @@ document.addEventListener('DOMContentLoaded', () => {
       sincronizarCanceladas().catch(e => console.warn('Clases canceladas:', e.message))
     ]).then(() => { renderSched(); renderEventosPublic(); });
 
-    sincronizarReservas()
+    /* Carga inicial: nadie inició sesión todavía, así que solo cupos. */
+    sincronizarCuposPublico()
       .then(() => { renderCards(); })
       .catch(err => console.warn('No se pudieron sincronizar las reservas:', err.message));
     sincronizarSubs()
