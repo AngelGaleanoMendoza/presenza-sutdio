@@ -1111,22 +1111,37 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   min-width:200px; text-align:center;
 }
 
-/* tabs de día */
+/* tabs de día · un mes corrido, se desliza de lado */
 .sched-day-tabs {
-  display:flex; gap:8px; justify-content:center; flex-wrap:wrap;
-  margin-bottom:32px;
+  display:flex; gap:8px; justify-content:flex-start; flex-wrap:nowrap;
+  overflow-x:auto; scroll-behavior:smooth; -webkit-overflow-scrolling:touch;
+  padding:4px 2px 12px; margin-bottom:22px;
+  scrollbar-width:thin; scrollbar-color:rgba(107,23,40,.25) transparent;
 }
+.sched-day-tabs::-webkit-scrollbar { height:5px; }
+.sched-day-tabs::-webkit-scrollbar-thumb { background:rgba(107,23,40,.22); border-radius:3px; }
 .sched-day-tab {
-  padding:10px 18px; border-radius:50px;
+  flex:0 0 auto; min-width:62px;
+  padding:10px 16px; border-radius:50px;
   border:1.5px solid rgba(107,23,40,0.12);
   background:var(--white); cursor:pointer; transition:all .25s; text-align:center;
 }
-.sched-day-tab:hover:not(.past) { border-color:var(--wine); }
+.sched-day-tab:hover:not(.sin-clases) { border-color:var(--wine); }
 .sched-day-tab.active { background:var(--wine); border-color:var(--wine); color:#fff; }
 .sched-day-tab.today:not(.active) { border-color:var(--blush); }
-.sched-day-tab.past { opacity:.4; cursor:not-allowed; }
+.sched-day-tab.sin-clases { opacity:.35; cursor:not-allowed; }
 .sdt-name { font-size:.78rem; font-weight:700; display:block; }
 .sdt-num  { font-size:.7rem; opacity:.65; }
+/* separador al cambiar de mes: si no, un "1" después de un "31" confunde */
+.sched-mes-sep {
+  flex:0 0 auto; align-self:center;
+  font-size:.62rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+  color:var(--wine); opacity:.55; padding:0 8px; writing-mode:vertical-rl;
+}
+.sched-mes-hint {
+  text-align:center; font-size:.74rem; color:var(--gray);
+  margin:-10px 0 26px;
+}
 
 /* grid de clases */
 .sched-classes {
@@ -1381,6 +1396,26 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .ll-tu   { background:var(--wine); }
 .lugar-sel-info {
   text-align:center; font-size:.8rem; color:var(--wine-d); font-weight:600; margin-bottom:14px; min-height:20px;
+}
+
+/* repetir la clase las demás semanas del mes */
+.rep-mes {
+  border:1.5px solid rgba(107,23,40,.14); border-radius:14px;
+  padding:14px 14px 12px; margin-bottom:16px; background:rgba(255,255,255,.6);
+}
+.rep-hd { font-size:.86rem; font-weight:700; color:var(--wine-d); }
+.rep-sub { font-size:.74rem; color:var(--gray); margin:4px 0 10px; line-height:1.45; }
+.rep-fila {
+  display:flex; align-items:center; gap:10px; padding:8px 4px;
+  border-top:1px solid rgba(107,23,40,.07); font-size:.82rem; cursor:pointer;
+}
+.rep-fila input { width:17px; height:17px; accent-color:var(--wine); flex:none; cursor:pointer; }
+.rep-fila span { flex:1; }
+.rep-fila em { font-style:normal; font-size:.72rem; color:var(--gray); }
+.rep-fila.rep-llena { opacity:.45; cursor:not-allowed; }
+.rep-total {
+  margin-top:10px; font-size:.78rem; font-weight:700; color:var(--wine);
+  text-align:center; min-height:16px;
 }
 
 /* formulario */
@@ -3363,15 +3398,16 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
       </p>
     </div>
 
-    <!-- navegador de semana -->
+    <!-- periodo reservable (un mes corrido) -->
     <div class="sched-nav r">
       <div class="sched-nav-btn" onclick="schedWeek(-1)">‹</div>
       <span id="schedWeekLabel"></span>
       <div class="sched-nav-btn" onclick="schedWeek(1)">›</div>
     </div>
 
-    <!-- tabs de día -->
+    <!-- tabs de día: el mes completo, se desliza de lado -->
     <div class="sched-day-tabs r" id="schedDayTabs"></div>
+    <p class="sched-mes-hint r">Desliza para ver todo el mes · puedes apartar tu horario fijo de varias semanas</p>
 
     <!-- cards de clases -->
     <div class="sched-classes" id="schedClasses"></div>
@@ -3891,6 +3927,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
           <span><span class="ll-dot ll-tu"></span> Tu lugar</span>
         </div>
         <div class="lugar-sel-info" id="lugarSelInfo">Toca un mat para reservarlo</div>
+        <div class="rep-mes" id="repMesBox" style="display:none"></div>
         <button class="btn-confirmar" id="btnLugar" onclick="confirmLugar()" disabled>
           Continuar al pago →
         </button>
@@ -4334,7 +4371,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-06.3';
+const BUILD = '2026-08-07.1';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5170,9 +5207,17 @@ function subVencida(sub) {
 }
 
 /* ── Semana ── */
-let schedWeekOff = 0;
-let schedSelDay  = null; /* dateStr YYYY-MM-DD */
+/* Cuántos días hacia adelante se puede reservar. Un mes corrido: la alumna
+   con paquete mensual aparta su horario fijo de todo el mes de una sola vez.
+   La ventana de sincronizarCuposPublico() es de 90 días, así que los cupos
+   de todas estas fechas ya vienen cargados. */
+const DIAS_ADELANTE = 30;
 
+let schedSelDay = null; /* dateStr YYYY-MM-DD */
+
+/* El lunes de la semana desplazada `off` semanas. El horario público ya no lo
+   usa (ahora muestra el mes corrido), pero los reportes por semana del panel
+   sí: es lo que fija su rango de lunes a domingo. */
 function getMonday(off=0) {
   const d = new Date(); d.setHours(0,0,0,0);
   const day = d.getDay();
@@ -5185,65 +5230,83 @@ function fmtISO(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+/* "Lun 11 Agosto" a partir de un YYYY-MM-DD (mediodía: evita el corrimiento
+   de zona horaria que haría ver el día anterior) */
+function fmtDiaLargo(ds) {
+  const d = new Date(ds + 'T12:00:00');
+  return `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
+}
+
+/* Las flechas ya no cambian de semana: ahora la tira trae el mes entero y
+   solo se desplaza. Así nunca se "sale" del periodo reservable. */
 function schedWeek(dir) {
-  schedWeekOff += dir;
-  if (schedWeekOff < 0) schedWeekOff = 0;
-  schedSelDay = null;
-  renderSched();
+  const tira = document.getElementById('schedDayTabs');
+  if (!tira) return;
+  tira.scrollBy({ left: dir * Math.max(220, tira.clientWidth * 0.8), behavior:'smooth' });
 }
 
 /* ── Render completo del horario ── */
 function renderSched() {
-  const mon = getMonday(schedWeekOff);
-  const sun = new Date(mon); sun.setDate(sun.getDate()+6);
-
-  /* label semana */
-  document.getElementById('schedWeekLabel').textContent =
-    `${mon.getDate()} ${MESES_ES[mon.getMonth()]} — ${sun.getDate()} ${MESES_ES[sun.getMonth()]}`;
-
   const today = new Date(); today.setHours(0,0,0,0);
 
-  /* construir los días de la semana (Lun..Sáb) con fecha LOCAL */
+  /* Un mes corrido desde hoy, no una semana suelta: la alumna ve de una vez
+     todo lo que puede apartar. Fecha LOCAL siempre (fmtISO), nunca UTC. */
   const dias = [];
-  for (let i=0; i<6; i++) {
-    const d = new Date(mon); d.setDate(d.getDate()+i);
+  for (let i = 0; i < DIAS_ADELANTE; i++) {
+    const d = new Date(today); d.setDate(d.getDate() + i);
+    const dateStr = fmtISO(d);
     dias.push({
-      d,
-      jsDay:   d.getDay(),
-      dateStr: fmtISO(d),
-      isPast:  d < today,
-      isToday: d.getTime() === today.getTime(),
+      d, jsDay: d.getDay(), dateStr,
+      isToday: i === 0,
       /* Un día donde se cancelaron todas las clases no debe ofrecerse */
       tieneClases: (HORARIO[d.getDay()] || [])
-                     .some(s => !estaCancelada(s.clase, fmtISO(d), s.hora))
+                     .some(s => !estaCancelada(s.clase, dateStr, s.hora))
     });
   }
 
-  /* Si el día seleccionado no pertenece a esta semana, elegir automáticamente
-     el primer día seleccionable (no pasado) que tenga clases */
-  const selEnSemana = dias.some(x => x.dateStr === schedSelDay && !x.isPast);
-  if (!selEnSemana) {
-    const cand = dias.find(x => !x.isPast && x.tieneClases);
+  /* Hasta cuándo llega el periodo reservable */
+  const ult = dias[dias.length - 1].d;
+  document.getElementById('schedWeekLabel').textContent =
+    `${today.getDate()} ${MESES_ES[today.getMonth()]} — ${ult.getDate()} ${MESES_ES[ult.getMonth()]}`;
+
+  /* La selección se conserva mientras siga dentro del mes reservable; si se
+     quedó atrás (por ejemplo al pasar la medianoche), se toma el primer día
+     con clases. */
+  if (!dias.some(x => x.dateStr === schedSelDay && x.tieneClases)) {
+    const cand = dias.find(x => x.tieneClases);
     schedSelDay = cand ? cand.dateStr : null;
   }
 
   /* tabs de día (la selección ya está resuelta, así se resalta correctamente) */
   const tabsEl = document.getElementById('schedDayTabs');
   tabsEl.innerHTML = '';
-  dias.forEach(({ d, jsDay, dateStr, isPast, isToday }) => {
-    const isSel = schedSelDay === dateStr;
+  let mesPintado = -1;
+  dias.forEach(({ d, jsDay, dateStr, isToday, tieneClases }) => {
+    if (d.getMonth() !== mesPintado) {
+      mesPintado = d.getMonth();
+      const sep = document.createElement('div');
+      sep.className = 'sched-mes-sep';
+      sep.textContent = MESES_ES[mesPintado];
+      tabsEl.appendChild(sep);
+    }
     const tab = document.createElement('div');
     tab.className = 'sched-day-tab' +
-      (isSel   ? ' active' : '') +
-      (isToday ? ' today'  : '') +
-      (isPast  ? ' past'   : '');
-    tab.innerHTML = `<span class="sdt-name">${DIAS_ES[jsDay]}</span><span class="sdt-num">${d.getDate()}</span>`;
-    if (!isPast) tab.onclick = () => { schedSelDay = dateStr; renderSched(); };
+      (schedSelDay === dateStr ? ' active' : '') +
+      (isToday ? ' today' : '') +
+      (!tieneClases ? ' sin-clases' : '');
+    tab.innerHTML = `<span class="sdt-name">${isToday ? 'Hoy' : DIAS_ES[jsDay]}</span><span class="sdt-num">${d.getDate()}</span>`;
+    if (tieneClases) tab.onclick = () => { schedSelDay = dateStr; renderSched(); };
     tabsEl.appendChild(tab);
   });
 
+  /* Dejar el día elegido a la vista aunque caiga al final del mes. Se mueve
+     SOLO el scroll horizontal de la tira (no scrollIntoView): así abrir la
+     página no arrastra la pantalla hasta esta sección. */
+  const sel = tabsEl.querySelector('.sched-day-tab.active');
+  if (sel) tabsEl.scrollLeft = Math.max(0, sel.offsetLeft - tabsEl.clientWidth / 2 + sel.offsetWidth / 2);
+
   /* Seguro: la navegación de reserva nunca debe quedar invisible por el reveal */
-  document.querySelectorAll('#reserva .sched-nav, #reserva .sched-day-tabs')
+  document.querySelectorAll('#reserva .sched-nav, #reserva .sched-day-tabs, #reserva .sched-mes-hint')
     .forEach(el => el.classList.add('on'));
 
   renderCards();
@@ -5497,6 +5560,94 @@ function renderLugares() {
   document.getElementById('lugarGrid').innerHTML =
     `<div class="lugar-fila">${arriba}</div>` +
     (abajo ? `<div class="lugar-fila">${abajo}</div>` : '');
+
+  renderRepetir();
+}
+
+/* ════════════════════════════════════════
+   RESERVA MENSUAL · el mismo horario, varias semanas
+
+   La alumna con paquete mensual viene siempre el mismo día a la misma hora.
+   En vez de repetir el trámite cuatro veces, aparta de una vez las semanas
+   que quiera dentro del mes reservable.
+════════════════════════════════════════ */
+
+/* Las próximas fechas del mismo día de la semana que siguen dentro del mes
+   reservable, donde esa clase sigue en el horario y no está cancelada. */
+function fechasRepetibles(clase, dateStr, hora) {
+  const base = new Date(dateStr + 'T12:00:00');
+  const dow  = base.getDay();
+  /* Si la clase ya no existe ese día de la semana no hay nada que repetir */
+  if (!(HORARIO[dow] || []).some(s => s.clase === clase && s.hora === hora)) return [];
+
+  const limite = new Date(); limite.setHours(0,0,0,0);
+  limite.setDate(limite.getDate() + DIAS_ADELANTE - 1);
+
+  const out = [];
+  const d = new Date(base);
+  while (out.length < 5) {
+    d.setDate(d.getDate() + 7);
+    if (d > limite) break;
+    const ds = fmtISO(d);
+    if (estaCancelada(clase, ds, hora)) continue;   /* d ya avanzó: no hay ciclo infinito */
+    out.push(ds);
+  }
+  return out;
+}
+
+/* Cuántas clases se están apartando en total (la de hoy + las repetidas).
+   Es lo que decide el monto a pagar y cuántas clases descuenta el plan. */
+function clasesEnReserva() {
+  return 1 + ((booking.repetir || []).length);
+}
+
+function renderRepetir() {
+  const box = document.getElementById('repMesBox');
+  if (!box) return;
+  booking.repetir = [];
+
+  const { clase, dateStr, hora } = booking;
+  /* Una clase gratis es un evento suelto, no un horario fijo: no se repite */
+  const fechas = booking.gratis ? [] : fechasRepetibles(clase, dateStr, hora);
+  if (!fechas.length) { box.innerHTML = ''; box.style.display = 'none'; return; }
+
+  const filas = fechas.map(ds => {
+    const libres = cuposDe(clase, ds, hora) - getOcupados(clase, ds, hora);
+    if (libres <= 0) {
+      return `<label class="rep-fila rep-llena">
+        <input type="checkbox" disabled><span>${fmtDiaLargo(ds)}</span><em>Sin cupo</em></label>`;
+    }
+    return `<label class="rep-fila">
+      <input type="checkbox" value="${ds}" onchange="toggleRepetir(this)">
+      <span>${fmtDiaLargo(ds)}</span><em>${libres} libre${libres===1?'':'s'}</em></label>`;
+  }).join('');
+
+  box.style.display = 'block';
+  box.innerHTML = `
+    <div class="rep-hd">🔁 ¿Vienes todas las semanas?</div>
+    <p class="rep-sub">Aparta este mismo horario para el resto del mes.
+       En cada fecha se te asigna un mat libre automáticamente.</p>
+    ${filas}
+    <div class="rep-total" id="repTotal"></div>`;
+}
+
+function toggleRepetir(el) {
+  const ds = el.value;
+  booking.repetir = booking.repetir || [];
+  if (el.checked) { if (!booking.repetir.includes(ds)) booking.repetir.push(ds); }
+  else booking.repetir = booking.repetir.filter(x => x !== ds);
+  booking.repetir.sort();
+
+  const t = document.getElementById('repTotal');
+  const n = clasesEnReserva();
+  if (t) t.textContent = n > 1 ? `${n} clases en total` : '';
+}
+
+/* Desde el paso de pago, volver a elegir mat y semanas (por ejemplo si el
+   plan no alcanza para todas las que marcó). */
+function volverALugar() {
+  const paso = mFlow.findIndex(p => p.panel === 'mpLugar');
+  if (paso >= 0) { renderLugares(); mGoStep(paso + 1); }
 }
 
 function selectLugar(n) {
@@ -5515,10 +5666,15 @@ function setupPago() {
   const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
   const lugarTxt = booking.lugar ? ` · Lugar ${booking.lugar}` : '';
 
+  /* Con semanas repetidas el monto es el de TODAS las clases apartadas: si
+     mostrara el de una sola, la alumna transferiría de menos. */
+  const nClases = clasesEnReserva();
+  const repTxt  = nClases > 1 ? ` + ${nClases - 1} semana${nClases > 2 ? 's' : ''} más` : '';
+
   document.getElementById('psIcon').textContent   = info.emoji;
-  document.getElementById('psNombre').textContent = info.nombre;
-  document.getElementById('psDia').textContent    = `${diaStr} · ${hora} hrs${lugarTxt}`;
-  const precioReal = precioDe(clase, dateStr, hora);
+  document.getElementById('psNombre').textContent = info.nombre + (nClases > 1 ? ` · ${nClases} clases` : '');
+  document.getElementById('psDia').textContent    = `${diaStr} · ${hora} hrs${lugarTxt}${repTxt}`;
+  const precioReal = precioDe(clase, dateStr, hora) * nClases;
   document.getElementById('psPrice').textContent  = `${fmtC(precioReal)}`;
   document.getElementById('linkMonto').textContent = fmtC(precioReal);
 
@@ -5578,8 +5734,28 @@ async function verifySub() {
   const telInp = document.getElementById('mTel').value.trim();
   const sub = await findSuscriptora(email, telInp, nombre);
 
-  /* Suscriptora activa, vigente y con clases disponibles */
-  if (sub && sub.activa && sub.clasesRestantes > 0 && !subVencida(sub)) {
+  /* Apartando varias semanas, el plan tiene que alcanzar para TODAS: se
+     descuenta una clase por fecha. */
+  const nClases = clasesEnReserva();
+  const vigente = !!(sub && sub.activa && !subVencida(sub));
+  const alcanza = !!(sub && (esIlimitada(sub) || sub.clasesRestantes >= nClases));
+
+  /* Tiene plan al día pero le faltan clases para todas las semanas marcadas:
+     se le dice cuántas le quedan y se la manda a ajustar, no a comprar. */
+  if (vigente && !alcanza && sub.clasesRestantes > 0) {
+    result.innerHTML = `
+      <div class="sub-err">
+        Tu plan tiene <strong>${sub.clasesRestantes} clase${sub.clasesRestantes===1?'':'s'}</strong>
+        y estás apartando <strong>${nClases}</strong>.
+        Quita algunas semanas o elige un paquete nuevo.
+      </div>
+      <button type="button" class="sub-contacto-directo rb-press" onclick="volverALugar()">← Ajustar las semanas</button>`;
+    document.getElementById('btnPagar').disabled = true;
+    return;
+  }
+
+  /* Suscriptora activa, vigente y con clases suficientes */
+  if (vigente && alcanza) {
     selectedSubPlan = sub.plan;
     const cls = sub.clasesRestantes <= 3 ? 'sub-cupos-low' : '';
     result.innerHTML = `
@@ -5591,7 +5767,7 @@ async function verifySub() {
         </div>
         <span class="sub-cupos-badge ${cls}">${esIlimitada(sub) ? '∞ ilimitado' : sub.clasesRestantes + ' clases'}</span>
       </div>
-      ${esIlimitada(sub) ? '' : `<p class="sub-descuento-nota">Al confirmar se descuenta 1 clase de tu plan · te quedarían <strong>${Math.max(0, sub.clasesRestantes - 1)}</strong></p>`}`;
+      ${esIlimitada(sub) ? '' : `<p class="sub-descuento-nota">Al confirmar se descuenta${nClases>1?'n':''} <strong>${nClases}</strong> clase${nClases>1?'s':''} de tu plan · te quedarían <strong>${Math.max(0, sub.clasesRestantes - nClases)}</strong></p>`}`;
     document.getElementById('btnPagar').disabled = false;
     return;
   }
@@ -5747,8 +5923,12 @@ async function proceedToConfirm() {
   const info   = INFO[clase];
   const d      = new Date(dateStr+'T12:00:00');
   const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
+  /* Total de clases que se están apartando (esta + las semanas repetidas):
+     manda sobre el monto a pagar y sobre cuántas clases descuenta el plan. */
+  const nClases = clasesEnReserva();
   const subActiva  = pagoMetodo==='sub' ? await findSuscriptora(email, tel, nombre) : null;
-  const usaSubActiva = !!(subActiva && subActiva.activa && subActiva.clasesRestantes > 0 && !subVencida(subActiva));
+  const usaSubActiva = !!(subActiva && subActiva.activa && !subVencida(subActiva) &&
+                          (esIlimitada(subActiva) || subActiva.clasesRestantes >= nClases));
   const planUsado  = usaSubActiva ? subActiva.plan : selectedSubPlan;
   const esPlanPendiente = pagoMetodo==='sub' && !usaSubActiva && !!selectedSubPlan;
 
@@ -5762,7 +5942,9 @@ async function proceedToConfirm() {
   if (pagoMetodo === 'sub' && !usaSubActiva && !esPlanPendiente) {
     const btnPagarEl = document.getElementById('btnPagar');
     if (btnPagarEl) btnPagarEl.disabled = false;
-    alert('Tu plan ya no tiene clases disponibles.\n\nElige un paquete o escríbenos por WhatsApp ✧');
+    alert(nClases > 1
+      ? `Tu plan no alcanza para las ${nClases} clases que estás apartando.\n\nQuita algunas semanas o elige un paquete ✧`
+      : 'Tu plan ya no tiene clases disponibles.\n\nElige un paquete o escríbenos por WhatsApp ✧');
     await verifySub();
     const pasoPago = mFlow.findIndex(p => p.panel === 'mp2');
     if (pasoPago >= 0) mGoStep(pasoPago + 1);
@@ -5779,13 +5961,17 @@ async function proceedToConfirm() {
   /* Monto real a pagar: gratis si es clase especial; el del plan elegido si pide
      un paquete; "incluida" si usa suscripción activa; el de la clase en pago único */
   const planPend = esPlanPendiente ? PLANES_SUB[selectedSubPlan] : null;
-  const montoTxt = booking.gratis
+  /* Se calcula a partir de un número de clases porque al final puede cambiar:
+     si una de las semanas repetidas no se pudo apartar, tampoco se le cobró,
+     y el comprobante tiene que decir lo que de verdad quedó. */
+  const textoMonto = n => booking.gratis
     ? 'Gratis 🎁'
     : usaSubActiva
-    ? 'Incluida en tu plan 💎'
+    ? (n > 1 ? `Incluidas en tu plan 💎 (${n} clases)` : 'Incluida en tu plan 💎')
     : planPend
     ? `${fmtC(planPend.precio)} (${planPend.nombre})`
-    : fmtC(precioDe(clase, dateStr, hora));
+    : fmtC(precioDe(clase, dateStr, hora) * n);
+  let montoTxt = textoMonto(nClases);
 
   /* ── Alerta de membresía ilimitada activada ── */
   const subAlertEl = document.getElementById('subAlertContainer');
@@ -5907,6 +6093,53 @@ async function proceedToConfirm() {
     return;
   }
 
+  /* ── Las demás semanas del mes ──
+     La fecha principal ya quedó guardada. Cada semana extra se trata por
+     separado a propósito: si una falla (se llenó desde otro celular, se cayó
+     la conexión) no se pierde lo ya reservado, y solo a esa se le devuelve la
+     clase que se le había cobrado. Al final se le dice exactamente cuáles
+     quedaron y cuáles no. */
+  const repHechas = [], repFallidas = [];
+  for (const ds of (booking.repetir || [])) {
+    let cobroX = false;
+    try {
+      const clientesDs = getClientes(clase, ds, hora);
+
+      if (emailNorm && clientesDs.some(c => (c.email||'').trim().toLowerCase() === emailNorm)) {
+        repFallidas.push({ ds, motivo: 'ya tenías reserva' }); continue;
+      }
+      const totalMats = cuposDe(clase, ds, hora);
+      if (clientesDs.length >= totalMats) {
+        repFallidas.push({ ds, motivo: 'sin cupo' }); continue;
+      }
+
+      /* El mismo mat si está libre esa fecha; si no, el primero disponible */
+      const ocupados = new Set(clientesDs.filter(c => c.lugar).map(c => Number(c.lugar)));
+      let mat = (booking.lugar && !ocupados.has(Number(booking.lugar))) ? Number(booking.lugar) : null;
+      if (!mat) { for (let i = 1; i <= totalMats; i++) if (!ocupados.has(i)) { mat = i; break; } }
+      if (!mat) { repFallidas.push({ ds, motivo: 'sin cupo' }); continue; }
+
+      if (usaSubActiva && !esIlimitada(subActiva)) {
+        cobroX = await cobrarClase(subActiva.id, email, tel, nombre);
+        if (!cobroX) { repFallidas.push({ ds, motivo: 'sin clases en tu plan' }); continue; }
+      }
+
+      await saveSlot(clase, ds, hora, { nombre, email, tel, nivel, notas, lugar: mat,
+        metodo: metodoDtxt, instructor, pagoOk: pagoMetodo !== 'transfer', claseDescontada: cobroX });
+      repHechas.push({ ds, lugar: mat });
+    } catch (e) {
+      if (cobroX) { try { await devolverClase(subActiva.id, email, tel); } catch(_) {} }
+      repFallidas.push({ ds, motivo: e && e.status === 409 ? 'el mat se ocupó' : 'no se pudo guardar' });
+    }
+  }
+  if (repFallidas.length) {
+    alert('Estas fechas no se pudieron apartar:\n\n' +
+      repFallidas.map(f => `• ${fmtDiaLargo(f.ds)} — ${f.motivo}`).join('\n') +
+      '\n\nEl resto de tu reserva sí quedó. Escríbenos por WhatsApp si necesitas ayuda ✧');
+    /* El comprobante debe cobrar solo lo apartado, no lo intentado */
+    montoTxt = textoMonto(1 + repHechas.length);
+  }
+
   /* Plan nuevo o renovación → registrar como PENDIENTE (el admin confirma el pago)
      y avisar por correo al estudio.
      Va DESPUÉS de guardar la reserva: si la reserva falla, ya no queda una
@@ -5938,11 +6171,16 @@ async function proceedToConfirm() {
     }
   }
 
+  /* Las semanas que sí quedaron, para que la alumna las vea y las anote */
+  const repTxtLista = repHechas
+    .map(r => `${fmtDiaLargo(r.ds)}${r.lugar ? ` · Lugar ${r.lugar}` : ''}`).join('<br/>');
+
   document.getElementById('confirmCard').innerHTML = `
     <div class="cr-row"><span class="cr-icon">${info.emoji}</span><span class="cr-text"><strong>${info.nombre}</strong></span></div>
     <div class="cr-row"><span class="cr-icon">📅</span><span class="cr-text">${diaStr}</span></div>
     <div class="cr-row"><span class="cr-icon">⏰</span><span class="cr-text">${hora} hrs · ${montoTxt}</span></div>
     ${booking.lugar ? `<div class="cr-row"><span class="cr-icon">📍</span><span class="cr-text">Lugar ${booking.lugar}</span></div>` : ''}
+    ${repTxtLista ? `<div class="cr-row"><span class="cr-icon">🔁</span><span class="cr-text">También apartadas:<br/>${repTxtLista}</span></div>` : ''}
     <div class="cr-row"><span class="cr-icon">🎽</span><span class="cr-text">Instructora: ${instructor}</span></div>
     <div class="cr-row"><span class="cr-icon">👤</span><span class="cr-text">${nombre} · ${nivel}</span></div>
     <div class="cr-row"><span class="cr-icon">📱</span><span class="cr-text">${tel}</span></div>
@@ -5959,6 +6197,10 @@ async function proceedToConfirm() {
     `📅 Fecha: ${diaStr}\n` +
     `⏰ Hora: ${hora} hrs\n` +
     (booking.lugar ? `📍 Lugar: ${booking.lugar}\n` : ``) +
+    (repHechas.length
+      ? `🔁 También apartadas:\n` +
+        repHechas.map(r => `   • ${fmtDiaLargo(r.ds)}${r.lugar ? ` · Lugar ${r.lugar}` : ''}\n`).join('')
+      : ``) +
     `🎽 Instructora: ${instructor}\n` +
     `💰 Monto: ${montoTxt}\n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
