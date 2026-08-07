@@ -4058,19 +4058,35 @@ let sadminRol    = 'duena';       /* 'duena' (todo) | 'coach' (solo sus clases) 
 
    El "usuario" que se escribe en pantalla (jimena/carmen/…) se traduce acá
    a un correo interno — así la persona sigue tecleando lo de siempre, y por
-   dentro es un login real de Supabase. Hay que crear estas 5 cuentas una
-   vez desde el Dashboard de Supabase (Authentication → Users → Add user);
-   el sitio no las puede crear solo. */
+   dentro es un login real de Supabase. Cada cuenta hay que crearla una vez
+   desde el Dashboard de Supabase (Authentication → Users → Add user) con
+   ese mismo correo; el sitio no las puede crear solo. */
+
+/* Acceso COMPLETO al panel: reservas, pagos, reportes, suscriptoras,
+   horarios y eventos. Antes esto era un solo usuario ('jimena'); ahora es
+   una lista para que recepción y el co-fundador entren con su propia
+   cuenta en vez de compartir la contraseña de la dueña. Agregar a alguien
+   es poner una línea aquí y crear su cuenta en Supabase con el mismo
+   usuario + "@presenza.auth". */
+const STAFF_TOTAL = [
+  { usuario:'jimena', nombre:'Jimena',           rol:'Dueña'       },
+  { usuario:'laura',  nombre:'Laura Galdámez',   rol:'Recepción'   },
+  { usuario:'carlos', nombre:'Carlos González',  rol:'Co-fundador' },
+];
+
+/* Acceso limitado: cada coach ve y pasa lista solo de SUS clases */
 const COACHES = [
   { usuario:'carmen',    nombre:'María Del Carmen Somarriba' },
   { usuario:'alejandra', nombre:'Alejandra Mondragón'        },
   { usuario:'gladys',    nombre:'Gladys Pastora'             },
   { usuario:'yeni',      nombre:'Yeni Noreña'                },
 ];
-const USUARIO_DUENA = 'jimena';
-function emailDeUsuario(usr) { return `${usr}@presenza.auth`; }
+
+function buscarStaffTotal(usr) { return STAFF_TOTAL.find(s => s.usuario === usr) || null; }
+function emailDeUsuario(usr)   { return `${usr}@presenza.auth`; }
 
 let coachActual = null;           /* la coach que inició sesión, o null */
+let staffActual = null;           /* quién entró con acceso total, o null */
 
 /* ¿El instructor de una clase corresponde a esta coach?
    Basta que compartan una palabra de 3 letras o más, en cualquier orden:
@@ -4371,7 +4387,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-07.1';
+const BUILD = '2026-08-07.2';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -6614,7 +6630,7 @@ async function checkSuperPin() {
     document.getElementById('superPinErr').textContent = 'Escribe tu usuario.';
     return;
   }
-  if (usr !== USUARIO_DUENA && !COACHES.find(c => c.usuario === usr)) {
+  if (!buscarStaffTotal(usr) && !COACHES.find(c => c.usuario === usr)) {
     document.getElementById('superPinErr').textContent = 'Usuario no reconocido.';
     return;
   }
@@ -6642,15 +6658,21 @@ async function checkSuperPin() {
     return;
   }
 
-  const coach = (usr === USUARIO_DUENA) ? null : COACHES.find(c => c.usuario === usr);
+  /* Primero se busca en el staff con acceso total: si el usuario está ahí,
+     no es coach aunque se llame parecido a una. */
+  staffActual = buscarStaffTotal(usr);
+  const coach = staffActual ? null : COACHES.find(c => c.usuario === usr);
   sadminRol   = coach ? 'coach' : 'duena';
   coachActual = coach || null;
   const bd = document.getElementById('sadminBackdrop');
   bd.classList.toggle('coach-mode', sadminRol === 'coach');
   /* La coach con clave propia sí pasa lista, así que necesita la pestaña Hoy */
   bd.classList.toggle('coach-hoy', !!coachActual);
+  /* Con varias personas compartiendo el panel, el encabezado dice quién
+     entró: así nadie confunde en qué cuenta está trabajando. */
   document.getElementById('sadminHdTitle').textContent =
-    coachActual ? `🩰 ${coachActual.nombre.split(' ')[0]} · mis clases` : '👑 Super Admin';
+    coachActual ? `🩰 ${coachActual.nombre.split(' ')[0]} · mis clases`
+                : `👑 ${staffActual.nombre.split(' ')[0]} · ${staffActual.rol}`;
   document.getElementById('superPinBackdrop').classList.remove('open');
   document.getElementById('sadminBackdrop').classList.add('open');
   document.body.style.overflow = 'hidden';
