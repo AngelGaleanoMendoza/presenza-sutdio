@@ -2511,6 +2511,34 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .btn-rep-pdf { font-size:.7rem; font-weight:600; color:var(--wine); background:none; border:1.5px solid rgba(107,23,40,.22); border-radius:50px; padding:5px 12px; cursor:pointer; transition:all .2s; white-space:nowrap; }
 .btn-rep-pdf:hover { background:var(--wine); color:#fff; border-color:var(--wine); }
 .btn-rep-pdf-full { display:block; width:100%; margin-top:14px; padding:13px; background:linear-gradient(135deg,var(--wine),var(--wine-l)); color:#fff; border:none; border-radius:14px; font-size:.84rem; font-weight:700; cursor:pointer; transition:all .2s; }
+
+/* respaldo de datos */
+.resp-blk {
+  margin-top:22px; padding:16px; border-radius:16px;
+  background:rgba(255,255,255,.75); border:1.5px solid rgba(107,23,40,.14);
+}
+.resp-hd  { font-size:.92rem; font-weight:700; color:var(--wine-d); }
+.resp-sub { font-size:.76rem; color:var(--gray); margin:6px 0 10px; line-height:1.5; }
+.resp-alerta, .resp-ok {
+  display:block; font-size:.75rem; font-weight:600;
+  padding:7px 10px; border-radius:9px; margin-bottom:11px;
+}
+.resp-alerta { background:rgba(224,169,59,.14); color:#7a5200; }
+.resp-ok     { background:rgba(58,157,93,.12);  color:#256b3d; }
+.btn-respaldo {
+  display:block; width:100%; padding:13px; border:none; border-radius:14px;
+  background:linear-gradient(135deg,var(--wine),var(--wine-l)); color:#fff;
+  font-size:.86rem; font-weight:700; cursor:pointer; transition:all .2s;
+}
+.btn-respaldo:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 8px 22px rgba(107,23,40,.28); }
+.btn-respaldo:disabled, .btn-respaldo-2:disabled { opacity:.55; cursor:default; }
+.btn-respaldo-2 {
+  display:block; width:100%; margin-top:8px; padding:10px;
+  background:transparent; border:1.5px solid rgba(107,23,40,.2); border-radius:12px;
+  color:var(--wine); font-size:.76rem; font-weight:600; cursor:pointer;
+}
+.btn-respaldo-2:hover:not(:disabled) { background:rgba(107,23,40,.06); }
+.resp-estado { text-align:center; font-size:.74rem; color:var(--gray); margin-top:9px; min-height:16px; }
 .btn-rep-pdf-full:hover { filter:brightness(1.08); transform:translateY(-2px); }
 .rep-clase-row { display:flex; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid rgba(107,23,40,.05); }
 .rep-clase-row:last-child { border-bottom:none; }
@@ -4387,7 +4415,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-07.2';
+const BUILD = '2026-08-07.3';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -7767,6 +7795,322 @@ function sadminVerDia(dateStr, el) {
 }
 
 /* ════════════════════════════════════════
+   RESPALDO · bajar TODO a un archivo de Excel
+
+   El proyecto está en el plan gratuito de Supabase: no hay copias que la
+   dueña pueda restaurar sola. Si un día se pierden las reservas o alguien
+   borra de más, sin esto no hay de dónde sacarlas.
+
+   Se bajan las filas TAL CUAL están en la base (los mismos nombres de
+   columna), no la versión bonita de la pantalla: así el archivo sirve para
+   volver a subirlas con el importador de CSV de Supabase, no solo para
+   mirarlas.
+
+   El .xlsx se arma acá mismo, sin librerías: un xlsx es un ZIP con unos
+   XML adentro. Es más código que un CSV suelto, pero le deja a la dueña UN
+   archivo que abre de un toque en el teléfono, con una hoja por tabla.
+════════════════════════════════════════ */
+
+const RESPALDO_TABLAS = [
+  { tabla:'reservas',          hoja:'Reservas',          orden:'ts.asc'      },
+  { tabla:'suscriptoras',      hoja:'Suscriptoras',      orden:'nombre.asc'  },
+  { tabla:'asistencias',       hoja:'Asistencias',       orden:'fecha.asc'   },
+  { tabla:'horarios',          hoja:'Horarios',          orden:null          },
+  { tabla:'clases_especiales', hoja:'Clases especiales', orden:null          },
+  { tabla:'clases_canceladas', hoja:'Clases canceladas', orden:null          },
+  { tabla:'eventos',           hoja:'Eventos',           orden:null          },
+];
+const RESPALDO_FECHA_KEY = 'presenza_ultimo_respaldo';
+
+/* PostgREST devuelve máximo 1000 filas por pedido. Sin paginar, un respaldo
+   se cortaría en silencio al llegar a mil reservas: parecería completo y no
+   lo estaría. Se pide de a 1000 hasta que venga una página incompleta. */
+async function respaldoTraerTabla(tabla, orden) {
+  const PAG = 1000;
+  const filas = [];
+  for (let desde = 0; ; desde += PAG) {
+    const q = `${tabla}?select=*${orden ? `&order=${orden}` : ''}&limit=${PAG}&offset=${desde}`;
+    const pag = await sbFetch(q);
+    if (!Array.isArray(pag)) break;
+    filas.push(...pag);
+    if (pag.length < PAG) break;
+  }
+  return filas;
+}
+
+/* ── CSV ── */
+function csvEscapar(v) {
+  if (v === null || v === undefined) return '';
+  const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+  return /[",\n\r;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+function filasACsv(filas, columnas) {
+  const lin = [columnas.map(csvEscapar).join(',')];
+  filas.forEach(f => lin.push(columnas.map(c => csvEscapar(f[c])).join(',')));
+  /* El BOM es lo que hace que Excel muestre bien las tildes y la ñ */
+  return '﻿' + lin.join('\r\n');
+}
+
+/* ── XLSX (ZIP + XML, sin librerías) ── */
+const CRC_TABLA = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(bytes) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLA[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+/* ZIP sin compresión ("stored"): un respaldo de texto pesa poco y así no
+   hace falta implementar deflate. */
+function zipCrear(archivos) {
+  const enc = new TextEncoder();
+  const locales = [], central = [];
+  let offset = 0;
+
+  archivos.forEach(a => {
+    const nombre = enc.encode(a.nombre);
+    const datos  = a.datos;
+    const crc    = crc32(datos);
+
+    const lfh = new DataView(new ArrayBuffer(30));
+    lfh.setUint32(0, 0x04034b50, true);
+    lfh.setUint16(4, 20, true);              /* versión necesaria */
+    lfh.setUint32(14, crc, true);
+    lfh.setUint32(18, datos.length, true);   /* comprimido = igual */
+    lfh.setUint32(22, datos.length, true);
+    lfh.setUint16(26, nombre.length, true);
+    locales.push(new Uint8Array(lfh.buffer), nombre, datos);
+
+    const cdh = new DataView(new ArrayBuffer(46));
+    cdh.setUint32(0, 0x02014b50, true);
+    cdh.setUint16(4, 20, true);              /* versión que lo creó */
+    cdh.setUint16(6, 20, true);              /* versión necesaria */
+    cdh.setUint32(16, crc, true);
+    cdh.setUint32(20, datos.length, true);
+    cdh.setUint32(24, datos.length, true);
+    cdh.setUint16(28, nombre.length, true);
+    cdh.setUint32(42, offset, true);         /* dónde empieza su cabecera */
+    central.push(new Uint8Array(cdh.buffer), nombre);
+
+    offset += 30 + nombre.length + datos.length;
+  });
+
+  const tamCentral = central.reduce((n, p) => n + p.length, 0);
+  const eocd = new DataView(new ArrayBuffer(22));
+  eocd.setUint32(0, 0x06054b50, true);
+  eocd.setUint16(8,  archivos.length, true);
+  eocd.setUint16(10, archivos.length, true);
+  eocd.setUint32(12, tamCentral, true);
+  eocd.setUint32(16, offset, true);
+
+  const todo  = [...locales, ...central, new Uint8Array(eocd.buffer)];
+  const total = todo.reduce((n, p) => n + p.length, 0);
+  const out   = new Uint8Array(total);
+  let p = 0;
+  todo.forEach(parte => { out.set(parte, p); p += parte.length; });
+  return out;
+}
+
+function xmlEscapar(v) {
+  if (v === null || v === undefined) return '';
+  const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+  /* Los caracteres de control rompen el XML y Excel se niega a abrir el
+     archivo entero por una sola celda: se quitan antes de escapar. */
+  return s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function colLetra(n) {            /* 0 → A, 25 → Z, 26 → AA */
+  let s = '';
+  for (let x = n; x >= 0; x = Math.floor(x / 26) - 1) s = String.fromCharCode(65 + (x % 26)) + s;
+  return s;
+}
+
+/* Todo se escribe como TEXTO a propósito: así un teléfono que empieza con 0
+   o un ts larguísimo llegan intactos. Un respaldo vale por ser fiel, no por
+   verse bonito. */
+function hojaXml(filas, columnas) {
+  const celda = (c, r, v) =>
+    `<c r="${colLetra(c)}${r}" t="inlineStr"><is><t xml:space="preserve">${xmlEscapar(v)}</t></is></c>`;
+  const filasXml = [
+    `<row r="1">${columnas.map((c, i) => celda(i, 1, c)).join('')}</row>`,
+    ...filas.map((f, fi) =>
+      `<row r="${fi + 2}">${columnas.map((c, i) => celda(i, fi + 2, f[c])).join('')}</row>`)
+  ].join('');
+  /* <dimension> es opcional para Excel (él lo recalcula), pero Google Sheets
+     y los visores del teléfono lo usan para saber el tamaño de la hoja sin
+     leerla entera. Sin esto, algunos abren el archivo como si estuviera
+     vacío. */
+  const rango = `A1:${colLetra(Math.max(0, columnas.length - 1))}${filas.length + 1}`;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="${rango}"/><sheetData>${filasXml}</sheetData></worksheet>`;
+}
+
+/* Excel no acepta estos caracteres en el nombre de una hoja, ni más de 31 */
+function nombreHojaValido(n) { return n.replace(/[\[\]:*?\/\\]/g, ' ').slice(0, 31); }
+
+function xlsxCrear(hojas) {       /* [{nombre, filas, columnas}] */
+  const enc = new TextEncoder();
+  const nombres = hojas.map(h => nombreHojaValido(h.nombre));
+
+  const tipos = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+${hojas.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}
+</Types>`;
+
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`;
+
+  const libro = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets>${nombres.map((n, i) => `<sheet name="${xmlEscapar(n)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets>
+</workbook>`;
+
+  const libroRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+${hojas.map((_, i) => `<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}
+</Relationships>`;
+
+  const archivos = [
+    { nombre:'[Content_Types].xml',        datos: enc.encode(tipos)     },
+    { nombre:'_rels/.rels',                datos: enc.encode(rels)      },
+    { nombre:'xl/workbook.xml',            datos: enc.encode(libro)     },
+    { nombre:'xl/_rels/workbook.xml.rels', datos: enc.encode(libroRels) },
+    ...hojas.map((h, i) => ({
+      nombre: `xl/worksheets/sheet${i+1}.xml`,
+      datos: enc.encode(hojaXml(h.filas, h.columnas))
+    }))
+  ];
+  return zipCrear(archivos);
+}
+
+function descargarArchivo(datos, nombre, tipo) {
+  const url = URL.createObjectURL(new Blob([datos], { type: tipo }));
+  const a = document.createElement('a');
+  a.href = url; a.download = nombre;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+/* ── El botón ── */
+async function descargarRespaldo(soloCsv) {
+  const btn = document.getElementById(soloCsv ? 'btnRespaldoCsv' : 'btnRespaldo');
+  const txtOriginal = btn ? btn.textContent : '';
+  const estado = document.getElementById('respaldoEstado');
+  const decir = m => { if (estado) estado.textContent = m; };
+
+  if (!SB_ON) { alert('El respaldo necesita conexión con la base de datos.'); return; }
+  if (btn) { btn.disabled = true; }
+
+  try {
+    const datos = [];
+    const saltadas = [];
+    for (const t of RESPALDO_TABLAS) {
+      if (btn) btn.textContent = `Bajando ${t.hoja.toLowerCase()}…`;
+      decir(`Bajando ${t.hoja.toLowerCase()}…`);
+      try {
+        datos.push({ ...t, filas: await respaldoTraerTabla(t.tabla, t.orden) });
+      } catch (e) {
+        /* Una tabla que no existe (falta correr su SQL) no debe tumbar el
+           respaldo de las demás: se anota y se sigue. */
+        saltadas.push(t.hoja);
+      }
+    }
+    if (!datos.length) throw new Error('No se pudo leer ninguna tabla.');
+
+    const total = datos.reduce((n, d) => n + d.filas.length, 0);
+    const hoy   = fmtISO(new Date());
+
+    /* Las columnas salen de las filas reales, no de una lista escrita a mano:
+       si mañana la base gana una columna, el respaldo la trae sin tocar nada. */
+    const columnasDe = filas => {
+      const set = new Set();
+      filas.forEach(f => Object.keys(f).forEach(k => set.add(k)));
+      return [...set];
+    };
+
+    if (soloCsv) {
+      datos.filter(d => d.filas.length).forEach((d, i) => {
+        setTimeout(() => descargarArchivo(
+          filasACsv(d.filas, columnasDe(d.filas)),
+          `presenza-${d.tabla}-${hoy}.csv`, 'text/csv;charset=utf-8'), i * 350);
+      });
+      decir(`${datos.filter(d => d.filas.length).length} archivos CSV · ${total} filas`);
+    } else {
+      const hojas = datos.map(d => ({
+        nombre: d.hoja,
+        filas: d.filas,
+        columnas: d.filas.length ? columnasDe(d.filas) : ['(sin datos)']
+      }));
+      hojas.push({
+        nombre: 'Cómo restaurar',
+        columnas: ['Paso', 'Qué hacer'],
+        filas: [
+          { Paso:'Qué es esto', 'Qué hacer':`Copia completa de los datos de Presenza Studio al ${hoy}. Una hoja por tabla, tal como están guardados en la base.` },
+          { Paso:'1', 'Qué hacer':'Entra a supabase.com → tu proyecto → Table Editor y elige la tabla que quieras recuperar.' },
+          { Paso:'2', 'Qué hacer':'Botón Insert → Import data from CSV.' },
+          { Paso:'3', 'Qué hacer':'Sube el CSV de esa tabla (se baja con el botón "CSV para restaurar" del panel, junto al de este respaldo).' },
+          { Paso:'4', 'Qué hacer':'Revisa que los nombres de columna calcen y confirma.' },
+          { Paso:'Ojo', 'Qué hacer':'No incluye los PIN de "Mis clases" de las alumnas: están cifrados y el panel no puede leerlos. Si se perdieran, cada alumna vuelve a crear su acceso con su celular.' },
+          { Paso:'Consejo', 'Qué hacer':'Guarda este archivo fuera de la computadora del estudio: Google Drive, tu correo, o envíatelo por WhatsApp. Un respaldo que vive en el mismo lugar que los datos no es un respaldo.' }
+        ]
+      });
+      descargarArchivo(xlsxCrear(hojas), `presenza-respaldo-${hoy}.xlsx`,
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      decir(`✓ ${total} registros guardados`);
+    }
+
+    localStorage.setItem(RESPALDO_FECHA_KEY, new Date().toISOString());
+    if (saltadas.length) {
+      alert('El respaldo se bajó, pero estas tablas no se pudieron leer y no van incluidas:\n\n• ' +
+            saltadas.join('\n• ') + '\n\nSuele ser que falta correr su archivo SQL en Supabase.');
+    }
+  } catch (e) {
+    decir('');
+    alert('No se pudo completar el respaldo.\n\n' + e.message +
+          '\n\nSi dice "permission denied", cierra el panel y vuelve a entrar con tu usuario.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = txtOriginal; }
+  }
+}
+
+/* Bloque del respaldo dentro de Reportes, con el aviso de hace cuánto no se
+   hace uno. Sin ese recordatorio, un botón así se usa una vez y se olvida. */
+function respaldoBloqueHtml() {
+  const ult = localStorage.getItem(RESPALDO_FECHA_KEY);
+  let aviso = '<span class="resp-alerta">Nunca has descargado un respaldo</span>';
+  if (ult) {
+    const dias = Math.floor((Date.now() - new Date(ult).getTime()) / 86400000);
+    const f = new Date(ult);
+    const cuando = `${f.getDate()} ${MESES_ES[f.getMonth()]} ${f.getFullYear()}`;
+    aviso = dias >= 30
+      ? `<span class="resp-alerta">Último respaldo hace ${dias} días (${cuando})</span>`
+      : `<span class="resp-ok">Último respaldo: ${cuando}${dias > 0 ? ` · hace ${dias} día${dias===1?'':'s'}` : ' · hoy'}</span>`;
+  }
+  return `<div class="resp-blk">
+    <div class="resp-hd">🛟 Respaldo de tus datos</div>
+    <p class="resp-sub">Baja TODO —reservas, alumnas, asistencias y horarios— a un archivo de Excel.
+       Guárdalo fuera del estudio: en Drive, tu correo o enviándotelo por WhatsApp.</p>
+    ${aviso}
+    <button class="btn-respaldo" id="btnRespaldo" onclick="descargarRespaldo(false)">📥 Descargar respaldo (Excel)</button>
+    <button class="btn-respaldo-2" id="btnRespaldoCsv" onclick="descargarRespaldo(true)">CSV para restaurar</button>
+    <div class="resp-estado" id="respaldoEstado"></div>
+  </div>`;
+}
+
+/* ════════════════════════════════════════
    TAB: REPORTES (cierre día / semana / mes)
 ════════════════════════════════════════ */
 let repPeriodo = 'dia';   /* dia | semana | mes */
@@ -7910,7 +8254,9 @@ function buildSAdminReportes() {
         <span class="sa-empty-ico">📊</span>
         <strong>Sin registros en este ${r.periodo.toLowerCase()}</strong>
         <span>No hubo reservas durante este periodo.</span>
-      </div>`;
+      </div>` + respaldoBloqueHtml();
+    /* El respaldo va también acá: que un periodo salga vacío no quiere decir
+       que no haya nada que respaldar. */
     return;
   }
 
@@ -7999,7 +8345,8 @@ function buildSAdminReportes() {
     <div class="sa-clase-blk">${rankHtml}</div>
     <div class="rep-sec-title">💳 Tipo de suscripción</div>
     <div class="rep-tipo-dist">${tipoHtml}</div>
-    <button class="btn-rep-pdf-full" onclick="printReportePeriodo()">📄 Descargar PDF del ${r.periodo.toLowerCase()} completo</button>`;
+    <button class="btn-rep-pdf-full" onclick="printReportePeriodo()">📄 Descargar PDF del ${r.periodo.toLowerCase()} completo</button>`
+    + respaldoBloqueHtml();
 }
 
 /* ── PDF: detalle de una clase en el periodo ── */
