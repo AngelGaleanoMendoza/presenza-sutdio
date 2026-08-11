@@ -2108,6 +2108,12 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .nsm-field input:focus, .nsm-field select:focus { border-color:var(--wine); }
 .nsm-field.full { grid-column:1/-1; }
 .nsm-btns { display:flex; gap:10px; margin-top:12px; }
+.nsm-hist-preview {
+  font-size:.76rem; line-height:1.5; padding:9px 12px; border-radius:10px; margin-top:10px;
+}
+.nsm-hist-existe  { background:rgba(224,169,59,.14); color:#7a5200; }
+.nsm-hist-previas { background:rgba(107,23,40,.08);  color:var(--wine-d); }
+.sa-desglose-previo { color:var(--wine-d); opacity:.85; }
 .btn-nsm-save {
   flex:1; padding:9px; background:var(--wine); color:white;
   border:none; border-radius:10px; font-size:.8rem; font-weight:600; cursor:pointer;
@@ -4415,7 +4421,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-07.4';
+const BUILD = '2026-08-07.5';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5238,6 +5244,33 @@ function reservasConsumidas(email) {
     }
   }
   return n;
+}
+
+/* Cuántas clases pagó por su cuenta (efectivo, transferencia o clase suelta)
+   SIN que un paquete las cubriera — tenga o no ficha de suscriptora ahora.
+   Es lo que conecta a alguien que empezó pagando clase por clase con la
+   ficha que se le crea después: sin esto, su historial "arrancaba en cero"
+   el día que se suscribió, aunque ya llevara semanas viniendo al estudio. */
+function historialPagoUnicoDe(email, tel) {
+  const em = (email||'').trim().toLowerCase();
+  const td = normTel(tel);
+  if (!em && td.length < 8) return { n:0, ultima:null };
+  let n = 0, ultima = null;
+  for (const k in SLOTS) {
+    const m = k.match(/^presenza_(\w+)_(\d{4}-\d{2}-\d{2})_(\d{4})$/);
+    if (!m) continue;
+    const dateStr = m[2];
+    for (const c of SLOTS[k]) {
+      if (c.claseDescontada) continue;    /* esa sí la cubrió un paquete */
+      const ce = (c.email||'').trim().toLowerCase();
+      const ct = normTel(c.tel);
+      if ((em && ce === em) || (td.length >= 8 && ct === td)) {
+        n++;
+        if (!ultima || dateStr > ultima) ultima = dateStr;
+      }
+    }
+  }
+  return { n, ultima };
 }
 
 /* Vencimiento: 30 días exactos por cada mes del plan, desde la activación */
@@ -7255,6 +7288,14 @@ function buildSAdminSubs() {
           </div>
           <div class="sa-vence">Vence: ${sub.fechaVence||'—'}</div>
           ${ilim ? '' : `<div class="sa-desglose">📅 ${reservasConsumidas(sub.email)} apartadas en reservas · ✓ ${(sub.historial||[]).length} asistencias</div>`}
+          ${(() => {
+            /* Lo que pagó suelta ANTES o APARTE de tener este plan: así su
+               relación con el estudio se ve completa, no solo desde que
+               tiene paquete. */
+            const previas = historialPagoUnicoDe(sub.email, sub.tel);
+            if (!previas.n) return '';
+            return `<div class="sa-desglose sa-desglose-previo">🎫 ${previas.n} clase${previas.n===1?'':'s'} pagada${previas.n===1?'':'s'} suelta${previas.n===1?'':'s'}${previas.ultima ? ` · última ${fmtDiaLargo(previas.ultima)}` : ''}</div>`;
+          })()}
         </div>
       </div>
       <div class="sa-sub-actions">
@@ -7328,9 +7369,9 @@ function buildSAdminSubs() {
     <div class="nueva-sub-modal" id="nuevaSubModal">
       <p class="nsm-title">Registrar nueva suscriptora</p>
       <div class="nsm-grid">
-        <div class="nsm-field"><label>Nombre completo</label><input id="nsNombre" placeholder="María García"/></div>
-        <div class="nsm-field"><label>Email</label><input id="nsEmail" type="email" placeholder="maria@gmail.com"/></div>
-        <div class="nsm-field"><label>Teléfono</label><input id="nsTel" placeholder="8888-1234"/></div>
+        <div class="nsm-field"><label>Nombre completo</label><input id="nsNombre" placeholder="María García" oninput="nsRevisarHistorial()"/></div>
+        <div class="nsm-field"><label>Email</label><input id="nsEmail" type="email" placeholder="maria@gmail.com" oninput="nsRevisarHistorial()"/></div>
+        <div class="nsm-field"><label>Teléfono</label><input id="nsTel" placeholder="8888-1234" oninput="nsRevisarHistorial()"/></div>
         <div class="nsm-field"><label>Plan</label>
           <select id="nsPlan">
             ${Object.entries(PLANES_SUB).map(([k,v])=>`<option value="${k}">${v.nombre} — ${fmtC(v.precio)}</option>`).join('')}
@@ -7338,6 +7379,7 @@ function buildSAdminSubs() {
         </div>
         <div class="nsm-field full"><label>Notas (opcional)</label><input id="nsNotas" placeholder="Nivel, preferencias..."/></div>
       </div>
+      <div class="nsm-hist-preview" id="nsHistPreview" style="display:none"></div>
       <div class="nsm-btns">
         <button class="btn-nsm-save" onclick="guardarNuevaSub()">Guardar suscriptora</button>
         <button class="btn-nsm-cancel" onclick="toggleNuevaSub()">Cancelar</button>
@@ -7362,7 +7404,48 @@ function toggleNuevaSub() {
   m.classList.toggle('open');
   if (m.classList.contains('open')) {
     ['nsNombre','nsEmail','nsTel','nsNotas'].forEach(id => { document.getElementById(id).value = ''; });
+    const box = document.getElementById('nsHistPreview');
+    if (box) { box.style.display = 'none'; box.innerHTML = ''; }
   }
+}
+
+/* Mientras se escribe nombre/correo/teléfono en "Nueva suscripción", avisa
+   si esa persona YA está en el sistema — como suscriptora (para no crear una
+   ficha duplicada sin querer) o solo con clases pagadas sueltas (para que su
+   historial no se pierda al inscribirla). Es el mismo criterio de búsqueda
+   que usa guardarNuevaSub() al guardar, mostrado ANTES de apretar el botón. */
+function nsRevisarHistorial() {
+  const box = document.getElementById('nsHistPreview');
+  if (!box) return;
+  const email  = document.getElementById('nsEmail').value.trim();
+  const tel    = document.getElementById('nsTel').value.trim();
+  const nombre = document.getElementById('nsNombre').value.trim();
+
+  if (!email && normTel(tel).length < 8) { box.style.display = 'none'; box.innerHTML = ''; return; }
+
+  const idx = findSubIndex(getSuscriptoras(), email, tel, nombre);
+  if (idx >= 0) {
+    const ex   = getSuscriptoras()[idx];
+    const plan = PLANES_SUB[ex.plan];
+    box.className = 'nsm-hist-preview nsm-hist-existe';
+    box.innerHTML = `⚠ Ya existe <strong>${ex.nombre}</strong> con estos datos` +
+      (plan ? ` · plan actual: ${plan.nombre}` : '') +
+      (ex.fechaVence ? ` · vence ${ex.fechaVence}` : '') +
+      `.<br>Guardar le va a SUMAR este plan a su ficha, no crear una nueva.`;
+    box.style.display = 'block';
+    return;
+  }
+
+  const previas = historialPagoUnicoDe(email, tel);
+  if (previas.n > 0) {
+    box.className = 'nsm-hist-preview nsm-hist-previas';
+    box.innerHTML = `📋 Ya la encontramos: <strong>${previas.n}</strong> clase${previas.n===1?'':'s'} pagada${previas.n===1?'':'s'} por su cuenta` +
+      (previas.ultima ? `, la última el ${fmtDiaLargo(previas.ultima)}` : '') +
+      `. Con este plan queda registrada como suscriptora, y ese historial se sigue viendo en su ficha.`;
+    box.style.display = 'block';
+    return;
+  }
+  box.style.display = 'none'; box.innerHTML = '';
 }
 
 async function guardarNuevaSub() {
