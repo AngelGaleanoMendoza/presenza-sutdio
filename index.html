@@ -770,7 +770,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .equipo-header { text-align:center; margin-bottom:60px; }
 .equipo-header .section-tag { justify-content:center; }
 .equipo-header .section-body { max-width:480px; margin:0 auto; }
-.equipo-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:24px; }
+.equipo-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:20px; }
 .equipo-card {
   background:var(--white); border-radius:22px; overflow:hidden;
   box-shadow:var(--sh); transition:all .4s; text-align:center;
@@ -3145,6 +3145,26 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
         </div>
       </div>
 
+      <div class="equipo-card r d4 has-bio" onclick="this.classList.toggle('bio-open')">
+        <div class="equipo-avatar">
+          <img src="assets/meetyourcoachs/Coach Gladys.jpg" alt="Coach Gladys">
+          <div class="eq-bio-hint">+</div>
+        </div>
+        <div class="equipo-info">
+          <h3>Coach Gladys</h3>
+          <span class="eq-rol">Coach de Barre</span>
+          <div class="eq-tags">
+            <span class="eq-tag">Barre</span>
+          </div>
+        </div>
+        <div class="eq-bio">
+          <p>Soy mamá, soy amor, soy fuerza, soy movimiento y soy tu nueva coach de barre ✨ Desde pequeña, el movimiento ha sido parte de mi vida. Bailé ballet, jazz y folklore durante años, y aprender nuevas coreografías era una de mis grandes pasiones.</p>
+          <p>Con el tiempo descubrí el barre, el pilates y el yoga, y encontré en ellos una nueva forma de conectar conmigo misma. Mi lugar favorito es el mat: es donde encuentro equilibrio, me desconecto del ruido y simplemente fluyo con el movimiento.</p>
+          <p>Para mí, esa hora de clase juntas es un espacio para moverte, conectar con vos misma y salir sintiéndote un poquito más fuerte, por dentro y por fuera. 🤎</p>
+          <p class="eq-bio-flag">¡Nos vemos en el mat!</p>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
@@ -4421,7 +4441,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-07.5';
+const BUILD = '2026-08-11.1';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
