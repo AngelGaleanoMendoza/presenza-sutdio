@@ -4415,7 +4415,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-07.3';
+const BUILD = '2026-08-07.4';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -6832,11 +6832,11 @@ function buildSAdminHoy() {
         </div>
         <span class="sa-alumna-tel">${c.tel||'—'}</span>
         ${esSub
-          ? `<span class="sa-cupos-left ${cuposCls}">${cupos >= 1000 ? '∞' : cupos} clases</span>
-             <button class="btn-sa-asist" ${asistio?'disabled':''} onclick="registrarAsistencia('${c.email}','${clase}','${dateStr}','${hora}')">
-               ${asistio ? '✓ Asistió' : 'Marcar ✓'}
-             </button>`
-          : `<span></span><span></span>`}
+          ? `<span class="sa-cupos-left ${cuposCls}">${cupos >= 1000 ? '∞' : cupos} clases</span>`
+          : `<span></span>`}
+        <button class="btn-sa-asist" ${asistio?'disabled':''} onclick="registrarAsistencia('${c.email}','${clase}','${dateStr}','${hora}','${(c.nombre||'').replace(/'/g,"\\'")}')">
+          ${asistio ? '✓ Asistió' : 'Marcar ✓'}
+        </button>
         ${esCoach ? '<span></span><span></span>' : `
         ${c.pagoOk === false
           ? '<span></span>'
@@ -6925,26 +6925,37 @@ function buildSAdminHoy() {
     ${clasesHtml}`;
 }
 
-/* Marca que la alumna SÍ llegó a la clase.
+/* Marca que la alumna SÍ llegó a la clase. Funciona para cualquiera, tenga o
+   no paquete — antes solo se podía marcar a suscriptoras, y quien pagó una
+   clase suelta (efectivo/transferencia) se quedaba sin forma de registrar
+   que sí vino.
    Ya NO descuenta: la clase se cobró al momento de reservar (cobrarClase).
-   Si descontara aquí también, se le estarían quitando dos clases por una. */
-async function registrarAsistencia(email, clase, dateStr, hora) {
+   Si descontara aquí también, se le estarían quitando dos clases por una.
+   El historial (para el resumen "X asistencias" de su ficha) solo aplica
+   si es suscriptora; para pago único la marca queda solo en `asistencias`,
+   que es de donde lee yaAsistio(). */
+async function registrarAsistencia(email, clase, dateStr, hora, nombre) {
   const subs = getSuscriptoras();
   const idx  = subs.findIndex(s => s.email.toLowerCase() === email.toLowerCase());
-  if (idx < 0) return;
-  const sub = subs[idx];
+  const sub  = idx >= 0 ? subs[idx] : null;
 
-  if (!await marcarAsistenciaDB(clase, dateStr, hora, email, sub.id)) {
-    alert(`${sub.nombre} ya tenía su asistencia registrada en esta clase.`);
-    buildSAdminHoy();
+  if (!await marcarAsistenciaDB(clase, dateStr, hora, email, sub && sub.id)) {
+    alert(`${(sub && sub.nombre) || nombre || 'Esta alumna'} ya tenía su asistencia registrada en esta clase.`);
+    sadminTab(sadminTabActual);
     return;
   }
 
-  sub.historial = sub.historial || [];
-  sub.historial.push({ fecha: dateStr, clase, hora, ts: Date.now() });
-  subs[idx] = sub;
-  await saveSuscriptoras(subs);
-  buildSAdminHoy(); /* Refrescar */
+  if (sub) {
+    sub.historial = sub.historial || [];
+    sub.historial.push({ fecha: dateStr, clase, hora, ts: Date.now() });
+    subs[idx] = sub;
+    await saveSuscriptoras(subs);
+  }
+  /* Refresca la pestaña donde de verdad está parada: esto también se llama
+     desde el calendario semanal de la coach (buildCoachSemana), no solo
+     desde Hoy — con buildSAdminHoy() fijo, marcar ahí la sacaba de su propio
+     calendario sin avisar. */
+  sadminTab(sadminTabActual);
 }
 
 /* Elimina una reservación (ej. no pagó / no se concretó el contacto) */
@@ -7645,9 +7656,9 @@ function buildCoachSemana() {
           </div>
           <span class="sa-alumna-tel">${esSub ? '💎' : ''}</span>
           <span></span>
-          ${esSub && esHoy
+          ${esHoy
             ? `<button class="btn-sa-asist" ${marcado?'disabled':''}
-                 onclick="registrarAsistencia('${c.email}','${clase}','${ds}','${hora}')">
+                 onclick="registrarAsistencia('${c.email}','${clase}','${ds}','${hora}','${(c.nombre||'').replace(/'/g,"\\'")}')">
                  ${marcado ? '✓ Asistió' : 'Marcar ✓'}
                </button>`
             : marcado ? '<span class="cs-marcada">✓ Asistió</span>' : '<span></span>'}
