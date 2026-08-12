@@ -4466,7 +4466,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-12.1';
+const BUILD = '2026-08-12.2';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -4956,7 +4956,7 @@ async function sincronizarSubs() {
   SUBS = filas.map(rowToSub);
   SUBS_IDS  = SUBS.map(s => s.id).filter(Boolean);   /* lo que hay en la nube */
   SUBS_SNAP = snapSubs(SUBS);
-  localStorage.setItem('presenza_subs', JSON.stringify(SUBS));
+  /* Sin copia en el navegador a propósito: ver la nota del arranque */
   return true;
 }
 
@@ -5021,8 +5021,9 @@ async function saveSuscriptoras(arr) {
   const cambiadas = arr.filter(s => s.id && JSON.stringify(subToRow(s)) !== SUBS_SNAP[s.id]);
 
   SUBS = arr;
-  localStorage.setItem('presenza_subs', JSON.stringify(arr)); /* respaldo */
-  if (!SB_ON) return true;
+  /* El respaldo en el navegador queda SOLO para el modo sin nube: con
+     Supabase encendido no se guardan datos de alumnas en el dispositivo. */
+  if (!SB_ON) { localStorage.setItem('presenza_subs', JSON.stringify(arr)); return true; }
   try {
     if (cambiadas.length) {
       await sbFetch('suscriptoras?on_conflict=id', {
@@ -6100,7 +6101,9 @@ async function proceedToConfirm() {
   const esIlimit   = pagoMetodo === 'sub' && ['ilimit1','ilimit3','ilimit6'].includes(planUsado);
   if (esIlimit) {
     const pd      = PLANES_SUB[planUsado];
-    const subReg  = getSuscriptoraByEmail(email);
+    /* subActiva, no getSuscriptoraByEmail: la que reserva no tiene sesión y su
+       ficha vino de mi_suscripcion_activa (solo la suya), no de la tabla. */
+    const subReg  = subActiva;
     const fmtD    = s => { const dd = new Date(s+'T12:00:00'); return `${dd.getDate()} ${MESES_ES[dd.getMonth()]} ${dd.getFullYear()}`; };
     const inicioS = subReg?.fechaInicio || hoyISO();
     const finS    = subReg?.fechaVence  || '';
@@ -9327,7 +9330,13 @@ document.addEventListener('DOMContentLoaded', () => {
   /* Primero el respaldo local para pintar algo al instante, y en seguida los
      datos reales de la nube (los de todos los dispositivos) */
   SLOTS = cargarRespaldoLocal();
-  try { SUBS = JSON.parse(localStorage.getItem('presenza_subs')||'[]'); } catch(e) { SUBS = []; }
+  /* Las suscriptoras NO se guardan en el navegador: son datos de alumnas y
+     dejarlos ahí los mantenía en el celular del estudio hasta mucho después
+     de cerrar el panel. Viven en memoria solo mientras el panel está abierto,
+     que es quien las pide. Acá se borra la copia que pudieran haber dejado
+     las versiones anteriores. */
+  if (SB_ON) { SUBS = []; localStorage.removeItem('presenza_subs'); }
+  else { try { SUBS = JSON.parse(localStorage.getItem('presenza_subs')||'[]'); } catch(e) { SUBS = []; } }
   SUBS_IDS  = SUBS.map(s => s.id).filter(Boolean);   /* sincronizarSubs lo corrige enseguida */
   SUBS_SNAP = snapSubs(SUBS);
   renderSched();
@@ -9342,14 +9351,19 @@ document.addEventListener('DOMContentLoaded', () => {
       sincronizarCanceladas().catch(e => console.warn('Clases canceladas:', e.message))
     ]).then(() => { renderSched(); renderEventosPublic(); });
 
-    /* Carga inicial: nadie inició sesión todavía, así que solo cupos. */
+    /* Carga inicial: nadie inició sesión todavía, así que SOLO cupos.
+       cupos_del_dia devuelve números y mats ocupados, nunca nombres.
+
+       Acá NO se llama a sincronizarSubs() ni a sincronizarAsistencias(): esas
+       bajan las tablas completas y solo las necesita el panel, que las pide al
+       abrirse. Llamarlas desde la página pública tenía dos efectos malos: a un
+       visitante le tiraba dos "permission denied" en la consola, y en el
+       navegador del estudio —donde la sesión sigue guardada— bajaba la lista
+       entera de alumnas dentro de la página pública, a la vista de cualquiera
+       que abriera "Inspeccionar → Red". */
     sincronizarCuposPublico()
       .then(() => { renderCards(); })
       .catch(err => console.warn('No se pudieron sincronizar las reservas:', err.message));
-    sincronizarSubs()
-      .catch(err => console.warn('No se pudieron sincronizar las suscriptoras:', err.message));
-    sincronizarAsistencias()
-      .catch(err => console.warn('No se pudieron sincronizar las asistencias:', err.message));
   }
   /* "Reservar" del nav → scroll a sección + triple tap = Super Admin */
   let rsvTaps = 0, rsvTimer = null;
