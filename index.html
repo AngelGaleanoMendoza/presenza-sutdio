@@ -2196,6 +2196,43 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   margin:-4px 0 10px; padding-left:2px;
 }
 
+/* ── Aviso de las clases de la mañana sin el mínimo ── */
+.sa-madru-blk {
+  background:linear-gradient(135deg,rgba(93,138,196,.12),rgba(93,138,196,.04));
+  border:1.5px solid rgba(93,138,196,.4); border-radius:14px;
+  padding:14px 16px; margin-bottom:18px;
+}
+/* Si alguna ya cerró sin llegar al mínimo, el bloque entero pide atención */
+.sa-madru-blk.tiene-cerradas {
+  background:linear-gradient(135deg,rgba(220,53,69,.1),rgba(220,53,69,.03));
+  border-color:rgba(220,53,69,.4);
+}
+.sa-madru-blk .sa-pend-title { color:#2e4b73; }
+.sa-madru-blk.tiene-cerradas .sa-pend-title { color:#842029; }
+.sa-madru-card {
+  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  background:white; border:1px solid rgba(93,138,196,.25); border-radius:10px;
+  padding:10px 14px; margin-bottom:8px;
+}
+.sa-madru-card:last-child { margin-bottom:0; }
+.sa-madru-card.mc-abierta { border-left:4px solid #5d8ac4; }
+.sa-madru-card.mc-cerrada { border-left:4px solid #c0392b; }
+.sa-madru-info { display:flex; flex-direction:column; gap:2px; flex:1 1 200px; }
+.sa-madru-info strong { font-size:.85rem; color:var(--text); }
+.sa-madru-info > span { font-size:.72rem; color:var(--gray); }
+.sa-madru-estado { font-size:.68rem!important; font-weight:700; }
+.sa-madru-estado.abierta { color:#2e4b73!important; }
+.sa-madru-estado.cerrada { color:#c0392b!important; }
+.sa-madru-cuenta { display:flex; flex-direction:column; align-items:center; line-height:1; }
+.sa-madru-num { font-size:1.3rem; font-weight:800; color:#c0392b; }
+.sa-madru-de  { font-size:.62rem; color:var(--gray); letter-spacing:.3px; }
+
+/* Aviso del cierre en la tarjeta pública de la clase */
+.sc-cierre {
+  font-size:.67rem; color:#2e4b73; background:rgba(93,138,196,.1);
+  border-radius:6px; padding:4px 8px; margin-bottom:8px; line-height:1.35;
+}
+
 /* ── Perfil COACH: solo vista de Calendario y Horarios ── */
 .coach-mode .sadmin-tab[data-tab="hoy"],
 .coach-mode .sadmin-tab[data-tab="reportes"],
@@ -4404,6 +4441,46 @@ function matsDe(clase, dateStr, hora) {
   for (let n = 1; out.length < cupos; n++) if (n !== coach) out.push(n);
   return out;
 }
+
+/* ── Clases de la mañana temprano ────────────────────────────────────
+   Las que empiezan antes de las 9:00 se cierran a las 22:00 del día
+   ANTERIOR, y necesitan al menos 2 inscritas para darse. La coach maneja
+   al estudio de madrugada: tiene que saber la noche antes si la clase va.
+
+   Ejemplo: Sculpt de mañana 7:30 → se puede reservar hasta las 10:00 pm
+   de hoy. A esa hora el panel avisa si no llegó a 2.
+
+   Las horas son strings 'HH:MM' con cero adelante, así que compararlas
+   como texto ordena igual que compararlas como hora. */
+const HORA_TEMPRANA = '09:00';   /* antes de esto = clase de madrugada */
+const CIERRE_HORA   = 22;        /* 10:00 pm de la víspera */
+const MIN_TEMPRANA  = 2;         /* sin estas inscritas, la clase no se da */
+
+function esClaseTemprana(hora) { return String(hora || '') < HORA_TEMPRANA; }
+
+/* El momento exacto en que cierra la inscripción, o null si la clase no
+   tiene cierre anticipado (las de mediodía y tarde). */
+function cierreInscripcion(dateStr, hora) {
+  if (!esClaseTemprana(hora)) return null;
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() - 1);
+  d.setHours(CIERRE_HORA, 0, 0, 0);
+  return d;
+}
+function inscripcionCerrada(dateStr, hora) {
+  const c = cierreInscripcion(dateStr, hora);
+  return !!c && new Date() > c;
+}
+/* "hoy a las 10:00 pm" / "el Lun 18 a las 10:00 pm", para decírselo a la alumna */
+function textoCierre(dateStr, hora) {
+  const c = cierreInscripcion(dateStr, hora);
+  if (!c) return '';
+  const cuando = fmtISO(c) === hoyISO()
+    ? 'hoy'
+    : `el ${DIAS_ES[c.getDay()]} ${c.getDate()} ${MESES_ES[c.getMonth()]}`;
+  return `${cuando} a las ${CIERRE_HORA}:00`;
+}
+
 /* Slots del horario semanal + clases especiales de esa fecha */
 function slotsDelDia(dateStr, dow) {
   return [ ...(HORARIO[dow] || []),
@@ -4488,7 +4565,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-12.3';
+const BUILD = '2026-08-12.4';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5490,6 +5567,10 @@ function renderCards() {
     const full    = libres <= 0;
     const fillPct = Math.min(100, Math.round((ocup / cupoTot) * 100));
     const horaNum = parseInt(hora.replace(':',''), 10);
+    /* Las de antes de las 9:00 cierran a las 22:00 de la víspera */
+    const cerrada = inscripcionCerrada(schedSelDay, hora);
+    const avisoT  = (!cerrada && esClaseTemprana(hora))
+      ? `<div class="sc-cierre">🌅 Inscripción hasta ${textoCierre(schedSelDay, hora)}</div>` : '';
 
     if (!descansoInserted && horaNum >= 1200) {
       descansoInserted = true;
@@ -5500,7 +5581,7 @@ function renderCards() {
     }
 
     const card = document.createElement('div');
-    card.className = `sched-card c-${clase}` + (full ? ' sc-full' : '');
+    card.className = `sched-card c-${clase}` + (full || cerrada ? ' sc-full' : '');
 
     card.innerHTML = `
       <div class="sc-band"></div>
@@ -5520,9 +5601,10 @@ function renderCards() {
             <div class="sc-progress-fill" style="width:${fillPct}%"></div>
           </div>
         </div>
-        <button class="sc-btn${full?' sc-lleno':''}"
-          onclick="${full?'':'openBooking(\''+clase+'\',\''+schedSelDay+'\',\''+hora+'\',\''+instructor+'\')'}"
-        >${full ? 'Cupos llenos' : 'Reservar cupo →'}</button>
+        ${avisoT}
+        <button class="sc-btn${full||cerrada?' sc-lleno':''}"
+          onclick="${full||cerrada?'':'openBooking(\''+clase+'\',\''+schedSelDay+'\',\''+hora+'\',\''+instructor+'\')'}"
+        >${cerrada ? 'Inscripción cerrada' : full ? 'Cupos llenos' : 'Reservar cupo →'}</button>
       </div>`;
     grid.appendChild(card);
   });
@@ -5534,6 +5616,15 @@ let pagoMetodo      = null;
 let selectedSubPlan = null;
 
 function openBooking(clase, dateStr, hora, instructor) {
+  /* Candado por si la página quedó abierta desde antes de las 22:00 y el
+     cierre pasó mientras tanto: la tarjeta se ve reservable pero ya no lo es. */
+  if (inscripcionCerrada(dateStr, hora)) {
+    alert(`Las clases de antes de las ${HORA_TEMPRANA} se reservan hasta las ` +
+          `${CIERRE_HORA}:00 del día anterior, así tu coach sabe con quién cuenta.\n\n` +
+          `Escríbenos por WhatsApp y vemos si todavía se puede ✧`);
+    renderCards();
+    return;
+  }
   booking = { clase, dateStr, hora, instructor };
   const info = INFO[clase];
   const esp  = getEspecial(clase, dateStr, hora);
@@ -6175,6 +6266,16 @@ async function proceedToConfirm() {
      atrapa además las reservas sin lugar (las que agenda el admin). */
   if (clientesAhora.length >= cuposDe(clase, dateStr, hora)) {
     alert('Los cupos de esta clase se acaban de llenar. Escríbenos por WhatsApp y te apartamos lugar en la siguiente ✧');
+    closeModal();
+    renderCards();
+    return;
+  }
+
+  /* El cierre de las clases de madrugada pudo caer mientras llenaba el
+     formulario. Se revisa acá también: es el último punto antes de guardar. */
+  if (inscripcionCerrada(dateStr, hora)) {
+    alert(`La inscripción de esta clase cerró a las ${CIERRE_HORA}:00 del día anterior. ` +
+          `Escríbenos por WhatsApp y vemos si todavía se puede ✧`);
     closeModal();
     renderCards();
     return;
@@ -6884,7 +6985,9 @@ function buildSAdminHoy() {
   const esCoach = !!coachActual;
 
   if (slots.length === 0) {
+    /* Aunque hoy no haya clases, las de mañana temprano sí necesitan decisión */
     body.innerHTML = `<div class="sa-fecha">${diaStr}</div>
+      ${buildMadrugadaHtml()}
       ${esCoach ? '' : buildPendientesHtml() + buildPendPagoHtml()}
       <div class="sa-empty">
         <span class="sa-empty-ico">🌙</span>
@@ -6978,10 +7081,12 @@ function buildSAdminHoy() {
   body.innerHTML = esCoach
     ? `<div class="sa-fecha">${diaStr}</div>
        <div class="sa-coach-aviso">🩰 Tus clases de hoy · marcá la asistencia de cada alumna</div>
+       ${buildMadrugadaHtml()}
        ${clasesHtml}`
     : `
     ${avisoSqlPendienteHtml()}
     <div class="sa-fecha">${diaStr}</div>
+    ${buildMadrugadaHtml()}
     ${buildPendientesHtml()}
     ${buildPendPagoHtml()}
     <div class="sa-kpi-grid">
@@ -7226,6 +7331,69 @@ function esIlimitada(sub) {
 
 /* ── Solicitudes pendientes de confirmación de pago ──
    Bloque compartido: se muestra en la pestaña Hoy y en Suscriptoras */
+/* ── Aviso: clases de la mañana que no llegan al mínimo ──────────────
+   Junta las clases de antes de las 9:00 de hoy y de mañana que tienen
+   menos de MIN_TEMPRANA inscritas, para decidir de noche —antes de que
+   cierre a las 22:00— si se dan o se cancelan.
+
+   Se muestran dos días porque son dos decisiones distintas: las de mañana
+   todavía se pueden llenar, las de hoy ya cerraron y solo queda avisar. */
+function buildMadrugadaHtml() {
+  const esCoach = !!coachActual;
+  const hoy = new Date();
+  const filas = [];
+
+  for (let i = 0; i <= 1; i++) {
+    const d = new Date(hoy); d.setDate(d.getDate() + i);
+    const ds = fmtISO(d);
+    /* slotsDelDia ya descarta las canceladas; la coach solo ve las suyas */
+    for (const s of slotsDeCoach(slotsDelDia(ds, d.getDay()))) {
+      if (!esClaseTemprana(s.hora)) continue;
+      /* Solo las que todavía no empiezan: a las 9 de la noche no sirve de nada
+         avisar que la de las 6:30 de esta mañana no llegó a 2. */
+      if (new Date(`${ds}T${s.hora}:00`) <= hoy) continue;
+      const n = getClientes(s.clase, ds, s.hora).length;
+      if (n >= MIN_TEMPRANA) continue;
+      filas.push({ ...s, ds, d, n, cerrada: inscripcionCerrada(ds, s.hora) });
+    }
+  }
+  if (!filas.length) return '';
+
+  const hayCerradas = filas.some(f => f.cerrada);
+  const tarjetas = filas.map(f => {
+    const info = INFO[f.clase] || { nombre:f.clase, emoji:'•' };
+    const dia  = `${DIAS_ES[f.d.getDay()]} ${f.d.getDate()} ${MESES_ES[f.d.getMonth()]}`;
+    const estado = f.cerrada
+      ? `<span class="sa-madru-estado cerrada">Cerró · no llegó al mínimo</span>`
+      : `<span class="sa-madru-estado abierta">Cierra ${textoCierre(f.ds, f.hora)} · falta${MIN_TEMPRANA - f.n === 1 ? '' : 'n'} ${MIN_TEMPRANA - f.n}</span>`;
+    return `<div class="sa-madru-card ${f.cerrada ? 'mc-cerrada' : 'mc-abierta'}">
+      <div class="sa-madru-info">
+        <strong>${info.emoji} ${info.nombre} · ${f.hora} hrs</strong>
+        <span>${dia}${f.instructor ? ' · ' + f.instructor : ''}</span>
+        ${estado}
+      </div>
+      <div class="sa-madru-cuenta">
+        <span class="sa-madru-num">${f.n}</span>
+        <span class="sa-madru-de">de ${MIN_TEMPRANA}</span>
+      </div>
+      ${esCoach ? '' : `<button class="btn-pend-no"
+        onclick="cancelarPorMinimo('${f.clase}','${f.ds}','${f.hora}')">🚫 Cancelar clase</button>`}
+    </div>`;
+  }).join('');
+
+  return `<div class="sa-madru-blk${hayCerradas ? ' tiene-cerradas' : ''}">
+    <div class="sa-pend-title">🌅 Clases de la mañana sin el mínimo (${filas.length})</div>
+    <div class="sa-pend-hint">
+      Las clases de antes de las ${HORA_TEMPRANA} necesitan ${MIN_TEMPRANA} alumnas y se
+      reservan hasta las ${CIERRE_HORA}:00 del día anterior.
+      ${esCoach
+        ? 'Si al cerrar sigue sin llegar al mínimo, el estudio decide si se da.'
+        : 'Las que todavía no cierran pueden llenarse. Si cancelás, se libera la reserva de quien esté inscrita y se le devuelve la clase a su paquete — pero avisale vos.'}
+    </div>
+    ${tarjetas}
+  </div>`;
+}
+
 function buildPendientesHtml() {
   const pendientes  = getSuscriptoras().filter(s => s.pendiente);
   const pendPrimera = pendientes.filter(s => esPrimeraVez(s.pendiente.plan));
@@ -8844,6 +9012,17 @@ async function cancelarClase() {
   if (!fecha || !val) { alert('Elige la fecha y la clase.'); return; }
 
   const [clase, hora] = val.split('|');
+  if (await cancelarSesion(clase, fecha, hora, motivo)) {
+    document.getElementById('canMotivo').value = '';
+    sadminTab('horarios');
+  }
+}
+
+/* El trabajo de verdad de cancelar: pedir confirmación, marcar la clase como
+   cancelada, liberar las reservas y devolver las clases ya descontadas.
+   Lo llaman el formulario de Horarios y el aviso de las clases de la mañana.
+   Devuelve true solo si la cancelación llegó a hacerse. */
+async function cancelarSesion(clase, fecha, hora, motivo) {
   const info     = INFO[clase];
   const clientes = getClientes(clase, fecha, hora);
   const d        = new Date(fecha+'T12:00:00');
@@ -8858,12 +9037,12 @@ async function cancelarClase() {
       `Hay ${clientes.length} alumna(s) inscrita(s):\n${quienes}\n\n` +
       `Al cancelar se les libera la reserva y, a quienes se les había descontado, ` +
       `se les devuelve la clase a su paquete.\n\n` +
-      `TENÉS QUE AVISARLES VOS: el sistema no manda mensajes.\n\n¿Cancelar la clase?`)) return;
+      `TENÉS QUE AVISARLES VOS: el sistema no manda mensajes.\n\n¿Cancelar la clase?`)) return false;
   } else {
-    if (!confirm(`¿Cancelar ${info.nombre} del ${cuando}?`)) return;
+    if (!confirm(`¿Cancelar ${info.nombre} del ${cuando}?`)) return false;
   }
 
-  if (!await cancelarClaseDB(clase, fecha, hora, motivo)) return;
+  if (!await cancelarClaseDB(clase, fecha, hora, motivo)) return false;
 
   /* Se eliminan las reservas devolviendo la clase a quien la había pagado
      con su paquete. eliminarReserva ya se encarga de la devolución. */
@@ -8880,12 +9059,19 @@ async function cancelarClase() {
   }
   renderCards();   /* los cupos de las tarjetas públicas cambian */
 
-  document.getElementById('canMotivo').value = '';
-  sadminTab('horarios');
   alert(`🚫 ${info.nombre} · ${cuando} quedó cancelada.` +
         (clientes.length ? `\n\nSe liberaron ${clientes.length} reserva(s)` +
                            (devueltas ? ` y se devolvieron ${devueltas} clase(s) a sus paquetes.` : '.') +
                            `\n\nRecordá avisarles.` : ''));
+  return true;
+}
+
+/* Cancelar desde el aviso de la mañana: mismo trabajo, pero vuelve a Hoy
+   (que es de donde se apretó) en vez de mandar a Horarios. */
+async function cancelarPorMinimo(clase, fecha, hora) {
+  if (await cancelarSesion(clase, fecha, hora, `Sin el mínimo de ${MIN_TEMPRANA} alumnas`)) {
+    sadminTab(sadminTabActual);
+  }
 }
 
 async function reactivarClase(id) {
