@@ -4271,11 +4271,33 @@ function rowToEsp(f) {
            titulo:f.titulo || '' };
 }
 
+/* La lista COMPLETA de clases libres. Solo para el panel: exige sesión.
+   No llamar desde la página pública — ver buscarEspecialPorToken(). */
 async function sincronizarEspeciales() {
   if (!SB_ON) return false;
   const filas = await sbFetch('clases_especiales?select=*&activa=is.true&order=fecha,hora');
   CLASES_ESPECIALES = filas.map(rowToEsp);
   return true;
+}
+
+/* UNA clase libre a partir del token de su link, sin bajar la lista.
+   El id de clases_especiales ES la llave del link (#token), así que bajar la
+   tabla entera en la página pública equivalía a publicar los tokens de todas
+   las clases activas: se leían desde "Inspeccionar → Red". Acá se pregunta
+   por un token concreto y la base responde solo esa fila.
+
+   Si la función todavía no está en la base (falta correr el SQL), se cae al
+   modo anterior: vale más que un link ya repartido siga abriendo. */
+async function buscarEspecialPorToken(id) {
+  try {
+    const filas = await sbFetch('rpc/clase_especial_por_token',
+      { method:'POST', body: JSON.stringify({ p_id: id }) });
+    return (filas && filas[0]) ? rowToEsp(filas[0]) : null;
+  } catch (e) {
+    if (e.status !== 404) throw e;   /* 404 = la función no existe todavía */
+    await sincronizarEspeciales();
+    return CLASES_ESPECIALES.find(x => x.id === id) || null;
+  }
 }
 
 /* ── Clases canceladas en una fecha puntual ──────────────────────────
@@ -4466,7 +4488,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-12.2';
+const BUILD = '2026-08-12.3';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5552,12 +5574,16 @@ async function abrirEspecialPorHash() {
   /* #admin y los anclajes normales (#clases, #reserva…) no son clases libres */
   if (!id || id.length < 8 || document.getElementById(id)) return;
 
-  /* La lista vive en la nube y se carga sola: si el link se abre antes de que
-     llegue, hay que esperarla o el token no se encontraría y no pasaría nada. */
-  if (SB_ON && !CLASES_ESPECIALES.length) {
-    try { await sincronizarEspeciales(); } catch(e) {}
+  /* Se le pregunta a la base por ESTE token. La página pública no tiene la
+     lista (a propósito), así que la clase se pide recién ahora, cuando alguien
+     llegó con su link en la mano. */
+  let esp = CLASES_ESPECIALES.find(e => e.id === id);
+  if (!esp && SB_ON) {
+    try { esp = await buscarEspecialPorToken(id); } catch(e) {}
+    /* Queda guardada: cuposDe() y precioDe() leen los cupos y el precio de
+       la clase libre desde CLASES_ESPECIALES, no desde INFO. */
+    if (esp && !CLASES_ESPECIALES.some(x => x.id === esp.id)) CLASES_ESPECIALES.push(esp);
   }
-  const esp = CLASES_ESPECIALES.find(e => e.id === id);
   if (!esp) {
     alert('Este link de clase ya no está disponible. Escríbenos por WhatsApp para conocer los próximos horarios ✧');
     history.replaceState(null, '', window.location.pathname + window.location.search);
@@ -9344,10 +9370,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (SB_ON) {
     /* El horario y los eventos mandan sobre lo que se pinta, así que se
        recargan primero y luego se vuelve a dibujar la agenda */
+    /* Sin sincronizarEspeciales(): la lista de clases libres no se baja acá.
+       Su `id` es el token del link secreto, y traerla entera lo dejaba a la
+       vista de cualquiera. La clase se pide de a una, por su token, cuando
+       alguien abre su link (abrirEspecialPorHash). */
     Promise.all([
       sincronizarHorarios().catch(e => console.warn('Horarios:', e.message)),
       sincronizarEventos().catch(e => console.warn('Eventos:', e.message)),
-      sincronizarEspeciales().catch(e => console.warn('Clases libres:', e.message)),
       sincronizarCanceladas().catch(e => console.warn('Clases canceladas:', e.message))
     ]).then(() => { renderSched(); renderEventosPublic(); });
 
