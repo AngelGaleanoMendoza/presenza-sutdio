@@ -1350,8 +1350,10 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   content:''; position:absolute; top:50%; width:24%; height:1px; background:rgba(107,23,40,.18);
 }
 .lugar-frente::before { left:6%; } .lugar-frente::after { right:6%; }
-/* Distribución real del salón: 12 mats en 2 hileras de 6. Arriba (frente)
-   1,2 · coach · 3,4,5 y abajo 6–11. Las filas se arman en renderLugares(). */
+/* Distribución real del salón, en 2 hileras. Arriba (frente) 1,2 · coach y
+   los que sigan hasta el 5; abajo 6–11. En barre y yoga son 12 mats
+   (1,2 · coach · 3,4,5) y en Sculpt 11, porque ahí el 3 es el de la coach
+   (1,2 · coach · 4,5). Las filas se arman en renderLugares(). */
 .lugar-grid { max-width:340px; width:100%; margin:0 auto 18px; }
 /* nowrap + flex-shrink: en pantallas angostas los mats se achican, nunca
    saltan de línea, así siempre quedan exactamente 2 hileras. */
@@ -4222,16 +4224,24 @@ function contactoDirecto() {
 function fmtC(n) { return 'C$' + Number(n||0).toLocaleString('en-US'); }
 
 /* ── Definición de clases ──
-   Hay UN solo salón con 12 mats en 2 hileras de 6. Uno de esos 12 es siempre
-   el de la instructora, así que en TODAS las clases quedan 11 mats vendibles
-   (1–11) y la alumna elige el suyo. El mat del coach se dibuja en su posición
-   real dentro de la hilera de adelante, pero no es un cupo. */
+   El salón se arma distinto según la clase, pero la instructora SIEMPRE ocupa
+   el tercer espacio de la hilera de adelante y ese espacio nunca es un cupo:
+
+     Barre y Yoga · 12 mats. El de la coach es un mat extra sin número, así
+       que quedan 11 vendibles: 1, 2, [coach], 3, 4, 5 arriba y 6–11 abajo.
+
+     Presenza Sculpt · 11 mats. Acá el de la coach ES el número 3, así que el
+       3 no se puede reservar y quedan 10 vendibles: 1, 2, [coach], 4, 5
+       arriba y 6–11 abajo.
+
+   `matCoach` es justamente eso: el número que se lleva la instructora, o null
+   si su mat no lleva número. */
 const CUPOS_SALON = 11;
 const INFO = {
-  burn:    { nombre:'Barre Burn',      emoji:'🔥', tag:'Alta energía',  cupos:CUPOS_SALON, precio:440 },
-  essenza: { nombre:'Barre Essenza',   emoji:'🩰', tag:'Barre clásico', cupos:CUPOS_SALON, precio:440 },
-  pilates: { nombre:'Presenza Sculpt', emoji:'❤️‍🔥', tag:'Core & fuerza', cupos:CUPOS_SALON, precio:440 },
-  yoga:    { nombre:'Unwind Yoga',     emoji:'🧘', tag:'Restaurativo',  cupos:CUPOS_SALON, precio:440 },
+  burn:    { nombre:'Barre Burn',      emoji:'🔥', tag:'Alta energía',  cupos:CUPOS_SALON, precio:440, matCoach:null },
+  essenza: { nombre:'Barre Essenza',   emoji:'🩰', tag:'Barre clásico', cupos:CUPOS_SALON, precio:440, matCoach:null },
+  pilates: { nombre:'Presenza Sculpt', emoji:'❤️‍🔥', tag:'Core & fuerza', cupos:10,          precio:440, matCoach:3    },
+  yoga:    { nombre:'Unwind Yoga',     emoji:'🧘', tag:'Restaurativo',  cupos:CUPOS_SALON, precio:440, matCoach:null },
 };
 
 /* ── Clases especiales de un solo día (gratis / eventos puntuales) ──
@@ -4357,6 +4367,21 @@ function precioDe(clase, dateStr, hora) {
   const e = getEspecial(clase, dateStr, hora);
   return e ? e.precio : (INFO[clase]?.precio || 0);
 }
+
+/* El número de mat que se lleva la instructora, o null si el suyo no lleva
+   número. Hoy solo Presenza Sculpt lo usa (el mat 3 es de la coach). */
+function matCoachDe(clase) { return INFO[clase]?.matCoach || null; }
+
+/* Los números de mat que una alumna SÍ puede elegir, en orden y sin el de la
+   instructora. Es la lista que manda: la grilla se dibuja con esto y el mat
+   automático se busca acá, así que nadie termina sentada en el de la coach. */
+function matsDe(clase, dateStr, hora) {
+  const cupos = cuposDe(clase, dateStr, hora);
+  const coach = matCoachDe(clase);
+  const out = [];
+  for (let n = 1; out.length < cupos; n++) if (n !== coach) out.push(n);
+  return out;
+}
 /* Slots del horario semanal + clases especiales de esa fecha */
 function slotsDelDia(dateStr, dow) {
   return [ ...(HORARIO[dow] || []),
@@ -4441,7 +4466,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-11.1';
+const BUILD = '2026-08-12.1';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5558,8 +5583,8 @@ async function abrirEspecialPorHash() {
 }
 function bdClick(e) { if(e.target===document.getElementById('modalBackdrop')) closeModal(); }
 
-/* Flujo del modal. TODAS las clases pasan por "Lugar": es el mismo salón de
-   12 mats para Barre, Sculpt y Yoga, así que la alumna siempre elige el suyo.
+/* Flujo del modal. TODAS las clases pasan por "Lugar": Barre, Sculpt y Yoga
+   se dan en el mismo salón, así que la alumna siempre elige su mat.
    Además el mat elegido es lo que la base usa como candado: el índice único
    (slot_key, lugar) impide que dos alumnas tomen el mismo desde dos celulares. */
 let mFlow = [];
@@ -5623,7 +5648,7 @@ function submitR() {
 /* Render del grid de mats según los lugares ya reservados */
 function renderLugares() {
   const { clase, dateStr, hora } = booking;
-  const total    = cuposDe(clase, dateStr, hora);
+  const mats     = matsDe(clase, dateStr, hora);
   const clientes = getClientes(clase, dateStr, hora);
   const ocupados = new Set(clientes.filter(c => c.lugar).map(c => Number(c.lugar)));
 
@@ -5646,13 +5671,13 @@ function renderLugares() {
       <span class="ls-num">Coach</span>
     </div>`;
 
-  /* 12 mats en 2 hileras de 6: adelante 1, 2, mat de la coach, 3, 4, 5;
-     atrás del 6 en adelante. El de la coach ocupa espacio pero no es cupo. */
-  const range = (a,b) => Array.from({length: Math.max(0, b-a+1)}, (_,k) => a+k);
-  const arriba = range(1, Math.min(2, total)).map(seat).join('')
+  /* Dos hileras: adelante los mats hasta el 5, con el de la instructora en su
+     tercer espacio de siempre; atrás del 6 en adelante. En Sculpt ese tercer
+     espacio es el mat 3, así que sale de la lista y no se dibuja. */
+  const arriba = mats.filter(n => n < 3).map(seat).join('')
                + coachSeat
-               + range(3, Math.min(5, total)).map(seat).join('');
-  const abajo  = range(6, total).map(seat).join('');
+               + mats.filter(n => n >= 3 && n <= 5).map(seat).join('');
+  const abajo  = mats.filter(n => n > 5).map(seat).join('');
 
   document.getElementById('lugarGrid').innerHTML =
     `<div class="lugar-fila">${arriba}</div>` +
@@ -6213,7 +6238,7 @@ async function proceedToConfirm() {
       /* El mismo mat si está libre esa fecha; si no, el primero disponible */
       const ocupados = new Set(clientesDs.filter(c => c.lugar).map(c => Number(c.lugar)));
       let mat = (booking.lugar && !ocupados.has(Number(booking.lugar))) ? Number(booking.lugar) : null;
-      if (!mat) { for (let i = 1; i <= totalMats; i++) if (!ocupados.has(i)) { mat = i; break; } }
+      if (!mat) { for (const i of matsDe(clase, ds, hora)) if (!ocupados.has(i)) { mat = i; break; } }
       if (!mat) { repFallidas.push({ ds, motivo: 'sin cupo' }); continue; }
 
       if (usaSubActiva && !esIlimitada(subActiva)) {
@@ -7559,13 +7584,14 @@ function renderMatsAdmin(destinoId, clase, dateStr, hora) {
   if (!clase || !dateStr || !hora) { cont.innerHTML = ''; return; }
 
   const total   = cuposDe(clase, dateStr, hora);
+  const mats    = matsDe(clase, dateStr, hora);
   const tomados = new Set(getClientes(clase, dateStr, hora)
                             .filter(c => c.lugar).map(c => Number(c.lugar)));
   const libres  = total - tomados.size;
 
   let html = `<div class="agm-tit">Mat · <strong>${libres}</strong> de ${total} libres</div>
               <div class="agm-grid">`;
-  for (let i = 1; i <= total; i++) {
+  for (const i of mats) {
     const ocupado = tomados.has(i);
     html += `<button type="button" class="agm-mat${ocupado ? ' ocupado' : ''}" data-n="${i}"
       ${ocupado ? 'disabled title="Ya reservado"' : `onclick="selMatAdmin('${destinoId}',${i})"`}>${i}</button>`;
@@ -7628,7 +7654,7 @@ async function agendarSubAClase(email, clase, dateStr, hora, instructor, lugarPe
     }
     lugarLibre = Number(lugarPedido);
   } else {
-    for (let i = 1; i <= total; i++) if (!tomados.has(i)) { lugarLibre = i; break; }
+    for (const i of matsDe(clase, dateStr, hora)) if (!tomados.has(i)) { lugarLibre = i; break; }
   }
 
   const planN = PLANES_SUB[sub.plan]?.nombre || 'Membresía';
@@ -8691,7 +8717,7 @@ function buildEspecialesHtml() {
     </p>
     ${lista}
     <div class="hor-esp-form">
-      <select class="hor-sel" id="espClase">${opcClase}</select>
+      <select class="hor-sel" id="espClase" onchange="espTopeCupos()">${opcClase}</select>
       <input class="hor-inp" type="date" id="espFecha" min="${hoy}"/>
       <input class="hor-inp hor-time" type="time" id="espHora" value="10:30"/>
       <input class="hor-inp hor-instr" type="text" id="espInstr" placeholder="Instructora"/>
@@ -8701,6 +8727,17 @@ function buildEspecialesHtml() {
       <button class="btn-hor-add" onclick="espAdd()">+ Crear clase libre</button>
     </div>
   </div>`;
+}
+
+/* Al cambiar de clase, el máximo de cupos se ajusta solo: Sculpt admite 10
+   porque el mat 3 es el de la coach, las demás 11. */
+function espTopeCupos() {
+  const sel = document.getElementById('espClase');
+  const inp = document.getElementById('espCupos');
+  if (!sel || !inp) return;
+  const tope = INFO[sel.value]?.cupos || CUPOS_SALON;
+  inp.max = tope;
+  if (Number(inp.value) > tope) inp.value = tope;
 }
 
 function espLink(id) {
@@ -8852,7 +8889,11 @@ async function espAdd() {
 
   if (!fecha || !hora)            { alert('Pon la fecha y la hora de la clase.'); return; }
   if (fecha < hoyISO())           { alert('Esa fecha ya pasó.'); return; }
-  if (!(cupos >= 1 && cupos <= CUPOS_SALON)) { alert(`Los cupos van de 1 a ${CUPOS_SALON} (el salón tiene 12 mats y uno es de la instructora).`); return; }
+  /* El tope depende de la clase: en Sculpt el mat 3 es de la coach y quedan 10 */
+  const topeCupos = INFO[clase]?.cupos || CUPOS_SALON;
+  if (!(cupos >= 1 && cupos <= topeCupos)) {
+    alert(`En ${INFO[clase]?.nombre || 'esta clase'} los cupos van de 1 a ${topeCupos} (el mat de la instructora no se vende).`); return;
+  }
   if (!(precio >= 0))             { alert('El precio no puede ser negativo.'); return; }
 
   const esp = { id:nuevoTokenEsp(), clase, dateStr:fecha, hora, instructor:instr,
