@@ -45,6 +45,7 @@
   <div class="card espera" id="t-cupos"><h2><span class="icono">⏳</span> Cupos de la web pública (cupos_del_dia)</h2><p>Revisando…</p></div>
   <div class="card espera" id="t-reservas"><h2><span class="icono">⏳</span> Reservas cerradas al público</h2><p>Revisando…</p></div>
   <div class="card espera" id="t-subs"><h2><span class="icono">⏳</span> Suscriptoras cerradas al público</h2><p>Revisando…</p></div>
+  <div class="card espera" id="t-asist"><h2><span class="icono">⏳</span> Asistencias cerradas al público</h2><p>Revisando…</p></div>
 
   <div id="resumen"></div>
 
@@ -64,7 +65,7 @@
 const URL_SB = 'https://sdsjhmtugtfndsxilzge.supabase.co';
 const KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkc2pobXR1Z3RmbmRzeGlsemdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNjM0MjIsImV4cCI6MjEwMDczOTQyMn0.iJu7nQoEr-hFYkBGvlVrjdckvXtes0vTawTKrzVv1Yo';
 let fallas = 0, hechas = 0;
-const TOTAL = 4;
+const TOTAL = 5;
 
 function pinta(id, estado, titulo, detalle) {
   const el = document.getElementById(id);
@@ -132,8 +133,10 @@ async function api(ruta, opts = {}, token = KEY) {
     }
   } catch (e) { pinta('t-cupos', 'mal', 'No se pudo probar los cupos', e.message); cerrarPrueba(false); }
 
-  /* 3 y 4 · Las tablas con datos de alumnas deben estar CERRADAS al público */
-  for (const [id, tabla, nombre] of [['t-reservas', 'reservas', 'reservas'], ['t-subs', 'suscriptoras', 'suscriptoras']]) {
+  /* 3, 4 y 5 · Las tablas con datos de alumnas deben estar CERRADAS al público */
+  for (const [id, tabla, nombre] of [['t-reservas', 'reservas', 'reservas'],
+                                     ['t-subs', 'suscriptoras', 'suscriptoras'],
+                                     ['t-asist', 'asistencias', 'asistencias']]) {
     try {
       const r = await api(`/rest/v1/${tabla}?select=id&limit=1`);
       if (r.status === 200) {
