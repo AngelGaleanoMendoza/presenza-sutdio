@@ -1988,6 +1988,29 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 }
 .btn-sa-asist:hover { background:var(--wine-d); }
 .btn-sa-asist:disabled { background:#c0b0a8; cursor:default; }
+
+/* ── Pasar lista: llegó / no llegó ──────────────────────────────────
+   "No llegó" va en gris con borde, no en rojo de peligro: no es una acción
+   destructiva ni le quita nada a la alumna, solo deja constancia. */
+.sa-asist-btns { display:flex; gap:5px; align-items:center; }
+.btn-sa-noasist {
+  padding:5px 10px; border:1.5px solid rgba(107,23,40,.25); border-radius:50px;
+  background:transparent; color:var(--gray); font-size:.69rem; font-weight:600;
+  cursor:pointer; transition:all .2s; white-space:nowrap;
+}
+.btn-sa-noasist:hover { background:rgba(107,23,40,.06); color:var(--wine-d); }
+/* Estado ya marcado. Es un botón porque tocarlo deshace la marca. */
+.sa-asist-chip {
+  padding:5px 11px; border-radius:50px; border:1.5px solid transparent;
+  font-size:.69rem; font-weight:700; cursor:pointer; white-space:nowrap;
+  transition:all .2s;
+}
+.sa-asist-chip.chip-si { background:rgba(34,139,34,.12); color:#1a5c1a; }
+.sa-asist-chip.chip-no { background:rgba(120,110,105,.14); color:#5f5651; }
+.sa-asist-chip:hover { border-color:rgba(107,23,40,.35); }
+.cs-marcada.cs-nollego { color:#5f5651; }
+.sa-hist-row.hist-nollego { opacity:.65; }
+.sa-hist-row.hist-nollego span:first-child { color:#8a7f79; }
 .btn-sa-alumna-del {
   width:26px; height:26px; border:1.5px solid rgba(220,53,69,.3);
   background:transparent; color:#c0392b; border-radius:50%;
@@ -2018,6 +2041,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 
   /* Objetivos de toque más cómodos: esto se usa con el dedo, en clase */
   .btn-sa-asist      { padding:8px 14px; font-size:.72rem; }
+  .btn-sa-noasist    { padding:8px 12px; font-size:.72rem; }
+  .sa-asist-chip     { padding:8px 14px; font-size:.72rem; }
   .btn-sa-alumna-del { width:32px; height:32px; font-size:.8rem; }
 }
 
@@ -4565,7 +4590,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-12.4';
+const BUILD = '2026-08-12.5';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5064,40 +5089,83 @@ async function sincronizarSubs() {
    hacía: desde otro dispositivo el botón salía sin marcar y volver a tocarlo
    descontaba una segunda clase del paquete de la alumna. Ahora la marca es
    compartida, y la tabla tiene un índice único que rechaza la repetida. */
-let ASIST = new Set();   /* claves 'clase_fecha_hora_email' ya registradas */
+/* Mapa 'clase_fecha_hora_email' → true (llegó) | false (no llegó).
+   Que NO esté la clave es distinto de que valga false: sin clave nadie le
+   pasó lista todavía; con false, se le pasó y no llegó. */
+let ASIST = new Map();
+let COL_ASISTIO = true;   /* ¿la base ya tiene la columna asistio? */
 
 function asistKeyDe(clase, dateStr, hora, email) {
   return `${clase}_${dateStr}_${hora}_${(email||'').trim().toLowerCase()}`;
 }
+/* 'si' llegó · 'no' no llegó · null todavía sin pasar lista */
+function estadoAsistencia(clase, dateStr, hora, email) {
+  const v = ASIST.get(asistKeyDe(clase, dateStr, hora, email));
+  return v === undefined ? null : (v ? 'si' : 'no');
+}
 function yaAsistio(clase, dateStr, hora, email) {
-  return ASIST.has(asistKeyDe(clase, dateStr, hora, email));
+  return estadoAsistencia(clase, dateStr, hora, email) === 'si';
 }
 
 async function sincronizarAsistencias() {
   if (!SB_ON) return false;
-  const filas = await sbFetch('asistencias?select=clase,fecha,hora,email');
-  ASIST = new Set(filas.map(f => asistKeyDe(f.clase, f.fecha, f.hora, f.email)));
+  let filas;
+  try {
+    filas = await sbFetch('asistencias?select=clase,fecha,hora,email,asistio');
+    COL_ASISTIO = true;
+  } catch (e) {
+    /* Falta correr supabase-inasistencias.sql: se sigue trabajando como antes,
+       donde toda fila guardada era una asistencia. */
+    if (!esColumnaFaltante(e)) throw e;
+    COL_ASISTIO = false;
+    filas = await sbFetch('asistencias?select=clase,fecha,hora,email');
+  }
+  ASIST = new Map(filas.map(f =>
+    [asistKeyDe(f.clase, f.fecha, f.hora, f.email), f.asistio !== false]));
   return true;
 }
 
 /* Registra la asistencia. Devuelve false si ya estaba marcada (aquí o en otro
    dispositivo), para no descontar la clase dos veces. */
-async function marcarAsistenciaDB(clase, dateStr, hora, email, subId) {
+async function marcarAsistenciaDB(clase, dateStr, hora, email, subId, asistio = true) {
   const k = asistKeyDe(clase, dateStr, hora, email);
   if (ASIST.has(k)) return false;
   if (SB_ON) {
+    const fila = { clase, fecha: dateStr, hora,
+                   email: (email||'').trim().toLowerCase(), sub_id: subId || null };
+    /* Sin la columna no se manda el campo: mandarlo haría fallar el insert
+       entero y no se podría ni pasar lista normal. */
+    if (COL_ASISTIO) fila.asistio = asistio;
     try {
-      await sbFetch('asistencias', { method:'POST', body: JSON.stringify({
-        clase, fecha: dateStr, hora, email: (email||'').trim().toLowerCase(), sub_id: subId || null
-      })});
+      await sbFetch('asistencias', { method:'POST', body: JSON.stringify(fila) });
     } catch (e) {
-      /* 409 = otro dispositivo ya la marcó: no se descuenta de nuevo */
-      if (e.status === 409) { ASIST.add(k); return false; }
-      alert('No se pudo registrar la asistencia: ' + e.message);
+      /* 409 = otro dispositivo ya le pasó lista: no se pisa lo que ya quedó */
+      if (e.status === 409) { ASIST.set(k, true); return false; }
+      alert('No se pudo registrar: ' + e.message);
       return false;
     }
   }
-  ASIST.add(k);
+  ASIST.set(k, asistio);
+  return true;
+}
+
+/* Deshace la marca (se apretó el botón equivocado). Borra la fila y la
+   alumna vuelve a quedar sin pasar lista. No toca su saldo de clases,
+   igual que marcarla: el descuento ocurrió al reservar. */
+async function borrarAsistenciaDB(clase, dateStr, hora, email) {
+  const k = asistKeyDe(clase, dateStr, hora, email);
+  if (SB_ON) {
+    try {
+      await sbFetch(`asistencias?clase=eq.${encodeURIComponent(clase)}` +
+        `&fecha=eq.${dateStr}&hora=eq.${encodeURIComponent(hora)}` +
+        `&email=eq.${encodeURIComponent((email||'').trim().toLowerCase())}`,
+        { method:'DELETE' });
+    } catch (e) {
+      alert('No se pudo deshacer: ' + e.message);
+      return false;
+    }
+  }
+  ASIST.delete(k);
   return true;
 }
 
@@ -7030,7 +7098,7 @@ function buildSAdminHoy() {
     const filas = clientes.map(c => {
       const sub       = getSuscriptoraByEmail(c.email);
       const esSub     = !!(sub && sub.activa);
-      const asistio   = yaAsistio(clase, dateStr, hora, c.email);
+      const estadoA   = estadoAsistencia(clase, dateStr, hora, c.email);
       const cupos     = sub ? sub.clasesRestantes : null;
       const cuposCls  = cupos === null ? '' : cupos <= 2 ? 'sa-cupos-low' : cupos <= 0 ? 'sa-cupos-out' : 'sa-cupos-ok';
 
@@ -7044,9 +7112,7 @@ function buildSAdminHoy() {
         ${esSub
           ? `<span class="sa-cupos-left ${cuposCls}">${cupos >= 1000 ? '∞' : cupos} clases</span>`
           : `<span></span>`}
-        <button class="btn-sa-asist" ${asistio?'disabled':''} onclick="registrarAsistencia('${c.email}','${clase}','${dateStr}','${hora}','${(c.nombre||'').replace(/'/g,"\\'")}')">
-          ${asistio ? '✓ Asistió' : 'Marcar ✓'}
-        </button>
+        ${botonesAsistencia(estadoA, c, clase, dateStr, hora)}
         ${esCoach ? '<span></span><span></span>' : `
         ${c.pagoOk === false
           ? '<span></span>'
@@ -7146,20 +7212,34 @@ function buildSAdminHoy() {
    El historial (para el resumen "X asistencias" de su ficha) solo aplica
    si es suscriptora; para pago único la marca queda solo en `asistencias`,
    que es de donde lee yaAsistio(). */
-async function registrarAsistencia(email, clase, dateStr, hora, nombre) {
+async function registrarAsistencia(email, clase, dateStr, hora, nombre, asistio = true) {
   const subs = getSuscriptoras();
   const idx  = subs.findIndex(s => s.email.toLowerCase() === email.toLowerCase());
   const sub  = idx >= 0 ? subs[idx] : null;
+  const quien = (sub && sub.nombre) || nombre || 'Esta alumna';
 
-  if (!await marcarAsistenciaDB(clase, dateStr, hora, email, sub && sub.id)) {
-    alert(`${(sub && sub.nombre) || nombre || 'Esta alumna'} ya tenía su asistencia registrada en esta clase.`);
+  /* Marcar que NO llegó necesita la columna: sin ella la fila diría que sí
+     llegó, que es justo lo contrario. Pasar lista normal sigue funcionando. */
+  if (!asistio && !COL_ASISTIO) {
+    alert('Para marcar que no llegó falta un paso en Supabase.\n\n' +
+          'Abre Supabase → SQL Editor y corre el archivo supabase-inasistencias.sql. ' +
+          'Toma 10 segundos.\n\nMientras tanto sí podés marcar a las que sí llegaron.');
+    return;
+  }
+
+  if (!await marcarAsistenciaDB(clase, dateStr, hora, email, sub && sub.id, asistio)) {
+    alert(`A ${quien} ya le pasaron lista en esta clase.`);
     sadminTab(sadminTabActual);
     return;
   }
 
+  /* Al historial va solo lo que SÍ fue una clase tomada. La inasistencia se
+     guarda aparte, marcada, para que la ficha la muestre sin contarla como
+     asistencia. Ninguna de las dos toca el saldo: eso se descontó al reservar. */
   if (sub) {
     sub.historial = sub.historial || [];
-    sub.historial.push({ fecha: dateStr, clase, hora, ts: Date.now() });
+    sub.historial.push({ fecha: dateStr, clase, hora, ts: Date.now(),
+                         ...(asistio ? {} : { no: true }) });
     subs[idx] = sub;
     await saveSuscriptoras(subs);
   }
@@ -7167,6 +7247,30 @@ async function registrarAsistencia(email, clase, dateStr, hora, nombre) {
      desde el calendario semanal de la coach (buildCoachSemana), no solo
      desde Hoy — con buildSAdminHoy() fijo, marcar ahí la sacaba de su propio
      calendario sin avisar. */
+  sadminTab(sadminTabActual);
+}
+
+/* Deshacer una marca puesta por error. Quita la fila de asistencias y, si era
+   una suscriptora, la entrada correspondiente de su historial. */
+async function deshacerAsistencia(email, clase, dateStr, hora, nombre) {
+  const estado = estadoAsistencia(clase, dateStr, hora, email);
+  if (!estado) return;
+  const quien = nombre || 'esta alumna';
+  if (!confirm(`${quien} está marcada como que ${estado === 'si' ? 'SÍ llegó' : 'NO llegó'}.\n\n` +
+               `¿Quitar la marca y dejarla sin pasar lista?`)) return;
+
+  if (!await borrarAsistenciaDB(clase, dateStr, hora, email)) return;
+
+  const subs = getSuscriptoras();
+  const idx  = subs.findIndex(s => s.email.toLowerCase() === (email||'').toLowerCase());
+  if (idx >= 0) {
+    const sub = subs[idx];
+    const h   = (sub.historial || []);
+    /* La última entrada de esa misma clase: es la que acaba de deshacerse */
+    const pos = h.map(x => x.fecha === dateStr && x.clase === clase && x.hora === hora)
+                 .lastIndexOf(true);
+    if (pos >= 0) { h.splice(pos, 1); sub.historial = h; subs[idx] = sub; await saveSuscriptoras(subs); }
+  }
   sadminTab(sadminTabActual);
 }
 
@@ -7331,6 +7435,27 @@ function esIlimitada(sub) {
 
 /* ── Solicitudes pendientes de confirmación de pago ──
    Bloque compartido: se muestra en la pestaña Hoy y en Suscriptoras */
+/* Los dos botones de pasar lista, o el estado si ya se marcó.
+   Ninguna de las dos marcas toca el saldo de la alumna: la clase se descuenta
+   al RESERVAR, así que "no llegó" la deja con su plan y sus clases igual que
+   estaban — solo queda el registro de que no llegó. Tocar el estado lo deshace,
+   por si se apretó el botón equivocado. */
+function botonesAsistencia(estado, c, clase, dateStr, hora) {
+  const esc  = s => String(s || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const args = `'${esc(c.email)}','${clase}','${dateStr}','${hora}','${esc(c.nombre)}'`;
+
+  if (estado === 'si') return `<button class="sa-asist-chip chip-si"
+      title="Tocá para quitar la marca" onclick="deshacerAsistencia(${args})">✓ Asistió</button>`;
+  if (estado === 'no') return `<button class="sa-asist-chip chip-no"
+      title="Tocá para quitar la marca" onclick="deshacerAsistencia(${args})">✕ No llegó</button>`;
+
+  return `<span class="sa-asist-btns">
+    <button class="btn-sa-asist" onclick="registrarAsistencia(${args},true)">Asistió ✓</button>
+    <button class="btn-sa-noasist" title="Estaba inscrita y no llegó. No se le descuenta nada."
+      onclick="registrarAsistencia(${args},false)">No llegó</button>
+  </span>`;
+}
+
 /* ── Aviso: clases de la mañana que no llegan al mínimo ──────────────
    Junta las clases de antes de las 9:00 de hoy y de mañana que tienen
    menos de MIN_TEMPRANA inscritas, para decidir de noche —antes de que
@@ -7501,8 +7626,10 @@ function buildSAdminSubs() {
     const histRows = (sub.historial||[]).slice(-5).reverse().map(h => {
       const inf = INFO[h.clase] || { emoji:'📋', nombre: h.clase };
       const d   = new Date(h.fecha+'T12:00:00');
-      return `<div class="sa-hist-row">
-        <span>${inf.emoji} ${inf.nombre}</span>
+      /* h.no = estaba inscrita y no llegó. Se muestra para que quede el
+         registro, pero no cuenta como clase tomada. */
+      return `<div class="sa-hist-row${h.no ? ' hist-nollego' : ''}">
+        <span>${h.no ? '✕' : inf.emoji} ${inf.nombre}${h.no ? ' · no llegó' : ''}</span>
         <span>${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}</span>
         <span>${h.hora} hrs</span>
       </div>`;
@@ -7529,7 +7656,12 @@ function buildSAdminSubs() {
             <div class="sa-clases-track"><div class="sa-clases-fill" style="width:${pct}%"></div></div>
           </div>
           <div class="sa-vence">Vence: ${sub.fechaVence||'—'}</div>
-          ${ilim ? '' : `<div class="sa-desglose">📅 ${reservasConsumidas(sub.email)} apartadas en reservas · ✓ ${(sub.historial||[]).length} asistencias</div>`}
+          ${ilim ? '' : (() => {
+            const hist = sub.historial || [];
+            const nLleg = hist.filter(h => !h.no).length;   /* las inasistencias no cuentan */
+            const nNo   = hist.length - nLleg;
+            return `<div class="sa-desglose">📅 ${reservasConsumidas(sub.email)} apartadas en reservas · ✓ ${nLleg} asistencias${nNo ? ` · ✕ ${nNo} sin llegar` : ''}</div>`;
+          })()}
           ${(() => {
             /* Lo que pagó suelta ANTES o APARTE de tener este plan: así su
                relación con el estudio se ve completa, no solo desde que
@@ -7974,7 +8106,7 @@ function buildCoachSemana() {
       const filas = clientes.map(c => {
         const sub    = getSuscriptoraByEmail(c.email);
         const esSub  = !!(sub && sub.activa);
-        const marcado = yaAsistio(clase, ds, hora, c.email);
+        const estadoA = estadoAsistencia(clase, ds, hora, c.email);
         return `<div class="sa-alumna-row">
           <div class="sa-alumna-info">
             <div class="sa-alumna-nombre">${c.nombre} ${c.lugar ? `<span class="sa-lugar-badge">📍 ${c.lugar}</span>` : ''}</div>
@@ -7983,11 +8115,10 @@ function buildCoachSemana() {
           <span class="sa-alumna-tel">${esSub ? '💎' : ''}</span>
           <span></span>
           ${esHoy
-            ? `<button class="btn-sa-asist" ${marcado?'disabled':''}
-                 onclick="registrarAsistencia('${c.email}','${clase}','${ds}','${hora}','${(c.nombre||'').replace(/'/g,"\\'")}')">
-                 ${marcado ? '✓ Asistió' : 'Marcar ✓'}
-               </button>`
-            : marcado ? '<span class="cs-marcada">✓ Asistió</span>' : '<span></span>'}
+            ? botonesAsistencia(estadoA, c, clase, ds, hora)
+            : estadoA === 'si' ? '<span class="cs-marcada">✓ Asistió</span>'
+            : estadoA === 'no' ? '<span class="cs-marcada cs-nollego">✕ No llegó</span>'
+            : '<span></span>'}
           <span></span>
         </div>`;
       }).join('') || `<div class="cs-vacio">Sin reservas todavía</div>`;
