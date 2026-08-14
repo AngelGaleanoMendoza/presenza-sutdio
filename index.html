@@ -2568,6 +2568,52 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .btn-ev-del:hover { background:#a82332; color:white; border-color:#a82332; }
 
 /* ── Tab Reportes ── */
+/* Las dos maneras de mirar: actividad del periodo o estado de la cartera */
+.rep-vista-tabs { display:flex; gap:8px; margin-bottom:14px; }
+.rep-vista-tab {
+  flex:1; text-align:center; padding:10px 8px; border-radius:12px;
+  font-size:.78rem; font-weight:700; color:var(--gray);
+  background:var(--white); border:1.5px solid rgba(107,23,40,.12);
+  cursor:pointer; transition:all .2s;
+}
+.rep-vista-tab.active { background:var(--wine); color:#fff; border-color:var(--wine); }
+
+/* ── Reporte de suscriptoras ── */
+.cart-ayuda { font-size:.72rem; color:var(--gray); line-height:1.5; margin:-4px 0 10px; padding-left:2px; }
+.cart-resumen {
+  display:flex; flex-wrap:wrap; gap:8px 16px; padding:12px 14px; margin-top:10px;
+  background:rgba(107,23,40,.04); border-radius:12px; font-size:.75rem; color:var(--gray);
+}
+.cart-resumen strong { color:var(--wine-d); font-size:.85rem; }
+.cart-row { display:flex; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid rgba(107,23,40,.05); }
+.cart-row:last-child { border-bottom:0; }
+.cart-info { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.cart-info strong { font-size:.85rem; color:var(--text); }
+.cart-motivo { font-size:.72rem; font-weight:600; color:var(--wine); }
+.cart-meta { font-size:.68rem; color:var(--gray); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cart-wa {
+  flex:none; width:36px; height:36px; border-radius:50%; background:var(--wa); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:1rem;
+  text-decoration:none; transition:all .2s;
+}
+.cart-wa:hover { opacity:.85; transform:scale(1.06); }
+.cart-wa-off { background:rgba(154,136,128,.18); color:var(--gray); cursor:default; }
+.cart-wa-off:hover { opacity:1; transform:none; }
+.cart-ficha {
+  flex:none; width:36px; height:36px; border-radius:50%; background:none; cursor:pointer;
+  border:1.5px solid rgba(107,23,40,.2); color:var(--wine); font-size:.9rem; transition:all .2s;
+}
+.cart-ficha:hover { background:var(--wine); color:#fff; border-color:var(--wine); }
+.cart-todo-ok {
+  background:rgba(46,125,50,.08); border:1.5px solid rgba(46,125,50,.25); color:#1a5c1a;
+  border-radius:12px; padding:14px 16px; font-size:.8rem; line-height:1.5;
+}
+.cart-barra-wrap { background:var(--white); border-radius:14px; padding:16px; border:1px solid rgba(107,23,40,.07); }
+.cart-barra { height:12px; border-radius:50px; background:rgba(107,23,40,.09); overflow:hidden; }
+.cart-barra-fill { height:100%; border-radius:50px; background:linear-gradient(90deg,var(--wine),var(--wine-l)); transition:width .5s; }
+.cart-barra-txt { font-size:.82rem; color:var(--text); margin:10px 0 6px; }
+.cart-barra-txt strong { color:var(--wine-d); }
+
 .rep-toolbar { display:flex; flex-direction:column; gap:12px; margin-bottom:16px; }
 .rep-periodo-tabs { display:flex; gap:6px; background:rgba(107,23,40,.05); border-radius:50px; padding:4px; }
 .rep-periodo-tab { flex:1; text-align:center; padding:9px 10px; border-radius:50px; font-size:.76rem; font-weight:600; color:var(--gray); cursor:pointer; transition:all .2s; }
@@ -4724,7 +4770,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-14.1';
+const BUILD = '2026-08-14.2';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -8068,6 +8114,7 @@ function buildSAdminSubs() {
         <button class="btn-sa-historial" onclick="editarDatosSub('${escArg(sub.email)}')">✏️ Editar datos</button>
         ${ilim ? '' : `<button class="btn-sa-historial" onclick="ajustarClases('${escArg(sub.email)}')">✏️ Corregir clases</button>`}
         <button class="btn-sa-historial" onclick="comprobanteSub('${escArg(sub.email)}')">📄 Comprobante</button>
+        <button class="btn-sa-historial" onclick="fichaSuscriptora('${escArg(sub.email)}')">📋 Ficha completa</button>
         <button class="btn-sa-historial" onclick="toggleHistSub(this)">Historial ▾</button>
         <button class="btn-sa-del" onclick="eliminarSub('${escArg(sub.email)}')">🗑 Eliminar</button>
       </div>
@@ -8970,10 +9017,160 @@ function respaldoBloqueHtml() {
 }
 
 /* ════════════════════════════════════════
+   ANÁLISIS DE LA CARTERA DE SUSCRIPTORAS
+
+   El reporte de actividad mira un periodo: qué pasó esta semana. Este
+   mira el estado de HOY: cómo está la cartera en este momento, quién
+   está por vencer, quién se quedó sin clases, quién no viene hace rato.
+
+   Todo sale de UNA sola pasada, a propósito: si cada bloque contara por
+   su cuenta, los números podrían contradecirse entre sí y un reporte que
+   se contradice no sirve para decidir nada.
+════════════════════════════════════════ */
+
+const DIAS_POR_VENCER = 7;    /* "le vence pronto", hay tiempo de avisarle */
+const DIAS_DORMIDA    = 14;   /* tiene clases pagadas pero no aparece */
+const DIAS_RECUPERAR  = 30;   /* venció hace poco: todavía se puede recuperar */
+
+/* Días entre dos fechas YYYY-MM-DD. Al mediodía para que el cambio de
+   horario no haga que un día se cuente de más o de menos. */
+function diasEntreISO(desde, hasta) {
+  return Math.round((new Date(hasta + 'T12:00:00') - new Date(desde + 'T12:00:00')) / 86400000);
+}
+
+/* El número como lo quiere WhatsApp: código de país pegado adelante */
+function waNumero(tel) {
+  const d = normTel(tel);
+  return d.length >= 8 ? '505' + d : '';
+}
+
+function analizarCartera() {
+  const hoy = hoyISO();
+
+  const fichas = getSuscriptoras().map(s => {
+    const ilim    = esIlimitada(s);
+    const vencida = subVencida(s);
+    const rest    = Math.max(0, s.clasesRestantes || 0);
+
+    /* Cuándo vino POR ÚLTIMA VEZ de verdad. Las marcadas "no llegó" no
+       cuentan: justamente lo que se busca acá es quién dejó de venir. */
+    const asistidas = (s.historial || []).filter(h => !h.no);
+    const ultima    = asistidas.reduce((m, h) => (h.fecha > m ? h.fecha : m), '');
+    const noLlego   = (s.historial || []).length - asistidas.length;
+
+    /* Lo que compró en toda su vida, sumando renovaciones */
+    const renov     = s.renovaciones || [];
+    const compradas = renov.reduce((n, r) => n + (Number(r.clases) || 0), 0);
+    const gastado   = renov.reduce((n, r) => n + (PLANES_SUB[r.plan]?.precio || 0), 0);
+
+    let estado;
+    if (!s.activa && !renov.length) estado = 'sin_plan';    /* nunca activó nada */
+    else if (vencida)               estado = 'vencida';
+    else if (!s.activa)             estado = 'sin_plan';
+    else if (ilim)                  estado = 'ilimitada';
+    else if (rest === 0)            estado = 'sin_clases';
+    else                            estado = 'activa';
+
+    return {
+      sub: s, ilim, vencida, rest, estado, compradas, gastado,
+      usadas: asistidas.length, noLlego, ultima,
+      /* Positivo = le faltan tantos días para vencer. Negativo = venció
+         hace tantos. Null = nunca tuvo fecha de vencimiento. */
+      diasVence:    s.fechaVence ? diasEntreISO(hoy, s.fechaVence) : null,
+      diasSinVenir: ultima ? diasEntreISO(ultima, hoy) : null,
+    };
+  });
+
+  const vigentes = f => f.estado === 'activa' || f.estado === 'ilimitada' || f.estado === 'sin_clases';
+
+  /* ── Las cuatro listas para llamar ──
+     Se arman EN ORDEN DE URGENCIA y nadie se repite: quien ya salió en
+     una lista no vuelve a salir en las de abajo. Es una lista de a quién
+     llamar hoy, y llamar dos veces a la misma persona no es un detalle
+     estético: hace que el estudio quede mal con ella.
+
+     La que vence pronto va primero porque es la única con fecha límite;
+     después la que no puede reservar aunque quiera; después la que
+     simplemente no aparece. */
+  const yaEsta = new Set();
+  const tomar = (filtro, orden) => {
+    const l = fichas.filter(f => !yaEsta.has(f.sub.id) && filtro(f)).sort(orden);
+    l.forEach(f => yaEsta.add(f.sub.id));
+    return l;
+  };
+
+  const porVencer = tomar(
+    f => vigentes(f) && f.diasVence !== null && f.diasVence >= 0 && f.diasVence <= DIAS_POR_VENCER,
+    (a, b) => a.diasVence - b.diasVence);
+
+  const sinClases = tomar(
+    f => f.estado === 'sin_clases',
+    (a, b) => (b.diasVence ?? 0) - (a.diasVence ?? 0));
+
+  /* Dormida = tiene con qué venir y no viene. La que nunca vino cuenta
+     también: es la que más urge, porque pagó y todavía no arrancó. */
+  const dormidas = tomar(
+    f => (f.estado === 'activa' || f.estado === 'ilimitada') &&
+         (f.diasSinVenir === null || f.diasSinVenir >= DIAS_DORMIDA),
+    (a, b) => (b.diasSinVenir ?? 1e9) - (a.diasSinVenir ?? 1e9));
+
+  const recuperables = tomar(
+    f => f.estado === 'vencida' && f.diasVence !== null && f.diasVence >= -DIAS_RECUPERAR,
+    (a, b) => b.diasVence - a.diasVence);
+
+  const cuenta = e => fichas.filter(f => f.estado === e).length;
+
+  return {
+    fichas, porVencer, sinClases, dormidas, recuperables,
+    total:      fichas.length,
+    activas:    cuenta('activa') + cuenta('ilimitada'),
+    ilimitadas: cuenta('ilimitada'),
+    sinSaldo:   cuenta('sin_clases'),
+    vencidas:   cuenta('vencida'),
+    sinPlan:    cuenta('sin_plan'),
+  };
+}
+
+/* Las renovaciones que cayeron dentro del periodo que se está mirando.
+   De acá sale el dinero: cada renovación es una venta con su fecha. */
+function ventasDelPeriodo(desde, hasta) {
+  const ventas = [];
+  getSuscriptoras().forEach(s => {
+    (s.renovaciones || []).forEach((r, i) => {
+      if (!r.fecha || r.fecha < desde || r.fecha > hasta) return;
+      const pd = PLANES_SUB[r.plan] || { nombre: r.plan || '—', precio: 0 };
+      ventas.push({
+        sub: s, fecha: r.fecha, plan: r.plan,
+        nombre: pd.nombre, precio: pd.precio,
+        /* La primera renovación de su historia = alumna nueva, no una
+           que vuelve. Es la diferencia entre crecer y retener. */
+        esAlta: i === 0,
+      });
+    });
+  });
+  ventas.sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+  const porPlan = {};
+  ventas.forEach(v => {
+    if (!porPlan[v.plan]) porPlan[v.plan] = { nombre: v.nombre, n: 0, total: 0 };
+    porPlan[v.plan].n++;
+    porPlan[v.plan].total += v.precio;
+  });
+
+  return {
+    ventas, porPlan,
+    total:  ventas.reduce((n, v) => n + v.precio, 0),
+    altas:  ventas.filter(v =>  v.esAlta).length,
+    renovs: ventas.filter(v => !v.esAlta).length,
+  };
+}
+
+/* ════════════════════════════════════════
    TAB: REPORTES (cierre día / semana / mes)
 ════════════════════════════════════════ */
 let repPeriodo = 'dia';   /* dia | semana | mes */
 let repOffset  = 0;
+let repVista   = 'actividad';   /* actividad | cartera */
 
 function repFmtISO(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -9088,12 +9285,26 @@ function repAgregar(regs) {
   return { sessions, byClase, byPerson, byTipo, ingresoTotal, subUsos };
 }
 
+function repSetVista(v) { repVista = v; buildSAdminReportes(); }
+
 function buildSAdminReportes() {
   const body = document.getElementById('sadminBody');
   const r    = getRepRange();
+
+  /* Dos maneras de mirar lo mismo: qué pasó en un periodo, o cómo está
+     la cartera hoy. Se separan porque responden preguntas distintas y
+     mezclarlas hacía una pantalla que no contestaba ninguna. */
+  const vistas = `
+    <div class="rep-vista-tabs">
+      <div class="rep-vista-tab${repVista==='actividad'?' active':''}" onclick="repSetVista('actividad')">📊 Actividad</div>
+      <div class="rep-vista-tab${repVista==='cartera'  ?' active':''}" onclick="repSetVista('cartera')">💎 Suscriptoras</div>
+    </div>`;
+
+  if (repVista === 'cartera') { buildReporteCartera(body, vistas, r); return; }
+
   const regs = collectRegistros(r.desde, r.hasta);
 
-  const toolbar = `
+  const toolbar = vistas + `
     <div class="rep-toolbar">
       <div class="rep-periodo-tabs">
         <div class="rep-periodo-tab${repPeriodo==='dia'?' active':''}"    onclick="repSetPeriodo('dia')">Día</div>
@@ -9206,6 +9417,437 @@ function buildSAdminReportes() {
     <div class="rep-tipo-dist">${tipoHtml}</div>
     <button class="btn-rep-pdf-full" onclick="printReportePeriodo()">📄 Descargar PDF del ${r.periodo.toLowerCase()} completo</button>`
     + respaldoBloqueHtml();
+}
+
+/* ════════════════════════════════════════
+   REPORTE DE SUSCRIPTORAS
+
+   Cuatro preguntas, en el orden en que sirven:
+     1. ¿A quién tengo que llamar hoy?      → las listas con WhatsApp
+     2. ¿Cómo está la cartera?              → los KPIs
+     3. ¿Cuánto entró?                      → renovaciones del periodo
+     4. ¿Aprovechan lo que compran?         → clases usadas vs compradas
+
+   Lo accionable va primero a propósito: es lo único que se puede hacer
+   algo con ello hoy. Los números están abajo, que es donde se miran una
+   vez por semana y no todos los días.
+════════════════════════════════════════ */
+
+/* Una fila de "hay que llamarla": quién es, por qué está en la lista, y
+   el botón que abre WhatsApp con el mensaje ya escrito. */
+function carteraFila(f, motivo, mensaje) {
+  const s   = f.sub;
+  const num = waNumero(s.tel);
+  const wa  = num
+    ? `<a class="cart-wa" target="_blank" rel="noopener"
+         href="https://wa.me/${num}?text=${encodeURIComponent(mensaje)}">💬</a>`
+    : `<span class="cart-wa cart-wa-off" title="No tiene teléfono guardado">—</span>`;
+  return `<div class="cart-row">
+    <div class="cart-info">
+      <strong>${escHtml(s.nombre)}</strong>
+      <span class="cart-motivo">${motivo}</span>
+      <span class="cart-meta">${escHtml(s.tel) || 'sin teléfono'} · ${escHtml(s.email)}</span>
+    </div>
+    ${wa}
+    <button class="cart-ficha" title="Ver ficha completa"
+      onclick="fichaSuscriptora('${escArg(s.email)}')">📄</button>
+  </div>`;
+}
+
+function carteraBloque(titulo, ayuda, filas) {
+  if (!filas.length) return '';
+  return `<div class="rep-sec-title">${titulo} <small>${filas.length}</small></div>
+    <div class="cart-ayuda">${ayuda}</div>
+    <div class="sa-clase-blk">${filas.join('')}</div>`;
+}
+
+function buildReporteCartera(body, vistas, r) {
+  const c = analizarCartera();
+
+  if (!c.total) {
+    body.innerHTML = vistas + `
+      <div class="sa-empty">
+        <span class="sa-empty-ico">💎</span>
+        <strong>Todavía no hay suscriptoras</strong>
+        <span>Cuando alguien active un paquete, aparece acá.</span>
+      </div>`;
+    return;
+  }
+
+  const dia = f => f.sub.fechaVence ? fmtDiaLargo(f.sub.fechaVence) : 'sin fecha';
+  const plan = f => PLANES_SUB[f.sub.plan]?.nombre || f.sub.plan || 'su plan';
+
+  /* Como nadie se repite entre listas, una que vence pronto Y encima no
+     viene saldría solo arriba y se perdería la mitad de la historia. Se
+     agrega acá para que quien llama sepa las dos cosas. */
+  const avisoDormida = f =>
+    f.diasSinVenir === null ? ' · ⚠️ nunca ha venido'
+    : f.diasSinVenir >= DIAS_DORMIDA ? ` · ⚠️ sin venir hace ${f.diasSinVenir} días`
+    : '';
+
+  /* ── 1 · Para llamar ── */
+  const listas =
+    carteraBloque('⏳ Le vence esta semana',
+      `Su plan vence en ${DIAS_POR_VENCER} días o menos. Es el mejor momento para renovar: todavía está viniendo.`,
+      c.porVencer.map(f => carteraFila(f,
+        (f.diasVence === 0 ? 'Vence HOY'
+          : `Vence en ${f.diasVence} día${f.diasVence === 1 ? '' : 's'} · ${dia(f)}`) + avisoDormida(f),
+        `Hola ${f.sub.nombre.split(' ')[0]} ✧ Te escribimos de Presenza. Tu ${plan(f)} vence el ${dia(f)}. ¿Te lo renovamos para que no pierdas el ritmo?`)))
+
+  + carteraBloque('🎫 Se quedaron sin clases',
+      'El plan sigue vigente pero ya usaron todas las clases. Van a querer más antes de que se les venza.',
+      c.sinClases.map(f => carteraFila(f,
+        `0 clases · el plan vence ${dia(f)}` + avisoDormida(f),
+        `Hola ${f.sub.nombre.split(' ')[0]} ✧ Se te acabaron las clases de tu ${plan(f)}. ¿Querés que te agreguemos un paquete nuevo?`)))
+
+  + carteraBloque('😴 Tienen clases y no vienen',
+      `Pagaron y no aparecen hace ${DIAS_DORMIDA} días o más. Un mensaje a tiempo evita que el plan se les venza sin usar.`,
+      c.dormidas.map(f => carteraFila(f,
+        f.diasSinVenir === null
+          ? '⚠️ Nunca ha venido'
+          : `Sin venir hace ${f.diasSinVenir} días · ${f.ilim ? '∞' : f.rest + ' clases'} sin usar`,
+        `Hola ${f.sub.nombre.split(' ')[0]} ✧ ¡Te extrañamos en Presenza! ${f.ilim ? 'Tu membresía sigue activa' : `Todavía tenés ${f.rest} clase${f.rest === 1 ? '' : 's'}`} hasta el ${dia(f)}. ¿Te apartamos un lugar esta semana?`)))
+
+  + carteraBloque('🔁 Vencieron hace poco',
+      `Se les venció en los últimos ${DIAS_RECUPERAR} días. Todavía se acuerdan del estudio: son las más fáciles de recuperar.`,
+      c.recuperables.map(f => carteraFila(f,
+        `Venció hace ${Math.abs(f.diasVence)} día${Math.abs(f.diasVence) === 1 ? '' : 's'} · ${dia(f)}`,
+        `Hola ${f.sub.nombre.split(' ')[0]} ✧ Tu ${plan(f)} venció el ${dia(f)} y te queremos de vuelta. ¿Te armamos uno nuevo?`)));
+
+  const sinNada = !listas
+    ? `<div class="cart-todo-ok">✓ Nada urgente por hoy: ninguna vence esta semana, ninguna se quedó sin clases y todas las activas están viniendo.</div>`
+    : '';
+
+  /* ── 2 · Cómo está la cartera ── */
+  const kpis = `
+    <div class="sa-kpi-grid">
+      <div class="sa-kpi"><span class="sa-kpi-ico">💎</span><span class="sa-kpi-num">${c.activas}</span><span class="sa-kpi-lbl">Activas hoy</span></div>
+      <div class="sa-kpi"><span class="sa-kpi-ico">⏳</span><span class="sa-kpi-num">${c.porVencer.length}</span><span class="sa-kpi-lbl">Vencen esta semana</span></div>
+      <div class="sa-kpi"><span class="sa-kpi-ico">🎫</span><span class="sa-kpi-num">${c.sinSaldo}</span><span class="sa-kpi-lbl">Sin clases</span></div>
+      <div class="sa-kpi"><span class="sa-kpi-ico">😴</span><span class="sa-kpi-num">${c.dormidas.length}</span><span class="sa-kpi-lbl">No vienen</span></div>
+    </div>
+    <div class="cart-resumen">
+      <span><strong>${c.total}</strong> suscriptoras en total</span>
+      <span><strong>${c.vencidas}</strong> vencidas</span>
+      ${c.ilimitadas ? `<span><strong>${c.ilimitadas}</strong> ilimitadas</span>` : ''}
+      ${c.sinPlan ? `<span><strong>${c.sinPlan}</strong> sin plan activo</span>` : ''}
+    </div>`;
+
+  /* ── 3 · El dinero del periodo ── */
+  const v = ventasDelPeriodo(r.desde, r.hasta);
+  const planesHtml = Object.entries(v.porPlan)
+    .sort((a, b) => b[1].total - a[1].total)
+    .map(([, d]) => `<div class="rep-clase-row">
+      <span class="rep-cl-emoji">💳</span>
+      <div class="rep-cl-info">
+        <strong>${escHtml(d.nombre)}</strong>
+        <span>${d.n} ${d.n === 1 ? 'venta' : 'ventas'}</span>
+      </div>
+      <div class="rep-cl-num">${fmtC(d.total)}<small>en total</small></div>
+    </div>`).join('');
+
+  const dinero = v.ventas.length ? `
+    <div class="sa-kpi-grid">
+      <div class="sa-kpi"><span class="sa-kpi-ico">💰</span><span class="sa-kpi-num">${fmtC(v.total)}</span><span class="sa-kpi-lbl">Vendido</span></div>
+      <div class="sa-kpi"><span class="sa-kpi-ico">✨</span><span class="sa-kpi-num">${v.altas}</span><span class="sa-kpi-lbl">Alumnas nuevas</span></div>
+      <div class="sa-kpi"><span class="sa-kpi-ico">⟳</span><span class="sa-kpi-num">${v.renovs}</span><span class="sa-kpi-lbl">Renovaciones</span></div>
+      <div class="sa-kpi"><span class="sa-kpi-ico">📊</span><span class="sa-kpi-num">${fmtC(Math.round(v.total / v.ventas.length))}</span><span class="sa-kpi-lbl">Venta promedio</span></div>
+    </div>
+    <div class="sa-clase-blk">${planesHtml}</div>`
+  : `<div class="cart-ayuda">Sin paquetes vendidos en este ${r.periodo.toLowerCase()}.</div>`;
+
+  /* ── 4 · Aprovechamiento ──
+     Acá hay que tener cuidado con qué se mide, porque es fácil mostrar un
+     número que engañe:
+
+     · COMPRADAS y DISPONIBLES salen de las renovaciones y del saldo: son
+       exactos, no dependen de que nadie haga nada.
+     · TOMADAS sale del historial, que se llena al pasar lista. Si un día
+       no se pasa, esa clase no aparece — aunque la alumna haya venido.
+
+     Por eso NO se muestra "tomadas ÷ compradas" como si fuera el
+     aprovechamiento: las clases se descuentan AL RESERVAR, así que ese
+     porcentaje mide sobre todo cuánto se pasa lista, y haría creer que
+     nadie viene. Se muestran las tres cifras por separado y se dice de
+     dónde sale cada una.
+
+     Las ilimitadas quedan fuera: sus "clases compradas" son un tope
+     inventado (1000) y cualquier proporción con eso no significa nada. */
+  const conPaquete  = c.fichas.filter(f => !f.ilim && f.compradas > 0);
+  const compradas   = conPaquete.reduce((n, f) => n + f.compradas, 0);
+  const disponibles = conPaquete.reduce((n, f) => n + f.rest, 0);
+  const tomadas     = conPaquete.reduce((n, f) => n + f.usadas, 0);
+  const noLlego     = conPaquete.reduce((n, f) => n + f.noLlego, 0);
+  const consumidas  = Math.max(0, compradas - disponibles);
+  const pct         = compradas ? Math.round(consumidas / compradas * 100) : 0;
+
+  const aprovecha = conPaquete.length ? `
+    <div class="cart-barra-wrap">
+      <div class="cart-barra"><div class="cart-barra-fill" style="width:${Math.min(100, pct)}%"></div></div>
+      <div class="cart-barra-txt">
+        De <strong>${compradas}</strong> clases compradas quedan <strong>${disponibles}</strong> sin usar
+        · se gastaron <strong>${consumidas}</strong> (${pct}%)
+      </div>
+      <div class="cart-ayuda">
+        Cuenta a las ${conPaquete.length} suscriptoras con paquete, desde siempre.
+        Las ilimitadas no entran: no tienen un número de clases con el que comparar.
+        <br><br>
+        De esas ${consumidas} gastadas, <strong>${tomadas}</strong> tienen la lista pasada.
+        La diferencia no quiere decir que no vinieran: una clase se descuenta al reservar,
+        así que ahí caen tanto las clases donde no se pasó lista como las que vencieron sin usarse.
+        ${noLlego ? `<br>Aparte, ${noLlego} vez${noLlego === 1 ? '' : 'ces'} alguien estaba inscrita y no llegó.` : ''}
+      </div>
+    </div>` : '';
+
+  body.innerHTML = vistas + `
+    <div class="rep-sec-title">📞 Para llamar hoy</div>
+    ${sinNada}${listas}
+    <div class="rep-sec-title">💎 Cómo está la cartera <small>hoy</small></div>
+    ${kpis}` + `
+    <div class="rep-toolbar" style="margin-top:20px">
+      <div class="rep-periodo-tabs">
+        <div class="rep-periodo-tab${repPeriodo==='dia'?' active':''}"    onclick="repSetPeriodo('dia')">Día</div>
+        <div class="rep-periodo-tab${repPeriodo==='semana'?' active':''}" onclick="repSetPeriodo('semana')">Semana</div>
+        <div class="rep-periodo-tab${repPeriodo==='mes'?' active':''}"    onclick="repSetPeriodo('mes')">Mes</div>
+      </div>
+      <div class="rep-nav">
+        <button class="rep-nav-btn" onclick="repNav(-1)">‹</button>
+        <span class="rep-nav-label">${r.label}</span>
+        <button class="rep-nav-btn" onclick="repNav(1)" ${repOffset>=0?'disabled style="opacity:.35;cursor:default"':''}>›</button>
+      </div>
+    </div>
+    <div class="rep-sec-title">💰 Paquetes vendidos <small>en este ${r.periodo.toLowerCase()}</small></div>
+    ${dinero}
+    ${aprovecha ? `<div class="rep-sec-title">📈 Aprovechamiento de los paquetes</div>${aprovecha}` : ''}
+    <button class="btn-rep-pdf-full" onclick="printCartera()">📄 Descargar PDF del reporte de suscriptoras</button>`;
+}
+
+/* ── Hoja imprimible con el estilo de los otros reportes ── */
+function printHoja(titulo, subtitulo, cuerpo) {
+  const w = window.open('', '_blank');
+  if (!w) { alert('Activa las ventanas emergentes del navegador y vuelve a intentarlo.'); return; }
+  w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  <title>${titulo}</title>
+  <style>
+    body { font-family:Arial,sans-serif; padding:28px; max-width:760px; margin:0 auto; color:#2C1810; }
+    h1 { font-size:1.25rem; margin-bottom:2px; color:#4A0F1A; }
+    h2 { font-size:.95rem; color:#4A0F1A; margin:22px 0 6px; border-bottom:2px solid #EAD9CA; padding-bottom:4px; }
+    h3 { color:#4A0F1A; font-size:.85rem; margin:14px 0 5px; }
+    .sub { color:#9A8880; font-size:.82rem; margin-bottom:18px; }
+    .nota { color:#9A8880; font-size:.72rem; margin:4px 0 8px; }
+    table { width:100%; border-collapse:collapse; font-size:.78rem; margin-bottom:6px; }
+    th { background:#6B1728; color:#fff; padding:8px 9px; text-align:left; font-size:.72rem; }
+    td { padding:7px 9px; border-bottom:1px solid #EAD9CA; }
+    tr:nth-child(even) td { background:#FBF7F3; }
+    .cifras { display:flex; flex-wrap:wrap; gap:10px; margin:10px 0 4px; }
+    .cifra { flex:1; min-width:120px; border:1px solid #EAD9CA; border-radius:8px; padding:10px 12px; }
+    .cifra b { display:block; font-size:1.3rem; color:#6B1728; }
+    .cifra span { font-size:.68rem; color:#9A8880; text-transform:uppercase; letter-spacing:.5px; }
+    .pie { margin-top:26px; text-align:center; font-size:.68rem; color:#9A8880; }
+    @media print { body { padding:0; } h2 { page-break-after:avoid; } table { page-break-inside:auto; } tr { page-break-inside:avoid; } }
+  </style></head><body>
+  <h1>✧ Presenza Studio</h1>
+  <p class="sub">${subtitulo}</p>
+  ${cuerpo}
+  <p class="pie">Presenza Studio · Managua · Emitido el ${new Date().toLocaleString('es-NI')}</p>
+  <script>window.addEventListener('load', () => window.print());<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+/* ── PDF: el reporte de suscriptoras completo ── */
+function printCartera() {
+  const c = analizarCartera();
+  if (!c.total) { alert('Todavía no hay suscriptoras que reportar.'); return; }
+  const r = getRepRange();
+  const v = ventasDelPeriodo(r.desde, r.hasta);
+
+  const dia = f => f.sub.fechaVence ? fmtDiaLargo(f.sub.fechaVence) : '—';
+
+  const tabla = (titulo, nota, filas, cols) => !filas.length ? '' : `
+    <h2>${titulo} (${filas.length})</h2>
+    <p class="nota">${nota}</p>
+    <table>
+      <tr>${cols.map(h => `<th>${h}</th>`).join('')}</tr>
+      ${filas.join('')}
+    </table>`;
+
+  const filaBase = (f, motivo) => `<tr>
+    <td><strong>${escHtml(f.sub.nombre)}</strong></td>
+    <td>${escHtml(f.sub.tel) || '—'}</td>
+    <td>${escHtml(f.sub.email) || '—'}</td>
+    <td>${escHtml(PLANES_SUB[f.sub.plan]?.nombre || f.sub.plan || '—')}</td>
+    <td>${motivo}</td>
+  </tr>`;
+
+  const COLS = ['Nombre', 'Teléfono', 'Email', 'Plan', 'Motivo'];
+
+  const avisoDormida = f =>
+    f.diasSinVenir === null ? ' · nunca ha venido'
+    : f.diasSinVenir >= DIAS_DORMIDA ? ` · sin venir hace ${f.diasSinVenir} días`
+    : '';
+
+  const listas =
+      tabla('⏳ Le vence esta semana',
+        `Vencen dentro de ${DIAS_POR_VENCER} días. Es cuando más conviene ofrecer la renovación.`,
+        c.porVencer.map(f => filaBase(f, (f.diasVence === 0 ? 'Vence hoy'
+          : `Vence en ${f.diasVence} día${f.diasVence === 1 ? '' : 's'} (${dia(f)})`) + avisoDormida(f))), COLS)
+    + tabla('🎫 Se quedaron sin clases',
+        'El plan sigue vigente pero ya usaron todo lo que compraron.',
+        c.sinClases.map(f => filaBase(f, `0 clases · vence ${dia(f)}` + avisoDormida(f))), COLS)
+    + tabla('😴 Tienen clases y no vienen',
+        `Sin aparecer hace ${DIAS_DORMIDA} días o más, con clases todavía sin usar.`,
+        c.dormidas.map(f => filaBase(f, f.diasSinVenir === null ? 'Nunca ha venido'
+          : `${f.diasSinVenir} días sin venir · ${f.ilim ? 'ilimitada' : f.rest + ' clases'}`)), COLS)
+    + tabla('🔁 Vencieron hace poco',
+        `Se les venció en los últimos ${DIAS_RECUPERAR} días: todavía son recuperables.`,
+        c.recuperables.map(f => filaBase(f,
+          `Venció hace ${Math.abs(f.diasVence)} día${Math.abs(f.diasVence) === 1 ? '' : 's'} (${dia(f)})`)), COLS);
+
+  const cifra = (n, l) => `<div class="cifra"><b>${n}</b><span>${l}</span></div>`;
+
+  const ventasHtml = v.ventas.length ? `
+    <div class="cifras">
+      ${cifra(fmtC(v.total), 'Vendido')}
+      ${cifra(v.altas, 'Alumnas nuevas')}
+      ${cifra(v.renovs, 'Renovaciones')}
+      ${cifra(fmtC(Math.round(v.total / v.ventas.length)), 'Venta promedio')}
+    </div>
+    <table>
+      <tr><th>Fecha</th><th>Alumna</th><th>Paquete</th><th>Monto</th><th>Tipo</th></tr>
+      ${v.ventas.map(x => `<tr>
+        <td>${fmtDiaLargo(x.fecha)}</td>
+        <td>${escHtml(x.sub.nombre)}</td>
+        <td>${escHtml(x.nombre)}</td>
+        <td>${fmtC(x.precio)}</td>
+        <td>${x.esAlta ? 'Nueva' : 'Renovación'}</td>
+      </tr>`).join('')}
+    </table>`
+  : `<p class="nota">Sin paquetes vendidos en este periodo.</p>`;
+
+  const conPaquete  = c.fichas.filter(f => !f.ilim && f.compradas > 0);
+  const compradas   = conPaquete.reduce((n, f) => n + f.compradas, 0);
+  const disponibles = conPaquete.reduce((n, f) => n + f.rest, 0);
+  const tomadas     = conPaquete.reduce((n, f) => n + f.usadas, 0);
+  const consumidas  = Math.max(0, compradas - disponibles);
+  const pct         = compradas ? Math.round(consumidas / compradas * 100) : 0;
+
+  printHoja('Reporte de suscriptoras · Presenza',
+    `Reporte de suscriptoras · estado al ${fmtDiaLargo(hoyISO())}`,
+    `<h2>💎 Cómo está la cartera hoy</h2>
+     <div class="cifras">
+       ${cifra(c.activas, 'Activas')}
+       ${cifra(c.porVencer.length, 'Vencen esta semana')}
+       ${cifra(c.sinSaldo, 'Sin clases')}
+       ${cifra(c.dormidas.length, 'No vienen')}
+     </div>
+     <div class="cifras">
+       ${cifra(c.total, 'Total')}
+       ${cifra(c.vencidas, 'Vencidas')}
+       ${cifra(c.ilimitadas, 'Ilimitadas')}
+       ${cifra(c.sinPlan, 'Sin plan activo')}
+     </div>
+     ${listas || '<h2>📞 Para llamar</h2><p class="nota">Nada urgente: ninguna vence esta semana, ninguna se quedó sin clases y todas las activas están viniendo.</p>'}
+     <h2>💰 Paquetes vendidos · ${r.label}</h2>
+     ${ventasHtml}
+     ${conPaquete.length ? `<h2>📈 Aprovechamiento de los paquetes</h2>
+       <div class="cifras">
+         ${cifra(compradas, 'Clases compradas')}
+         ${cifra(consumidas, `Gastadas (${pct}%)`)}
+         ${cifra(disponibles, 'Todavía sin usar')}
+         ${cifra(tomadas, 'Con lista pasada')}
+       </div>
+       <p class="nota">Cuenta a las ${conPaquete.length} suscriptoras con paquete, desde siempre.
+       Las ilimitadas no entran: no tienen un número de clases con el que comparar.
+       Una clase se descuenta al reservar, así que entre las gastadas y las que tienen lista
+       pasada caen tanto las clases donde no se pasó lista como las que vencieron sin usarse.</p>` : ''}`);
+}
+
+/* ── PDF: la ficha completa de una alumna ──
+   Sirve para dos cosas distintas: revisar su caso en el estudio, y
+   dársela impresa si pide cuenta de sus clases. Por eso lleva el
+   historial entero y no solo un resumen. */
+function fichaSuscriptora(email) {
+  const s = getSuscriptoraByEmail(email);
+  if (!s) { alert('No se encontró esa suscriptora.'); return; }
+
+  const f = analizarCartera().fichas.find(x => x.sub.id === s.id)
+         || { rest: s.clasesRestantes || 0, usadas: 0, noLlego: 0, compradas: 0,
+              gastado: 0, ilim: esIlimitada(s), diasSinVenir: null, estado: '—' };
+
+  const ESTADOS = {
+    activa:     'Activa',
+    ilimitada:  'Activa · membresía ilimitada',
+    sin_clases: 'Vigente pero sin clases disponibles',
+    vencida:    'Vencida',
+    sin_plan:   'Sin plan activo',
+  };
+
+  const cifra = (n, l) => `<div class="cifra"><b>${n}</b><span>${l}</span></div>`;
+
+  const hist = (s.historial || []).slice().sort((a, b) =>
+    (b.fecha + b.hora).localeCompare(a.fecha + a.hora));
+
+  const histHtml = hist.length ? `
+    <table>
+      <tr><th>Fecha</th><th>Hora</th><th>Clase</th><th>¿Llegó?</th></tr>
+      ${hist.map(h => `<tr>
+        <td>${fmtDiaLargo(h.fecha)}</td>
+        <td>${hora12(h.hora)}</td>
+        <td>${INFO[h.clase]?.nombre || escHtml(h.clase)}</td>
+        <td>${h.no ? '✕ No llegó' : '✓ Sí'}</td>
+      </tr>`).join('')}
+    </table>`
+  : '<p class="nota">Todavía no tiene clases registradas.</p>';
+
+  const renov = (s.renovaciones || []).slice().reverse();
+  const renovHtml = renov.length ? `
+    <table>
+      <tr><th>Fecha</th><th>Paquete</th><th>Clases</th><th>Monto</th></tr>
+      ${renov.map(rr => {
+        const pd = PLANES_SUB[rr.plan] || { nombre: rr.plan || '—', precio: 0 };
+        return `<tr>
+          <td>${fmtDiaLargo(rr.fecha)}</td>
+          <td>${escHtml(pd.nombre)}</td>
+          <td>${rr.clases >= 1000 ? '∞' : rr.clases}</td>
+          <td>${fmtC(pd.precio)}</td>
+        </tr>`;
+      }).join('')}
+    </table>`
+  : '<p class="nota">Sin renovaciones registradas.</p>';
+
+  printHoja(`Ficha · ${s.nombre}`,
+    `Ficha de suscriptora · al ${fmtDiaLargo(hoyISO())}`,
+    `<h2>👤 ${escHtml(s.nombre)}</h2>
+     <table>
+       <tr><td>Teléfono</td><td><strong>${escHtml(s.tel) || '—'}</strong></td></tr>
+       <tr><td>Email</td><td><strong>${escHtml(s.email)}</strong></td></tr>
+       <tr><td>Nivel</td><td><strong>${escHtml(s.notas) || '—'}</strong></td></tr>
+       <tr><td>Plan</td><td><strong>${escHtml(PLANES_SUB[s.plan]?.nombre || s.plan || '—')}</strong></td></tr>
+       <tr><td>Estado</td><td><strong>${ESTADOS[f.estado] || '—'}</strong></td></tr>
+       <tr><td>Desde</td><td><strong>${s.fechaInicio ? fmtDiaLargo(s.fechaInicio) : '—'}</strong></td></tr>
+       <tr><td>Vence</td><td><strong>${s.fechaVence ? fmtDiaLargo(s.fechaVence) : '—'}</strong></td></tr>
+       <tr><td>N° de suscriptora</td><td><strong>${escHtml(s.id) || '—'}</strong></td></tr>
+     </table>
+
+     <h2>📊 Resumen</h2>
+     <div class="cifras">
+       ${cifra(f.ilim ? '∞' : f.rest, 'Clases disponibles')}
+       ${cifra(f.ilim ? '—' : f.compradas, 'Clases compradas')}
+       ${cifra(f.usadas, 'Clases con lista pasada')}
+       ${cifra(fmtC(f.gastado), 'Total pagado')}
+     </div>
+     <p class="nota">El historial de abajo lista las clases donde se pasó lista. Una clase se
+     descuenta al reservar, no al pasar lista, así que las disponibles son la cuenta buena de
+     lo que le queda.
+     ${f.noLlego ? ` Estuvo inscrita y no llegó ${f.noLlego} vez${f.noLlego === 1 ? '' : 'ces'}; eso tampoco le devolvió clases.` : ''}</p>
+     ${f.diasSinVenir !== null ? `<p class="nota">Su última clase fue hace ${f.diasSinVenir} día${f.diasSinVenir === 1 ? '' : 's'}.</p>` : ''}
+
+     <h2>💳 Renovaciones</h2>
+     ${renovHtml}
+
+     <h2>🗓 Historial de clases (${hist.length})</h2>
+     ${histHtml}`);
 }
 
 /* ── PDF: detalle de una clase en el periodo ── */
