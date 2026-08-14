@@ -1974,6 +1974,23 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   background:rgba(107,23,40,.1); border-radius:50px; padding:1px 7px; margin-left:4px; vertical-align:middle;
 }
 .sa-alumna-sub    { font-size:.7rem; color:var(--gray); }
+/* Lo que la alumna escribió al reservar. Ámbar, no rojo: casi siempre son
+   lesiones o condiciones de salud y la coach tiene que verlas de un vistazo,
+   pero no es una alarma. Se muestra completo: recortarla podría esconder
+   justo la parte que importa. */
+.sa-alumna-nota {
+  font-size:.71rem; line-height:1.4; color:#7a5200; margin-top:3px;
+  background:rgba(224,169,59,.13); border-left:3px solid rgba(224,169,59,.6);
+  border-radius:0 6px 6px 0; padding:4px 8px; overflow-wrap:anywhere;
+}
+.sa-nivel-chip {
+  /* align-self: .sa-alumna-info es flex en columna y sin esto el chip se
+     estira a todo el ancho en vez de ajustarse al texto */
+  display:inline-block; align-self:flex-start;
+  font-size:.62rem; font-weight:700; margin-top:3px;
+  background:rgba(107,23,40,.09); color:var(--wine-d);
+  border-radius:50px; padding:1px 8px;
+}
 .sa-cupos-left {
   font-size:.71rem; font-weight:700; padding:3px 9px;
   border-radius:50px; white-space:nowrap;
@@ -4282,6 +4299,27 @@ function contactoDirecto() {
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(txt)}`, '_blank');
 }
 
+/* Texto que escribió alguien de afuera, listo para meter en el HTML.
+   Las notas son un textarea abierto en la web pública: sin esto, algo como
+   <img src=x onerror=...> escrito ahí se ejecutaría en la pantalla de quien
+   abra el panel. Se usa en todo lo que venga del formulario de la alumna. */
+function escHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* Un valor que va DENTRO de un string de JavaScript que a su vez va dentro de
+   un atributo HTML:  onclick="f('aquí')"
+
+   Hay que escapar en los dos idiomas y en este orden, porque el navegador
+   primero decodifica el HTML del atributo y solo después JavaScript lee el
+   string. Escapar solo para HTML rompe los apóstrofes; escapar solo para JS
+   deja que unas comillas dobles cierren el atributo y metan lo que sea. */
+function escArg(s) {
+  return escHtml(String(s == null ? '' : s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"));
+}
+
 /* Formato córdobas: C$1,650 */
 function fmtC(n) { return 'C$' + Number(n||0).toLocaleString('en-US'); }
 
@@ -4480,8 +4518,30 @@ function matsDe(clase, dateStr, hora) {
 const HORA_TEMPRANA = '09:00';   /* antes de esto = clase de madrugada */
 const CIERRE_HORA   = 22;        /* 10:00 pm de la víspera */
 const MIN_TEMPRANA  = 2;         /* sin estas inscritas, la clase no se da */
+/* Las mismas dos horas, escritas como las lee la gente */
+const TEMPRANA_TXT = '9:00 am';
+const CIERRE_TXT   = '10:00 pm';
 
 function esClaseTemprana(hora) { return String(hora || '') < HORA_TEMPRANA; }
+
+/* ── Cómo se LEE una hora ────────────────────────────────────────────
+   '07:30' → '7:30 am' · '19:30' → '7:30 pm' · '12:00' → '12:00 pm'
+
+   Es solo para mostrar. Por dentro las horas siguen siendo 'HH:MM' de 24
+   horas y no se tocan: así se arman las llaves de las reservas, así ordena
+   el horario y así se decide el cierre de las clases de la mañana. Cambiar
+   el formato guardado rompería todo eso. */
+function hora12(h) {
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(h || ''));
+  if (!m) return String(h || '');
+  const H = Number(m[1]);
+  return `${H % 12 === 0 ? 12 : H % 12}:${m[2]} ${H < 12 ? 'am' : 'pm'}`;
+}
+/* La misma hora partida, para la tarjeta que pinta el sufijo más chico */
+function hora12Partes(h) {
+  const t = hora12(h), i = t.lastIndexOf(' ');
+  return i < 0 ? { hora:t, suf:'' } : { hora:t.slice(0,i), suf:t.slice(i+1) };
+}
 
 /* El momento exacto en que cierra la inscripción, o null si la clase no
    tiene cierre anticipado (las de mediodía y tarde). */
@@ -4503,7 +4563,7 @@ function textoCierre(dateStr, hora) {
   const cuando = fmtISO(c) === hoyISO()
     ? 'hoy'
     : `el ${DIAS_ES[c.getDay()]} ${c.getDate()} ${MESES_ES[c.getMonth()]}`;
-  return `${cuando} a las ${CIERRE_HORA}:00`;
+  return `${cuando} a las ${CIERRE_TXT}`;
 }
 
 /* Slots del horario semanal + clases especiales de esa fecha */
@@ -4590,7 +4650,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-12.5';
+const BUILD = '2026-08-12.6';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -4836,7 +4896,7 @@ function alFila(c, pasada) {
     </div>
     <div class="al-clase-info">
       <div class="al-clase-nom">${info.emoji} ${info.nombre}</div>
-      <div class="al-clase-meta">${DIAS_ES[d.getDay()]} · ${c.hora} hrs${c.instructor ? ' · '+c.instructor : ''}</div>
+      <div class="al-clase-meta">${DIAS_ES[d.getDay()]} · ${hora12(c.hora)}${c.instructor ? ' · '+c.instructor : ''}</div>
     </div>
     <div class="al-clase-chips">
       ${c.lugar ? `<span class="al-chip-mat">Mat ${c.lugar}</span>` : ''}
@@ -5655,7 +5715,7 @@ function renderCards() {
       <div class="sc-band"></div>
       <div class="sc-body">
         <div class="sc-top">
-          <div class="sc-hora">${hora}<small>hrs</small></div>
+          <div class="sc-hora">${hora12Partes(hora).hora}<small>${hora12Partes(hora).suf}</small></div>
           <span class="sc-chip">${info.tag}</span>
         </div>
         <div class="sc-clase">
@@ -5687,8 +5747,8 @@ function openBooking(clase, dateStr, hora, instructor) {
   /* Candado por si la página quedó abierta desde antes de las 22:00 y el
      cierre pasó mientras tanto: la tarjeta se ve reservable pero ya no lo es. */
   if (inscripcionCerrada(dateStr, hora)) {
-    alert(`Las clases de antes de las ${HORA_TEMPRANA} se reservan hasta las ` +
-          `${CIERRE_HORA}:00 del día anterior, así tu coach sabe con quién cuenta.\n\n` +
+    alert(`Las clases de antes de las ${TEMPRANA_TXT} se reservan hasta las ` +
+          `${CIERRE_TXT} del día anterior, así tu coach sabe con quién cuenta.\n\n` +
           `Escríbenos por WhatsApp y vemos si todavía se puede ✧`);
     renderCards();
     return;
@@ -5705,7 +5765,7 @@ function openBooking(clase, dateStr, hora, instructor) {
   document.getElementById('mSelEmoji').textContent  = booking.gratis ? '🎁' : info.emoji;
   document.getElementById('mSelNombre').textContent = info.nombre + (booking.gratis ? ' · GRATIS' : '');
   document.getElementById('mSelDia').textContent    = `${diaStr} · ${instructor}`;
-  document.getElementById('mSelHora').textContent   = hora;
+  document.getElementById('mSelHora').textContent   = hora12(hora);
 
   ['mNombre','mEmail','mTel'].forEach(id => document.getElementById(id).value='');
   document.getElementById('mNivel').value = '';
@@ -5981,7 +6041,7 @@ function setupPago() {
 
   document.getElementById('psIcon').textContent   = info.emoji;
   document.getElementById('psNombre').textContent = info.nombre + (nClases > 1 ? ` · ${nClases} clases` : '');
-  document.getElementById('psDia').textContent    = `${diaStr} · ${hora} hrs${lugarTxt}${repTxt}`;
+  document.getElementById('psDia').textContent    = `${diaStr} · ${hora12(hora)}${lugarTxt}${repTxt}`;
   const precioReal = precioDe(clase, dateStr, hora) * nClases;
   document.getElementById('psPrice').textContent  = `${fmtC(precioReal)}`;
   document.getElementById('linkMonto').textContent = fmtC(precioReal);
@@ -6342,7 +6402,7 @@ async function proceedToConfirm() {
   /* El cierre de las clases de madrugada pudo caer mientras llenaba el
      formulario. Se revisa acá también: es el último punto antes de guardar. */
   if (inscripcionCerrada(dateStr, hora)) {
-    alert(`La inscripción de esta clase cerró a las ${CIERRE_HORA}:00 del día anterior. ` +
+    alert(`La inscripción de esta clase cerró a las ${CIERRE_TXT} del día anterior. ` +
           `Escríbenos por WhatsApp y vemos si todavía se puede ✧`);
     closeModal();
     renderCards();
@@ -6473,7 +6533,7 @@ async function proceedToConfirm() {
       Nivel: nivel || '—',
       Plan: planPend.nombre,
       Monto: fmtC(planPend.precio),
-      'Clase reservada': `${info.nombre} · ${diaStr} · ${hora} hrs${booking.lugar ? ' · Lugar ' + booking.lugar : ''}`,
+      'Clase reservada': `${info.nombre} · ${diaStr} · ${hora12(hora)}${booking.lugar ? ' · Lugar ' + booking.lugar : ''}`,
       Solicitado: new Date().toLocaleString('es-NI')
     });
   }
@@ -6498,14 +6558,14 @@ async function proceedToConfirm() {
   document.getElementById('confirmCard').innerHTML = `
     <div class="cr-row"><span class="cr-icon">${info.emoji}</span><span class="cr-text"><strong>${info.nombre}</strong></span></div>
     <div class="cr-row"><span class="cr-icon">📅</span><span class="cr-text">${diaStr}</span></div>
-    <div class="cr-row"><span class="cr-icon">⏰</span><span class="cr-text">${hora} hrs · ${montoTxt}</span></div>
+    <div class="cr-row"><span class="cr-icon">⏰</span><span class="cr-text">${hora12(hora)} · ${montoTxt}</span></div>
     ${booking.lugar ? `<div class="cr-row"><span class="cr-icon">📍</span><span class="cr-text">Lugar ${booking.lugar}</span></div>` : ''}
     ${repTxtLista ? `<div class="cr-row"><span class="cr-icon">🔁</span><span class="cr-text">También apartadas:<br/>${repTxtLista}</span></div>` : ''}
     <div class="cr-row"><span class="cr-icon">🎽</span><span class="cr-text">Instructora: ${instructor}</span></div>
     <div class="cr-row"><span class="cr-icon">👤</span><span class="cr-text">${nombre} · ${nivel}</span></div>
     <div class="cr-row"><span class="cr-icon">📱</span><span class="cr-text">${tel}</span></div>
     <div class="cr-row"><span class="cr-icon">💳</span><span class="cr-text">${metodoDtxt}</span></div>
-    ${notas ? `<div class="cr-row"><span class="cr-icon">📝</span><span class="cr-text">${notas}</span></div>` : ''}`;
+    ${notas ? `<div class="cr-row"><span class="cr-icon">📝</span><span class="cr-text">${escHtml(notas)}</span></div>` : ''}`;
 
   const notaWA = notas ? `📝 Notas: ${notas}\n` : '';
   const msg = encodeURIComponent(
@@ -6515,7 +6575,7 @@ async function proceedToConfirm() {
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
     `${info.emoji} Clase: ${info.nombre}\n` +
     `📅 Fecha: ${diaStr}\n` +
-    `⏰ Hora: ${hora} hrs\n` +
+    `⏰ Hora: ${hora12(hora)}\n` +
     (booking.lugar ? `📍 Lugar: ${booking.lugar}\n` : ``) +
     (repHechas.length
       ? `🔁 También apartadas:\n` +
@@ -6546,7 +6606,7 @@ async function proceedToConfirm() {
   document.getElementById('vouInstructor').textContent = `Instructora: ${instructor}`;
   document.getElementById('vouPrice').textContent      = montoTxt;
   document.getElementById('vouFecha').textContent      = diaStr;
-  document.getElementById('vouHora').textContent       = `${hora} hrs`;
+  document.getElementById('vouHora').textContent       = `${hora12(hora)}`;
   document.getElementById('vouNombre').textContent     = nombre;
   document.getElementById('vouEmail').textContent      = email;
   document.getElementById('vouTel').textContent        = tel;
@@ -6597,7 +6657,7 @@ function buildCapacityAlert(clase, dateStr, hora, libres) {
   const lista = clientes.map((c,i) =>
     `<div class="cap-item">
       <span class="cap-n">${i+1}.</span>
-      <span class="cap-nombre">${c.nombre}</span>
+      <span class="cap-nombre">${escHtml(c.nombre)}</span>
       <span class="cap-tel">${c.tel||c.email||'—'}</span>
     </div>`).join('');
 
@@ -6607,7 +6667,7 @@ function buildCapacityAlert(clase, dateStr, hora, libres) {
         <span>${titulo} · ${clientes.length}/${cuposDe(clase, dateStr, hora)} inscritas</span>
         <button class="cap-print-btn" onclick="printSlot('${clase}','${dateStr}','${hora}')">🖨 Imprimir</button>
       </div>
-      <p class="cap-alert-sub">${info.emoji} ${info.nombre} · ${diaStr} · ${hora} hrs</p>
+      <p class="cap-alert-sub">${info.emoji} ${info.nombre} · ${diaStr} · ${hora12(hora)}</p>
       <div class="cap-lista">${lista}</div>
     </div>`;
 }
@@ -6678,9 +6738,9 @@ function buildAdminContentMain() {
     const filas = clientes.map((c,i) => `
       <div class="adm-row">
         <span class="adm-num">${i+1}</span>
-        <span class="adm-name">${c.nombre||'—'}</span>
-        <span class="adm-tel">${c.tel||'—'}</span>
-        <span class="adm-nivel">${c.nivel||'—'}</span>
+        <span class="adm-name">${escHtml(c.nombre)||'—'}</span>
+        <span class="adm-tel">${escHtml(c.tel)||'—'}</span>
+        <span class="adm-nivel">${escHtml(c.nivel)||'—'}</span>
         <span class="adm-metodo">${(c.metodo||'—').replace('Transferencia BAC · ','BAC ')}</span>
       </div>`).join('');
 
@@ -6692,7 +6752,7 @@ function buildAdminContentMain() {
           <span class="adm-emoji">${info.emoji}</span>
           <div>
             <strong>${info.nombre}</strong>
-            <span>${diaStr} · ${hora} hrs</span>
+            <span>${diaStr} · ${hora12(hora)}</span>
           </div>
         </div>
         <div class="adm-slot-meta">
@@ -6714,12 +6774,12 @@ function printSlot(clase, dateStr, hora) {
   const filas    = clientes.map((c,i) => `
     <tr>
       <td>${i+1}</td>
-      <td><strong>${c.nombre||'—'}</strong></td>
-      <td>${c.tel||'—'}</td>
-      <td>${c.email||'—'}</td>
-      <td>${c.nivel||'—'}</td>
+      <td><strong>${escHtml(c.nombre)||'—'}</strong></td>
+      <td>${escHtml(c.tel)||'—'}</td>
+      <td>${escHtml(c.email)||'—'}</td>
+      <td>${escHtml(c.nivel)||'—'}</td>
       <td>${c.metodo||'—'}</td>
-      ${c.notas ? `<td>${c.notas}</td>` : '<td>—</td>'}
+      ${c.notas ? `<td>${escHtml(c.notas)}</td>` : '<td>—</td>'}
     </tr>`).join('');
 
   const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
@@ -6736,7 +6796,7 @@ function printSlot(clase, dateStr, hora) {
     @media print { body { padding:10px; } }
   </style></head><body>
   <h1>${info.emoji} ${info.nombre}</h1>
-  <p class="sub">${diaStr} · ${hora} hrs · ${clientes.length} / ${cuposDe(clase, dateStr, hora)} inscritas</p>
+  <p class="sub">${diaStr} · ${hora12(hora)} · ${clientes.length} / ${cuposDe(clase, dateStr, hora)} inscritas</p>
   <table>
     <tr><th>#</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Nivel</th><th>Pago</th><th>Notas</th></tr>
     ${filas}
@@ -6769,9 +6829,9 @@ function printAll() {
     const d      = new Date(dateStr+'T12:00:00');
     const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
     const filas  = clientes.map((c,i) =>
-      `<tr><td>${i+1}</td><td>${c.nombre||'—'}</td><td>${c.tel||'—'}</td><td>${c.nivel||'—'}</td><td>${c.metodo||'—'}</td></tr>`
+      `<tr><td>${i+1}</td><td>${escHtml(c.nombre)||'—'}</td><td>${escHtml(c.tel)||'—'}</td><td>${escHtml(c.nivel)||'—'}</td><td>${c.metodo||'—'}</td></tr>`
     ).join('');
-    return `<h3>${info.emoji} ${info.nombre} · ${diaStr} · ${hora} hrs</h3>
+    return `<h3>${info.emoji} ${info.nombre} · ${diaStr} · ${hora12(hora)}</h3>
       <p style="font-size:.78rem;color:#9A8880;margin-bottom:8px">${clientes.length}/${cuposDe(clase, dateStr, hora)} inscritas</p>
       <table><tr><th>#</th><th>Nombre</th><th>Teléfono</th><th>Nivel</th><th>Pago</th></tr>${filas}</table>
       <br>`;
@@ -6803,7 +6863,7 @@ function downloadVoucher() {
   if (!b || !b.confirmNum) return;
 
   const notasRow = b.notas
-    ? `<tr><td class="lbl">Notas</td><td>${b.notas}</td></tr>`
+    ? `<tr><td class="lbl">Notas</td><td>${escHtml(b.notas)}</td></tr>`
     : '';
 
   const subBlock = b.subAlerta ? `
@@ -6862,12 +6922,12 @@ function downloadVoucher() {
     <div class="body">
       <table>
         <tr><td class="lbl">📅 Fecha</td><td><strong>${b.diaStr}</strong></td></tr>
-        <tr><td class="lbl">⏰ Hora</td><td>${b.hora} hrs</td></tr>
+        <tr><td class="lbl">⏰ Hora</td><td>${hora12(b.hora)}</td></tr>
         ${b.lugar ? `<tr><td class="lbl">📍 Lugar</td><td><strong>Mat ${b.lugar}</strong></td></tr>` : ''}
-        <tr><td class="lbl">👤 Cliente</td><td>${b.nombre}</td></tr>
-        <tr><td class="lbl">📧 Email</td><td>${b.email}</td></tr>
-        <tr><td class="lbl">📱 Teléfono</td><td>${b.tel||'—'}</td></tr>
-        <tr><td class="lbl">🎯 Nivel</td><td>${b.nivel||'—'}</td></tr>
+        <tr><td class="lbl">👤 Cliente</td><td>${escHtml(b.nombre)}</td></tr>
+        <tr><td class="lbl">📧 Email</td><td>${escHtml(b.email)}</td></tr>
+        <tr><td class="lbl">📱 Teléfono</td><td>${escHtml(b.tel)||'—'}</td></tr>
+        <tr><td class="lbl">🎯 Nivel</td><td>${escHtml(b.nivel)||'—'}</td></tr>
         <tr><td class="lbl">💳 Pago</td><td><span class="badge">${b.metodo}</span></td></tr>
         ${subBlock}
         ${notasRow}
@@ -7104,11 +7164,12 @@ function buildSAdminHoy() {
 
       return `<div class="sa-alumna-row">
         <div class="sa-alumna-info">
-          <div class="sa-alumna-nombre">${c.nombre} ${c.lugar ? `<span class="sa-lugar-badge">📍 ${c.lugar}</span>` : ''}</div>
-          <div class="sa-alumna-email">${c.email||'—'}</div>
+          <div class="sa-alumna-nombre">${escHtml(c.nombre)} ${c.lugar ? `<span class="sa-lugar-badge">📍 ${c.lugar}</span>` : ''}</div>
+          <div class="sa-alumna-email">${escHtml(c.email)||'—'}</div>
           <div class="sa-alumna-sub">${c.pagoOk === false ? '🏦 ⏳ pago por confirmar' : esSub ? (c.claseDescontada ? '💎 Suscriptora · clase ya descontada' : '💎 Suscriptora') : (sub && sub.pendiente) ? '⏳ Sub pendiente de pago' : (c.metodo||'—').split('·')[0].trim()}</div>
+          ${notaAlumnaHtml(c)}
         </div>
-        <span class="sa-alumna-tel">${c.tel||'—'}</span>
+        <span class="sa-alumna-tel">${escHtml(c.tel)||'—'}</span>
         ${esSub
           ? `<span class="sa-cupos-left ${cuposCls}">${cupos >= 1000 ? '∞' : cupos} clases</span>`
           : `<span></span>`}
@@ -7131,7 +7192,7 @@ function buildSAdminHoy() {
         <span>${esEsp ? '🎁' : info.emoji}</span>
         <strong>${info.nombre}${esEsp ? ' <span class="tipo-chip tipo-unica">GRATIS</span>' : ''}</strong>
         <div class="sa-clase-meta">
-          ${instructor} · ${hora} hrs
+          ${instructor} · ${hora12(hora)}
           <div class="sa-ocup-wrap">
             <div class="sa-ocup-track"><div class="sa-ocup-fill ${ocupCls}" style="width:${pct}%"></div></div>
             <span class="sa-ocup-pct">${clientes.length}/${cuposCl}</span>
@@ -7322,9 +7383,9 @@ function buildPendPagoHtml() {
     return `<div class="sa-pend-card pc-unica"${vencida ? ' style="opacity:.72"' : ''}>
       <div class="sa-pend-info">
         <span class="tipo-chip tipo-unica">🏦 TRANSFERENCIA · ${fmtC(precioDe(c.clase, c.dateStr, c.hora))}${vencida ? ' · ⚠ CLASE YA PASÓ' : ''}</span>
-        <strong>${c.nombre||'—'}</strong>
-        <span>${c.email||'—'} · ${c.tel||'—'}</span>
-        <span class="sa-pend-plan">${info.emoji} ${info.nombre} · ${diaStr} · ${c.hora} hrs${c.lugar ? ` · Lugar ${c.lugar}` : ''}</span>
+        <strong>${escHtml(c.nombre)||'—'}</strong>
+        <span>${escHtml(c.email)||'—'} · ${escHtml(c.tel)||'—'}</span>
+        <span class="sa-pend-plan">${info.emoji} ${info.nombre} · ${diaStr} · ${hora12(c.hora)}${c.lugar ? ` · Lugar ${c.lugar}` : ''}</span>
       </div>
       <div class="sa-pend-btns">
         <button class="btn-pend-ok" onclick="confirmarPagoReserva('${c.clase}','${c.dateStr}','${c.hora}',${c.ts})">✓ Confirmar pago</button>
@@ -7397,7 +7458,7 @@ function comprobanteReserva(clase, dateStr, hora, ts) {
   printComprobante('Comprobante de reserva', [
     ['Clase', `${info.emoji} ${info.nombre}`],
     ['Fecha', `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]} ${d.getFullYear()}`],
-    ['Hora', hora + ' hrs'],
+    ['Hora', hora12(hora)],
     ...(c.lugar ? [['Lugar', c.lugar]] : []),
     ['Alumna', c.nombre || '—'],
     ['Teléfono', c.tel || '—'],
@@ -7435,14 +7496,29 @@ function esIlimitada(sub) {
 
 /* ── Solicitudes pendientes de confirmación de pago ──
    Bloque compartido: se muestra en la pestaña Hoy y en Suscriptoras */
+/* ── Lo que la alumna escribió al reservar ───────────────────────────
+   El formulario pide "lesiones, condiciones de salud, expectativas… para
+   compartir con tu instructora", pero esa nota solo salía en la lista
+   impresa y en el comprobante: en el panel no se veía, y las coaches —que
+   son justamente para quienes está escrita— nunca se enteraban.
+
+   Va junto al nombre, en las dos vistas donde la coach pasa lista. El nivel
+   se muestra al lado porque "Primera vez" cambia cómo se da la clase. */
+function notaAlumnaHtml(c) {
+  const nivel = (c.nivel || '').trim();
+  const nota  = (c.notas || '').trim();
+  if (!nivel && !nota) return '';
+  return `${nivel ? `<span class="sa-nivel-chip">${escHtml(nivel)}</span>` : ''}
+    ${nota ? `<div class="sa-alumna-nota" title="Lo que escribió al reservar">📝 ${escHtml(nota)}</div>` : ''}`;
+}
+
 /* Los dos botones de pasar lista, o el estado si ya se marcó.
    Ninguna de las dos marcas toca el saldo de la alumna: la clase se descuenta
    al RESERVAR, así que "no llegó" la deja con su plan y sus clases igual que
    estaban — solo queda el registro de que no llegó. Tocar el estado lo deshace,
    por si se apretó el botón equivocado. */
 function botonesAsistencia(estado, c, clase, dateStr, hora) {
-  const esc  = s => String(s || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  const args = `'${esc(c.email)}','${clase}','${dateStr}','${hora}','${esc(c.nombre)}'`;
+  const args = `'${escArg(c.email)}','${clase}','${dateStr}','${hora}','${escArg(c.nombre)}'`;
 
   if (estado === 'si') return `<button class="sa-asist-chip chip-si"
       title="Tocá para quitar la marca" onclick="deshacerAsistencia(${args})">✓ Asistió</button>`;
@@ -7493,7 +7569,7 @@ function buildMadrugadaHtml() {
       : `<span class="sa-madru-estado abierta">Cierra ${textoCierre(f.ds, f.hora)} · falta${MIN_TEMPRANA - f.n === 1 ? '' : 'n'} ${MIN_TEMPRANA - f.n}</span>`;
     return `<div class="sa-madru-card ${f.cerrada ? 'mc-cerrada' : 'mc-abierta'}">
       <div class="sa-madru-info">
-        <strong>${info.emoji} ${info.nombre} · ${f.hora} hrs</strong>
+        <strong>${info.emoji} ${info.nombre} · ${hora12(f.hora)}</strong>
         <span>${dia}${f.instructor ? ' · ' + f.instructor : ''}</span>
         ${estado}
       </div>
@@ -7509,8 +7585,8 @@ function buildMadrugadaHtml() {
   return `<div class="sa-madru-blk${hayCerradas ? ' tiene-cerradas' : ''}">
     <div class="sa-pend-title">🌅 Clases de la mañana sin el mínimo (${filas.length})</div>
     <div class="sa-pend-hint">
-      Las clases de antes de las ${HORA_TEMPRANA} necesitan ${MIN_TEMPRANA} alumnas y se
-      reservan hasta las ${CIERRE_HORA}:00 del día anterior.
+      Las clases de antes de las ${TEMPRANA_TXT} necesitan ${MIN_TEMPRANA} alumnas y se
+      reservan hasta las ${CIERRE_TXT} del día anterior.
       ${esCoach
         ? 'Si al cerrar sigue sin llegar al mínimo, el estudio decide si se da.'
         : 'Las que todavía no cierran pueden llenarse. Si cancelás, se libera la reserva de quien esté inscrita y se le devuelve la clase a su paquete — pero avisale vos.'}
@@ -7530,13 +7606,13 @@ function buildPendientesHtml() {
     return `<div class="sa-pend-card ${esUnica ? 'pc-unica' : 'pc-paquete'}">
       <div class="sa-pend-info">
         <span class="tipo-chip ${esUnica ? 'tipo-unica' : 'tipo-paquete'}">${esUnica ? '🎟 CLASE ÚNICA · ' + fmtC(pd.precio) : '💎 PAQUETE · ' + pd.clases + ' CLASES · ' + fmtC(pd.precio)}</span>
-        <strong>${s.nombre}</strong>
-        <span>${s.email} · ${s.tel||'—'}</span>
+        <strong>${escHtml(s.nombre)}</strong>
+        <span>${escHtml(s.email)} · ${escHtml(s.tel)||'—'}</span>
         <span class="sa-pend-plan">${pd.nombre} · <strong>${fmtC(pd.precio)}</strong> · solicitado ${s.pendiente.fecha}</span>
       </div>
       <div class="sa-pend-btns">
-        <button class="btn-pend-ok" onclick="confirmarPagoSub('${s.email}')">${esUnica ? '✓ Aceptar pago' : '✓ Confirmar pago'}</button>
-        <button class="btn-pend-no" onclick="rechazarPagoSub('${s.email}')">✕ Rechazar</button>
+        <button class="btn-pend-ok" onclick="confirmarPagoSub('${escArg(s.email)}')">${esUnica ? '✓ Aceptar pago' : '✓ Confirmar pago'}</button>
+        <button class="btn-pend-no" onclick="rechazarPagoSub('${escArg(s.email)}')">✕ Rechazar</button>
       </div>
     </div>`;
   };
@@ -7631,7 +7707,7 @@ function buildSAdminSubs() {
       return `<div class="sa-hist-row${h.no ? ' hist-nollego' : ''}">
         <span>${h.no ? '✕' : inf.emoji} ${inf.nombre}${h.no ? ' · no llegó' : ''}</span>
         <span>${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}</span>
-        <span>${h.hora} hrs</span>
+        <span>${hora12(h.hora)}</span>
       </div>`;
     }).join('') || '<div style="color:var(--gray);font-size:.74rem;padding:6px 0">Sin asistencias aún</div>';
 
@@ -7645,9 +7721,9 @@ function buildSAdminSubs() {
       <div class="sa-sub-card-hd">
         <div class="sa-sub-avatar">${initials}</div>
         <div class="sa-sub-card-info">
-          <strong>${sub.nombre}</strong>
+          <strong>${escHtml(sub.nombre)}</strong>
           <span>${esFichaSinReclamar(sub) ? '<em style="color:var(--gray)">📇 cargada a mano · se enlaza al registrarse</em>' : sub.email}</span>
-          <span class="sa-sub-tel">${sub.tel||'Sin teléfono'}</span>
+          <span class="sa-sub-tel">${escHtml(sub.tel)||'Sin teléfono'}</span>
         </div>
         <div class="sa-sub-card-meta">
           <div><span class="tipo-chip ${esUnica ? 'tipo-unica' : 'tipo-paquete'}">${esUnica ? '🎟 Clase única' : '💎 Paquete'}</span> <span class="sa-sub-plan-tag">${plan.nombre}</span>${sub.pendiente ? ' <span class="sa-pend-chip">⏳ pendiente</span>' : ''}${vencida ? ' <span class="sa-pend-chip" style="background:rgba(220,53,69,.14);color:#842029">⚠ vencida</span>' : ''}</div>
@@ -7674,19 +7750,19 @@ function buildSAdminSubs() {
       </div>
       <div class="sa-sub-actions">
         <button class="btn-sa-agendar" onclick="toggleAgendarSub(this)">📅 Agendar ▾</button>
-        <button class="btn-sa-renovar" onclick="renovarSub('${sub.email}')">⟳ Renovar plan</button>
-        <button class="btn-sa-historial" onclick="editarDatosSub('${sub.email}')">✏️ Editar datos</button>
-        ${ilim ? '' : `<button class="btn-sa-historial" onclick="ajustarClases('${sub.email}')">✏️ Corregir clases</button>`}
-        <button class="btn-sa-historial" onclick="comprobanteSub('${sub.email}')">📄 Comprobante</button>
+        <button class="btn-sa-renovar" onclick="renovarSub('${escArg(sub.email)}')">⟳ Renovar plan</button>
+        <button class="btn-sa-historial" onclick="editarDatosSub('${escArg(sub.email)}')">✏️ Editar datos</button>
+        ${ilim ? '' : `<button class="btn-sa-historial" onclick="ajustarClases('${escArg(sub.email)}')">✏️ Corregir clases</button>`}
+        <button class="btn-sa-historial" onclick="comprobanteSub('${escArg(sub.email)}')">📄 Comprobante</button>
         <button class="btn-sa-historial" onclick="toggleHistSub(this)">Historial ▾</button>
-        <button class="btn-sa-del" onclick="eliminarSub('${sub.email}')">🗑 Eliminar</button>
+        <button class="btn-sa-del" onclick="eliminarSub('${escArg(sub.email)}')">🗑 Eliminar</button>
       </div>
       <div class="sa-agendar-panel">
         <p class="agp-title">Agendar a ${sub.nombre.split(' ')[0]} en una clase:</p>
         <div class="agp-row">
           <input type="date" id="agpFecha_${si}" class="agp-inp" min="${fmtISO(new Date())}" onchange="agpLoadSlots(${si})"/>
           <select id="agpSlot_${si}" class="agp-sel" onchange="agpMats(${si})"><option value="">Elige una fecha</option></select>
-          <button class="btn-agp" onclick="agpConfirm(${si},'${sub.email}')">Agendar →</button>
+          <button class="btn-agp" onclick="agpConfirm(${si},'${escArg(sub.email)}')">Agendar →</button>
         </div>
         <div class="agm-wrap" id="agpMats_${si}"></div>
       </div>
@@ -8036,7 +8112,7 @@ function agpLoadSlots(i) {
     const ocup = getClientes(s.clase, fecha, s.hora).length;
     const full = ocup >= cupo;
     return `<option value="${s.clase}|${s.hora}|${s.instructor}" ${full?'disabled':''}>
-      ${info.emoji} ${info.nombre} · ${s.hora} hrs · ${s.instructor} (${ocup}/${cupo}${full?' LLENA':''})
+      ${info.emoji} ${info.nombre} · ${hora12(s.hora)} · ${s.instructor} (${ocup}/${cupo}${full?' LLENA':''})
     </option>`;
   }).join('');
   /* Al cambiar de fecha, los mats de la clase anterior ya no valen */
@@ -8051,7 +8127,7 @@ async function agpConfirm(i, email) {
   const mat = matSel[`agpMats_${i}`];
   if (await agendarSubAClase(email, clase, fecha, hora, instructor, mat)) {
     const d = new Date(fecha+'T12:00:00');
-    alert(`✅ Agendada para ${INFO[clase].nombre} · ${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]} · ${hora} hrs${mat ? ` · Mat ${mat}` : ''}`);
+    alert(`✅ Agendada para ${INFO[clase].nombre} · ${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]} · ${hora12(hora)}${mat ? ` · Mat ${mat}` : ''}`);
     buildSAdminSubs();
   }
 }
@@ -8109,8 +8185,9 @@ function buildCoachSemana() {
         const estadoA = estadoAsistencia(clase, ds, hora, c.email);
         return `<div class="sa-alumna-row">
           <div class="sa-alumna-info">
-            <div class="sa-alumna-nombre">${c.nombre} ${c.lugar ? `<span class="sa-lugar-badge">📍 ${c.lugar}</span>` : ''}</div>
+            <div class="sa-alumna-nombre">${escHtml(c.nombre)} ${c.lugar ? `<span class="sa-lugar-badge">📍 ${c.lugar}</span>` : ''}</div>
             <div class="sa-alumna-email">${c.tel || c.email || '—'}</div>
+            ${notaAlumnaHtml(c)}
           </div>
           <span class="sa-alumna-tel">${esSub ? '💎' : ''}</span>
           <span></span>
@@ -8126,7 +8203,7 @@ function buildCoachSemana() {
       return `<div class="sa-clase-blk">
         <div class="sa-clase-hd">
           <span>${info.emoji}</span><strong>${info.nombre}</strong>
-          <span class="sa-clase-meta">${hora} hrs · ${clientes.length}/${cupos}</span>
+          <span class="sa-clase-meta">${hora12(hora)} · ${clientes.length}/${cupos}</span>
         </div>
         ${filas}
       </div>`;
@@ -8232,10 +8309,10 @@ function sadminVerDia(dateStr, el) {
     const filas    = clientes.map(c => `
       <div class="sa-alumna-row">
         <div class="sa-alumna-info">
-          <div class="sa-alumna-nombre">${c.nombre} ${c.lugar ? `<span class="sa-lugar-badge">📍 ${c.lugar}</span>` : ''}</div>
-          <div class="sa-alumna-email">${c.email||'—'}</div>
+          <div class="sa-alumna-nombre">${escHtml(c.nombre)} ${c.lugar ? `<span class="sa-lugar-badge">📍 ${c.lugar}</span>` : ''}</div>
+          <div class="sa-alumna-email">${escHtml(c.email)||'—'}</div>
         </div>
-        <span class="sa-alumna-tel">${c.tel||'—'}</span>
+        <span class="sa-alumna-tel">${escHtml(c.tel)||'—'}</span>
         <span style="font-size:.7rem;color:var(--gray)">${(c.metodo||'').split('·')[0].trim()}</span>
         <span></span>
         <button class="btn-sa-alumna-del" title="Eliminar reserva" onclick="eliminarReserva('${clase}','${dateStr}','${hora}',${c.ts},'cal')">🗑</button>
@@ -8247,7 +8324,7 @@ function sadminVerDia(dateStr, el) {
       <div class="sa-agendar-inline">
         <select id="calAg_${idx}" class="agp-sel" onchange="calMats(${idx},'${clase}','${dateStr}','${hora}')">
           <option value="">+ Agendar suscriptora…</option>
-          ${subs.map(s => `<option value="${s.email}">${s.nombre} (${s.clasesRestantes >= 1000 ? '∞' : s.clasesRestantes} clases)</option>`).join('')}
+          ${subs.map(s => `<option value="${escHtml(s.email)}">${escHtml(s.nombre)} (${s.clasesRestantes >= 1000 ? '∞' : s.clasesRestantes} clases)</option>`).join('')}
         </select>
         <button class="btn-agp" ${llena?'disabled':''} onclick="calAgendar('${clase}','${dateStr}','${hora}','${instructor}','calAg_${idx}','calMats_${idx}')">${llena?'Llena':'Agendar →'}</button>
         <div class="agm-wrap" id="calMats_${idx}"></div>
@@ -8255,7 +8332,7 @@ function sadminVerDia(dateStr, el) {
     return `<div class="sa-clase-blk">
       <div class="sa-clase-hd">
         <span>${esEsp ? '🎁' : info.emoji}</span><strong>${info.nombre}${esEsp ? ' <span class="tipo-chip tipo-unica">GRATIS</span>' : ''}</strong>
-        <span class="sa-clase-meta">${instructor} · ${hora} hrs · ${clientes.length}/${cuposCl}</span>
+        <span class="sa-clase-meta">${instructor} · ${hora12(hora)} · ${clientes.length}/${cuposCl}</span>
       </div>${filas}${agendarRow}</div>`;
   }).join('');
 
@@ -8839,14 +8916,14 @@ function printReporteClase(clase) {
       const t = repTipoSub(c);
       return `<tr>
         <td>${i+1}</td>
-        <td><strong>${c.nombre||'—'}</strong></td>
-        <td>${c.tel||'—'}</td>
-        <td>${c.email||'—'}</td>
-        <td>${c.nivel||'—'}</td>
+        <td><strong>${escHtml(c.nombre)||'—'}</strong></td>
+        <td>${escHtml(c.tel)||'—'}</td>
+        <td>${escHtml(c.email)||'—'}</td>
+        <td>${escHtml(c.nivel)||'—'}</td>
         <td>${t.esSub?'💎 ':''}${t.label}</td>
       </tr>`;
     }).join('');
-    return `<h3>${diaStr} · ${hora} hrs · ${ses[id].length}/${cuposDe(clase, dateStr, hora)} asistentes</h3>
+    return `<h3>${diaStr} · ${hora12(hora)} · ${ses[id].length}/${cuposDe(clase, dateStr, hora)} asistentes</h3>
       <table>
         <tr><th>#</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Nivel</th><th>Tipo de suscripción</th></tr>
         ${filas}
@@ -9016,7 +9093,7 @@ function buildEspecialesHtml() {
     return `<div class="hor-esp-card${pasada ? ' esp-pasada' : ''}">
       <div class="hor-esp-info">
         <strong>${info.emoji} ${e.titulo || info.nombre}</strong>
-        <span>${diaStr} · ${e.hora} hrs · ${e.instructor || 'sin instructora'} · ${ocup}/${e.cupos} cupos
+        <span>${diaStr} · ${hora12(e.hora)} · ${e.instructor || 'sin instructora'} · ${ocup}/${e.cupos} cupos
           · ${e.precio === 0 ? '🎁 Gratis' : fmtC(e.precio)}${pasada ? ' · ⚠ ya pasó' : ''}</span>
         <code class="hor-esp-link" id="espLink_${e.id}">${espLink(e.id)}</code>
       </div>
@@ -9086,7 +9163,7 @@ function buildCanceladasHtml() {
       const fecha = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
       return `<div class="hor-esp-card">
         <div class="hor-esp-info">
-          <strong>${info.emoji} ${info.nombre} · ${c.hora} hrs</strong>
+          <strong>${info.emoji} ${info.nombre} · ${hora12(c.hora)}</strong>
           <span>${fecha}${c.motivo ? ' · ' + c.motivo : ''}</span>
         </div>
         <div class="hor-esp-btns">
@@ -9131,7 +9208,7 @@ function canLoadSlots() {
     const info = INFO[s.clase];
     const n    = getClientes(s.clase, fecha, s.hora).length;
     return `<option value="${s.clase}|${s.hora}">
-      ${info.emoji} ${info.nombre} · ${s.hora} hrs${n ? ` · ${n} inscrita(s)` : ''}
+      ${info.emoji} ${info.nombre} · ${hora12(s.hora)}${n ? ` · ${n} inscrita(s)` : ''}
     </option>`;
   }).join('');
 }
@@ -9157,7 +9234,7 @@ async function cancelarSesion(clase, fecha, hora, motivo) {
   const info     = INFO[clase];
   const clientes = getClientes(clase, fecha, hora);
   const d        = new Date(fecha+'T12:00:00');
-  const cuando   = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]} · ${hora} hrs`;
+  const cuando   = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]} · ${hora12(hora)}`;
 
   /* Si ya hay alumnas inscritas hay que avisarles: el sistema no manda
      mensajes, así que se listan para que el estudio las contacte. */
@@ -9210,7 +9287,7 @@ async function reactivarClase(id) {
   if (!c) return;
   const info = INFO[c.clase] || { nombre:c.clase };
   const d    = new Date(c.dateStr+'T12:00:00');
-  if (!confirm(`¿Volver a poner ${info.nombre} el ${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]} · ${c.hora} hrs?`)) return;
+  if (!confirm(`¿Volver a poner ${info.nombre} el ${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]} · ${hora12(c.hora)}?`)) return;
   if (await reactivarClaseDB(id)) { sadminTab('horarios'); }
 }
 
@@ -9384,7 +9461,7 @@ function buildAdminContent(customContainer) {
     sec.innerHTML = `
       <div class="adm-slot-hd">
         <div class="adm-slot-info"><span class="adm-emoji">${info.emoji}</span>
-          <div><strong>${info.nombre}</strong><span>${diaStr} · ${hora} hrs</span></div>
+          <div><strong>${info.nombre}</strong><span>${diaStr} · ${hora12(hora)}</span></div>
         </div>
         <div class="adm-slot-meta">
           <span class="adm-cupos ${libres<=2?'adm-alerta':libres<=3?'adm-aviso':''}">${clientes.length}/${cuposCl}</span>
@@ -9395,9 +9472,9 @@ function buildAdminContent(customContainer) {
       <div class="adm-rows">${clientes.map((c,i)=>`
         <div class="adm-row">
           <span class="adm-num">${i+1}</span>
-          <span class="adm-name">${c.nombre||'—'}</span>
-          <span class="adm-tel">${c.tel||'—'}</span>
-          <span class="adm-nivel">${c.nivel||'—'}</span>
+          <span class="adm-name">${escHtml(c.nombre)||'—'}</span>
+          <span class="adm-tel">${escHtml(c.tel)||'—'}</span>
+          <span class="adm-nivel">${escHtml(c.nivel)||'—'}</span>
           <span class="adm-metodo">${(c.metodo||'—').replace('Transferencia BAC · ','BAC ')}</span>
         </div>`).join('')}</div>`;
     body.appendChild(sec);
@@ -9565,7 +9642,7 @@ function renderEventosPublic() {
         </div>
         <div>
           <div class="ev-band-tit">${ev.emoji||'✧'} ${ev.titulo}</div>
-          <div class="ev-band-sub">${DIAS_ES[d.getDay()]} · ${ev.hora} hrs</div>
+          <div class="ev-band-sub">${DIAS_ES[d.getDay()]} · ${hora12(ev.hora)}</div>
         </div>
       </div>
       <div class="ev-body">
@@ -9573,7 +9650,7 @@ function renderEventosPublic() {
         <div class="ev-meta">
           <span class="ev-chip">${ev.precio > 0 ? fmtC(ev.precio) : 'Gratis'}</span>
           ${ev.cupos ? `<span class="ev-chip">👥 ${ev.cupos} cupos</span>` : ''}
-          <span class="ev-chip">⏰ ${ev.hora} hrs</span>
+          <span class="ev-chip">⏰ ${hora12(ev.hora)}</span>
         </div>
         <a class="btn-ev" href="https://wa.me/${WA}?text=${msgWA}" target="_blank">Reservar mi cupo →</a>
       </div>
