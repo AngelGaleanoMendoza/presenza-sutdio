@@ -579,33 +579,10 @@ nav.scrolled .hamburger span { background:var(--wine); }
 .galeria-ig a:hover { color:var(--blush); }
 
 /* ── RESERVA Y PAGO ── */
-.reserva {
-  padding:112px 52px;
-  background:linear-gradient(140deg, var(--wine-d) 0%, var(--wine) 60%, #8B2035 100%);
-  position:relative; overflow:hidden;
-}
-.reserva::before {
-  content:'✧'; position:absolute; right:-60px; top:50%;
-  transform:translateY(-50%) rotate(12deg);
-  font-size:32rem; opacity:.025; pointer-events:none; line-height:1; color:white;
-}
 .reserva-inner { max-width:900px; margin:0 auto; text-align:center; position:relative; z-index:1; }
 .reserva-inner .section-tag { justify-content:center; color:var(--blush); }
 .reserva-inner .section-title { color:var(--wine-d); }
 .reserva-inner .section-body { color:var(--gray); max-width:480px; margin:0 auto 40px; }
-.reserva-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-bottom:44px; }
-.reserva-step {
-  background:rgba(255,251,248,.08); border:1px solid rgba(255,251,248,.14);
-  border-radius:16px; padding:24px 18px; text-align:center; transition:all .3s;
-}
-.reserva-step:hover { background:rgba(255,251,248,.14); transform:translateY(-4px); }
-.step-num {
-  width:36px; height:36px; border-radius:50%; background:var(--blush); color:white;
-  font-family:'Playfair Display',serif; font-size:1rem; font-weight:900;
-  display:flex; align-items:center; justify-content:center; margin:0 auto 12px;
-}
-.step-title { font-family:'Playfair Display',serif; font-size:.95rem; font-weight:700; color:var(--cream); margin-bottom:6px; }
-.step-desc { font-size:.78rem; color:rgba(255,251,248,.55); line-height:1.6; }
 .pago-box {
   background:rgba(255,251,248,.07); border:1px solid rgba(255,251,248,.18);
   border-radius:20px; padding:28px 32px; margin-bottom:36px; text-align:left;
@@ -742,26 +719,6 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   .fb-wrap  { margin-bottom:34px; }
   .fb-row   { gap:13px 22px; }
   .fb-link  { font-size:.94rem; }
-}
-
-/* ── STATS BAR ── */
-.stats { background:var(--wine-d); padding:38px 52px; }
-.stats-inner {
-  max-width:900px; margin:0 auto;
-  display:grid; grid-template-columns:repeat(4,1fr);
-}
-.stat-item {
-  text-align:center; padding:0 24px;
-  border-right:1px solid rgba(255,251,248,.1);
-}
-.stat-item:last-child { border-right:none; }
-.stat-num {
-  font-family:'Playfair Display',serif; font-size:2.6rem; font-weight:900;
-  color:var(--cream); display:block; line-height:1;
-}
-.stat-lbl {
-  font-size:.66rem; color:rgba(245,237,227,.42);
-  text-transform:uppercase; letter-spacing:2px; margin-top:6px; display:block;
 }
 
 /* ── EQUIPO ── */
@@ -1040,18 +997,12 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   .gallery-grid { grid-template-columns:repeat(2,1fr); }
   .g-item:nth-child(1) { grid-column:span 2; }
   .footer-top { grid-template-columns:1fr 1fr; gap:36px; }
-  .reserva-steps { grid-template-columns:1fr; max-width:400px; margin:0 auto 44px; }
   .pago-box { grid-template-columns:1fr; text-align:center; }
   .definicion,.clases,.salones,.filosofia,.carrusel,.reserva,.ubicacion,.equipo,.pagos,.nosotros,.experiencia { padding:76px 28px; }
   .nos-grid { grid-template-columns:1fr; gap:40px; }
   .exp-grid { grid-template-columns:1fr; max-width:480px; margin:0 auto; }
   .car-header { padding:60px 28px 36px; }
   footer { padding:48px 28px 24px; }
-  .stats { padding:28px 24px; }
-  .stats-inner { grid-template-columns:repeat(2,1fr); gap:20px; }
-  .stat-item { border-right:none; border-bottom:1px solid rgba(255,251,248,.1); padding-bottom:16px; }
-  .stat-item:nth-child(2n) { border-right:none; }
-  .stat-item:nth-child(3),.stat-item:nth-child(4) { border-bottom:none; }
   .equipo-grid { grid-template-columns:1fr 1fr; gap:16px; }
   .pagos-grid { grid-template-columns:1fr; max-width:480px; margin:0 auto 36px; }
   .car-track { gap:20px; padding:18px 32px 8px; }
@@ -1068,7 +1019,6 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   .filo-imgs { grid-template-columns:1fr 1fr; gap:12px; }
   .filo-img:last-child { margin-top:30px; }
   .equipo-grid { grid-template-columns:1fr 1fr; max-width:100%; gap:12px; }
-  .stats-inner { grid-template-columns:repeat(2,1fr); }
   .car-track { gap:16px; padding:14px 24px 6px; }
   .gal-card { width:68vw; }
   .gal-card:nth-child(even) { transform:translateY(14px); }
@@ -2992,27 +2942,45 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   </div>
 </div>
 
-<!-- ═══ STATS ═══ -->
-<div class="stats">
-  <div class="stats-inner">
-    <div class="stat-item r">
-      <span class="stat-num" data-count="250" data-suffix="+">0+</span>
-      <span class="stat-lbl">Alumnas activas</span>
+<!-- ═══ NUESTROS HORARIOS — RESERVA SEMANAL ═══ -->
+<section class="reserva" id="reserva">
+  <div class="reserva-inner">
+
+    <div class="reserva-header">
+      <p class="section-tag r">nuestros horarios</p>
+      <h2 class="section-title r">Elige tu clase,<br/><em>elige tu momento</em></h2>
+      <p class="section-body r d1">
+        Selecciona el día y la clase que quieras. Los cupos disponibles
+        se muestran en tiempo real.
+      </p>
     </div>
-    <div class="stat-item r d1">
-      <span class="stat-num" data-count="3" data-suffix="">0</span>
-      <span class="stat-lbl">Disciplinas</span>
+
+    <!-- periodo reservable (un mes corrido) -->
+    <div class="sched-nav r">
+      <div class="sched-nav-btn" onclick="schedWeek(-1)">‹</div>
+      <span id="schedWeekLabel"></span>
+      <div class="sched-nav-btn" onclick="schedWeek(1)">›</div>
     </div>
-    <div class="stat-item r d2">
-      <span class="stat-num" data-count="18" data-suffix="">0</span>
-      <span class="stat-lbl">Clases por semana</span>
+
+    <!-- tabs de día: el mes completo, se desliza de lado -->
+    <div class="sched-day-tabs r" id="schedDayTabs"></div>
+    <p class="sched-mes-hint r">Desliza para ver todo el mes · puedes apartar tu horario fijo de varias semanas</p>
+
+    <!-- cards de clases -->
+    <div class="sched-classes" id="schedClasses"></div>
+
+    <!-- leyenda -->
+    <div class="sched-legend r d2">
+      <div class="legend-item"><span class="leg-dot burn"></span>Barre Burn</div>
+      <div class="legend-item"><span class="leg-dot essenza"></span>Barre Essenza</div>
+      <div class="legend-item"><span class="leg-dot pilates"></span>Presenza Sculpt</div>
+      <div class="legend-item"><span class="leg-dot yoga"></span>Unwind Yoga</div>
     </div>
-    <div class="stat-item r d3">
-      <span class="stat-num" data-count="1" data-suffix="">0</span>
-      <span class="stat-lbl">Salón</span>
-    </div>
+
   </div>
-</div>
+</section>
+
+<div class="sep"><span class="sep-dot"></span></div>
 
 <!-- ═══ DEFINICIÓN ═══ -->
 <section class="definicion">
@@ -3520,46 +3488,6 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 
 <div class="sep"><span class="sep-dot"></span></div>
 
-<!-- ═══ NUESTROS HORARIOS — RESERVA SEMANAL ═══ -->
-<section class="reserva" id="reserva">
-  <div class="reserva-inner">
-
-    <div class="reserva-header">
-      <p class="section-tag r">nuestros horarios</p>
-      <h2 class="section-title r">Elige tu clase,<br/><em>elige tu momento</em></h2>
-      <p class="section-body r d1">
-        Selecciona el día y la clase que quieras. Los cupos disponibles
-        se muestran en tiempo real.
-      </p>
-    </div>
-
-    <!-- periodo reservable (un mes corrido) -->
-    <div class="sched-nav r">
-      <div class="sched-nav-btn" onclick="schedWeek(-1)">‹</div>
-      <span id="schedWeekLabel"></span>
-      <div class="sched-nav-btn" onclick="schedWeek(1)">›</div>
-    </div>
-
-    <!-- tabs de día: el mes completo, se desliza de lado -->
-    <div class="sched-day-tabs r" id="schedDayTabs"></div>
-    <p class="sched-mes-hint r">Desliza para ver todo el mes · puedes apartar tu horario fijo de varias semanas</p>
-
-    <!-- cards de clases -->
-    <div class="sched-classes" id="schedClasses"></div>
-
-    <!-- leyenda -->
-    <div class="sched-legend r d2">
-      <div class="legend-item"><span class="leg-dot burn"></span>Barre Burn</div>
-      <div class="legend-item"><span class="leg-dot essenza"></span>Barre Essenza</div>
-      <div class="legend-item"><span class="leg-dot pilates"></span>Presenza Sculpt</div>
-      <div class="legend-item"><span class="leg-dot yoga"></span>Unwind Yoga</div>
-    </div>
-
-  </div>
-</section>
-
-<div class="sep"><span class="sep-dot"></span></div>
-
 <!-- ═══ MODALIDADES DE PAGO ═══ -->
 <section class="pagos" id="pagos">
   <div class="pagos-inner">
@@ -3854,29 +3782,6 @@ document.querySelectorAll('.clase-card, .salon-card').forEach(card => {
     card.style.transition = 'transform .5s ease, box-shadow .4s';
   });
 });
-
-/* ── COUNTER ANIMATION ── */
-function animCount(el) {
-  const target = parseInt(el.dataset.count);
-  const suffix = el.dataset.suffix || '';
-  const dur = 1400;
-  const t0 = Date.now();
-  (function tick() {
-    const p = Math.min((Date.now() - t0) / dur, 1);
-    const ease = 1 - Math.pow(1 - p, 3);
-    el.textContent = Math.round(ease * target) + suffix;
-    if (p < 1) requestAnimationFrame(tick);
-  })();
-}
-const countObs = new IntersectionObserver(entries => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      e.target.querySelectorAll('[data-count]').forEach(animCount);
-      countObs.unobserve(e.target);
-    }
-  });
-}, { threshold: 0.4 });
-document.querySelectorAll('.salon-card, .stats-inner').forEach(c => countObs.observe(c));
 
 /* ── CARRUSEL — tira editorial centrada ── */
 let carIdx = 0;
@@ -4650,7 +4555,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-12.6';
+const BUILD = '2026-08-12.7';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
