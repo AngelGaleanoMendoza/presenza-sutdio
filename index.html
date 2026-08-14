@@ -1588,6 +1588,32 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .btn-download:hover { background:var(--wine); color:#fff; }
 .btn-download:disabled { opacity:.5; cursor:not-allowed; }
 
+/* ── PAGAR CON TARJETA (en confirmación) ──
+   Es la acción principal de esa pantalla cuando el paquete tiene link,
+   así que va relleno y por encima del comprobante y del WhatsApp. */
+.btn-pagar-link {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  background:var(--wine); color:#fff; border:0;
+  font-family:'Poppins',sans-serif; font-weight:700; font-size:.9rem;
+  padding:13px; border-radius:12px; width:100%;
+  cursor:pointer; transition:all .25s;
+  box-shadow:0 4px 18px rgba(107,23,40,.3);
+}
+.btn-pagar-link:hover { opacity:.92; transform:translateY(-2px); }
+.pl-nota {
+  font-size:.74rem; color:var(--gray); line-height:1.45;
+  margin:8px 2px 14px; text-align:center;
+}
+.btn-compartir {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  background:rgba(107,23,40,.09); color:var(--wine); border:0;
+  font-family:'Poppins',sans-serif; font-weight:700; font-size:.88rem;
+  padding:12px; border-radius:12px; width:100%;
+  cursor:pointer; transition:all .25s; margin-bottom:10px;
+}
+.btn-compartir:hover { background:rgba(107,23,40,.16); }
+.btn-compartir:disabled { opacity:.55; cursor:wait; }
+
 /* ── ALERTA DE CAPACIDAD (en confirmación) ── */
 .cap-alert {
   border-radius:14px; padding:14px 16px; margin-bottom:14px;
@@ -2179,6 +2205,13 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 }
 .tipo-unica   { background:rgba(46,125,50,.12);  color:#1a5c1a; }
 .tipo-paquete { background:rgba(107,23,40,.12);  color:var(--wine-d); }
+.pend-estado {
+  display:inline-block; font-size:.66rem; font-weight:700;
+  padding:3px 10px; border-radius:50px; margin-top:5px; white-space:nowrap;
+}
+.pe-espera { background:rgba(154,136,128,.14); color:#6b635b; }
+.pe-dice   { background:rgba(224,169,59,.16);  color:#7a5200; }
+.pe-verif  { background:rgba(46,125,50,.13);   color:#1a5c1a; }
 .sa-pend-card.pc-unica   { border-left:4px solid #2e7d32; }
 .sa-pend-card.pc-paquete { border-left:4px solid var(--wine); }
 .sa-sub-card.pc-unica    { border-left:4px solid rgba(46,125,50,.5); }
@@ -3515,7 +3548,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Cualquier disciplina disponible</div>
           <div class="pc-perk"><span>✧</span> Sin compromiso mensual</div>
         </div>
-        <button class="pc-cta pc-cta-link rb-press" onclick="payLink('Clase Singular', 440)">💬 Reservar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="singular" onclick="payLink('singular')">💬 Reservar por WhatsApp →</button>
       </div>
 
       <!-- 5 Clases $45 — destacado -->
@@ -3531,7 +3564,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Válido por 30 días</div>
           <div class="pc-perk"><span>✧</span> Combina Barre, Pilates & Yoga</div>
         </div>
-        <button class="pc-cta pc-cta-link rb-press" onclick="payLink('el Paquete de 5 Clases', 1650)">💬 Reservar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="plan5" onclick="payLink('plan5')">💬 Reservar por WhatsApp →</button>
       </div>
 
       <!-- 10 Clases $80 -->
@@ -3546,7 +3579,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Válido por 45 días</div>
           <div class="pc-perk"><span>✧</span> Combina Barre, Pilates & Yoga</div>
         </div>
-        <button class="pc-cta pc-cta-link rb-press" onclick="payLink('el Paquete de 10 Clases', 2930)">💬 Reservar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="plan10" onclick="payLink('plan10')">💬 Reservar por WhatsApp →</button>
       </div>
 
       <div class="pagos-row-label">♾️ Membresías ilimitadas</div>
@@ -3819,10 +3852,14 @@ function carGoTo(n) {
 function carMove(dir) { carGoTo(carIdx + dir); }
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (esHashDeComprobante()) return;   /* esta pantalla no tiene carrusel */
   carInitDots();
   carGoTo(0);
 });
-window.addEventListener('resize', () => carGoTo(carIdx));
+window.addEventListener('resize', () => {
+  if (esHashDeComprobante()) return;
+  carGoTo(carIdx);
+});
 
 /* ── HAMBURGER ── */
 function toggleMenu() {
@@ -4031,6 +4068,10 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
           <p>Te abrimos WhatsApp para que completes tu pago con nosotras.<br/>
           Tu cupo queda asegurado en cuanto confirmemos tu reserva.</p>
           <div class="confirm-card" id="confirmCard"></div>
+          <div id="pagoLinkBox" style="display:none"></div>
+          <button class="btn-compartir rb-press" id="btnCompartir" onclick="compartirComprobante()">
+            📤 Enviar comprobante
+          </button>
           <button class="btn-download" id="btnDownload" onclick="downloadVoucher()">
             ↓ Descargar comprobante
           </button>
@@ -4054,8 +4095,41 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 ════════════════════════════════════════ */
 
 const WA = '50584317983';
-const LINK_PAGO = ''; // ← pega aquí tu link de pago BAC (Compra Click) cuando lo tengas
 const EMAIL_NOTIF = 'sebasgale65@gmail.com'; // ← correo donde llegan las solicitudes de suscripción
+
+/* ── LINKS DE PAGO BAC ────────────────────────────────────────────────
+   Un link por monto: el banco entrega uno por cada precio, no uno solo
+   para todo. Las llaves son las MISMAS de PLANES_SUB, así que el precio
+   que se le cobra a la alumna y el link que se le abre no se pueden
+   desalinear.
+
+   Mientras estén vacíos no hay nada que apagar: la página coordina el
+   pago por WhatsApp igual que siempre. En cuanto se pegue un link, los
+   botones de ese paquete cambian solos a "Pagar con tarjeta".
+
+   AL PEDIRLOS A BAC, preguntar dos cosas:
+
+   1) ¿Se le puede poner una página de retorno? Si sí, pedir que sea
+        https://presenzastudioni.com/#pago-ok
+      Con eso la alumna vuelve sola y su solicitud aparece en el panel
+      como "dice que pagó". Sin eso todo funciona igual, solo que hay
+      que revisar el correo del banco a mano.
+
+   2) ¿Mandan aviso automático (webhook) a un servidor? Si sí, se puede
+      activar el paquete sin que nadie toque el panel. Si no, queda el
+      puente por correo. */
+const LINKS_PAGO = {
+  singular: '',   // C$440   · Clase singular
+  plan5:    '',   // C$1,650 · Paquete 5 clases
+  plan10:   '',   // C$2,930 · Paquete 10 clases
+  ilimit1:  '',   // C$4,760 · Mensual ilimitado
+  ilimit3:  '',   // C$4,210 · Trimestral ilimitado
+  ilimit6:  '',   // C$3,734 · Semestral ilimitado
+};
+
+function linkDePago(planKey) {
+  return (LINKS_PAGO[planKey] || '').trim();
+}
 
 /* Envía la solicitud de suscripción por correo (vía FormSubmit, gratis).
    Si falla (sin internet, bloqueado) no interrumpe la reserva. */
@@ -4073,15 +4147,110 @@ function notificarSolicitudCorreo(datos) {
   }).catch(() => {});
 }
 
-/* Pagar con link BAC: abre el link con el monto cargado; si aún no hay link,
-   coordina por WhatsApp indicando concepto y monto exacto */
-function payLink(nombre, monto) {
-  if (LINK_PAGO) {
-    window.open(LINK_PAGO, '_blank');
-    return;
-  }
-  const txt = `Hola Presenza ✧ Quiero pagar ${nombre} — Monto: ${fmtC(monto)}. ¿Me envían los datos de la cuenta para hacer la transferencia?`;
+/* Botón de una tarjeta de precios: abre el link de pago de ese paquete y,
+   si todavía no hay, coordina por WhatsApp con el concepto y el monto.
+   El monto sale de PLANES_SUB, no escrito a mano acá: es el mismo número
+   que se le cobra en la reserva, así que no pueden discrepar. */
+function payLink(planKey) {
+  const p = PLANES_SUB[planKey];
+  if (!p) return;
+  const link = linkDePago(planKey);
+  if (link) { window.open(link, '_blank', 'noopener'); return; }
+  const txt = `Hola Presenza ✧ Quiero pagar ${p.nombre} — Monto: ${fmtC(p.precio)}. ¿Me envían los datos de la cuenta para hacer la transferencia?`;
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(txt)}`, '_blank');
+}
+
+/* Las tarjetas de precios dicen "Reservar por WhatsApp" mientras no haya
+   link. Apenas se pegue uno arriba, ese botón —y solo ese— pasa a decir
+   "Pagar con tarjeta", sin tocar el HTML. */
+function refrescarBotonesDePago() {
+  document.querySelectorAll('[data-plan-pago]').forEach(b => {
+    b.textContent = linkDePago(b.dataset.planPago)
+      ? '💳 Pagar con tarjeta →'
+      : '💬 Reservar por WhatsApp →';
+  });
+}
+
+/* ── VUELTA DEL LINK DE PAGO ──────────────────────────────────────────
+   El banco devuelve a la alumna a #pago-ok, y esa vuelta es una carga
+   nueva de la página —a veces hasta en otra pestaña—: no se acuerda de
+   quién es. Por eso, antes de mandarla a pagar, se guarda en SU teléfono
+   lo mínimo para reconocer su solicitud al volver.
+
+   Es su propio correo en su propio dispositivo, dura minutos y se borra
+   apenas se usa. Aun así caduca sola a las 2 horas: si el pago quedó a
+   medias, no queda un dato suelto esperando para siempre. */
+const PAGO_PEND_KEY = 'presenza_pago_en_curso';
+const PAGO_PEND_MS  = 2 * 60 * 60 * 1000;
+
+function guardarPagoEnCurso(datos) {
+  try { localStorage.setItem(PAGO_PEND_KEY, JSON.stringify({ ...datos, ts: Date.now() })); }
+  catch (e) {}
+}
+function olvidarPagoEnCurso() {
+  try { localStorage.removeItem(PAGO_PEND_KEY); } catch (e) {}
+}
+function leerPagoEnCurso() {
+  try {
+    const d = JSON.parse(localStorage.getItem(PAGO_PEND_KEY) || 'null');
+    if (!d || !d.ts || Date.now() - d.ts > PAGO_PEND_MS) { olvidarPagoEnCurso(); return null; }
+    return d;
+  } catch (e) { return null; }
+}
+
+/* Abre el link del banco dejando anotado a quién corresponde el pago */
+function irAPagar(planKey, email, tel) {
+  const link = linkDePago(planKey);
+  if (!link) return false;
+  guardarPagoEnCurso({ plan: planKey, email: email || '', tel: tel || '' });
+  window.open(link, '_blank', 'noopener');
+  return true;
+}
+
+function esHashDePago() {
+  return /^#pago-ok\b/.test(window.location.hash || '');
+}
+/* Un link de comprobante no es el sitio: es una pantalla suelta que
+   reemplaza la página entera. Varias cosas del sitio (el carrusel, el
+   horario) preguntan esto para no arrancar de balde ni quedarse con
+   listeners apuntando a nodos que ya no existen. */
+function esHashDeComprobante() {
+  return (window.location.hash || '').startsWith('#c=');
+}
+
+/* El número de referencia que el banco pegue en la URL de vuelta.
+   Todavía no sabemos con qué nombre viene —eso se ve con la primera
+   vuelta real—, así que se prueban los nombres habituales y, si no hay
+   ninguno, no pasa nada: la referencia es una ayuda para cuadrar, no un
+   requisito. */
+function refDeLaVuelta() {
+  const p = new URLSearchParams(window.location.search);
+  for (const k of ['ref','referencia','orderid','order_id','oid','transactionid','auth','id'])
+    if (p.get(k)) return p.get(k);
+  return '';
+}
+
+/* La alumna volvió de la pantalla de pago.
+   Ojo con lo que esto significa y con lo que NO: significa que pasó por
+   ahí, no que el banco haya confirmado nada —cualquiera puede escribir
+   esta dirección a mano—. Por eso lo único que se hace es dejarlo
+   anotado para que el panel lo revise. La base tampoco permite más:
+   marcar_pago_dicho() no activa planes ni suma clases. */
+async function procesarVueltaDePago() {
+  const d = leerPagoEnCurso();
+  const ref = refDeLaVuelta();
+  olvidarPagoEnCurso();
+  history.replaceState(null, '', window.location.pathname);
+
+  if (d && SB_ON) {
+    try { await sbRpc('marcar_pago_dicho', { p_email: d.email, p_tel: d.tel, p_ref: ref }); }
+    catch (e) {}   /* si no se pudo avisar, el estudio igual lo ve por el banco */
+  }
+  const pd = d && PLANES_SUB[d.plan];
+  alert('¡Gracias! 🎉\n\n' +
+    (pd ? `Nos quedó anotado tu pago de ${pd.nombre} (${fmtC(pd.precio)}).\n\n` : '') +
+    'Lo verificamos con el banco y te activamos el paquete.\n' +
+    'Si tenés el comprobante a mano, mandalo por WhatsApp y va más rápido ✧');
 }
 const DIAS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const MESES_ES  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -4555,7 +4724,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-12.7';
+const BUILD = '2026-08-14.1';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5034,7 +5203,16 @@ function rowToSub(f) {
     fechaInicio: f.fecha_inicio || '', fechaVence: f.fecha_vence || '',
     historial: f.historial || [], renovaciones: f.renovaciones || []
   };
-  if (f.pendiente_plan) s.pendiente = { plan: f.pendiente_plan, fecha: f.pendiente_fecha || '' };
+  if (f.pendiente_plan) s.pendiente = {
+    plan:  f.pendiente_plan,
+    fecha: f.pendiente_fecha || '',
+    /* El estado lo escribe SOLO la base (marcar_pago_dicho y el trigger),
+       nunca este navegador: por eso no aparece en subToRow(). Mientras no
+       se haya corrido supabase-pagos-bac.sql la columna no existe, queda
+       en 'espera' y el panel se ve exactamente como antes. */
+    estado: f.pendiente_estado || 'espera',
+    ref:    f.pendiente_ref    || ''
+  };
   return s;
 }
 
@@ -5695,8 +5873,11 @@ function closeModal() {
    Avisa si la clase ya pasó o si se llenaron los cupos. */
 async function abrirEspecialPorHash() {
   const id = (window.location.hash || '').replace('#','');
-  /* #admin y los anclajes normales (#clases, #reserva…) no son clases libres */
-  if (!id || id.length < 8 || document.getElementById(id)) return;
+  /* #admin y los anclajes normales (#clases, #reserva…) no son clases libres.
+     #pago-ok (vuelta del banco) y #c= (comprobante) tampoco: cada uno
+     tiene su propia función. */
+  if (!id || id.length < 8 || document.getElementById(id) ||
+      esHashDePago() || id.startsWith('c=')) return;
 
   /* Se le pregunta a la base por ESTE token. La página pública no tiene la
      lista (a propósito), así que la clase se pide recién ahora, cuando alguien
@@ -6472,6 +6653,22 @@ async function proceedToConfirm() {
     <div class="cr-row"><span class="cr-icon">💳</span><span class="cr-text">${metodoDtxt}</span></div>
     ${notas ? `<div class="cr-row"><span class="cr-icon">📝</span><span class="cr-text">${escHtml(notas)}</span></div>` : ''}`;
 
+  /* Si el paquete que acaba de pedir tiene link de pago, se le ofrece
+     pagarlo aquí mismo. Sin link la caja no aparece y todo sigue por
+     WhatsApp igual que hasta ahora. */
+  const pagoBox = document.getElementById('pagoLinkBox');
+  if (pagoBox) {
+    const conLink = esPlanPendiente && planPend && linkDePago(selectedSubPlan);
+    pagoBox.style.display = conLink ? 'block' : 'none';
+    pagoBox.innerHTML = conLink ? `
+      <button class="btn-pagar-link rb-press"
+        onclick="irAPagar('${escArg(selectedSubPlan)}','${escArg(email)}','${escArg(tel)}')">
+        💳 Pagar ${escHtml(planPend.nombre)} · ${fmtC(planPend.precio)}
+      </button>
+      <p class="pl-nota">Se abre la página segura del banco. Al volver, tu paquete
+        queda anotado como pagado y lo activamos apenas lo verifiquemos.</p>` : '';
+  }
+
   const notaWA = notas ? `📝 Notas: ${notas}\n` : '';
   const msg = encodeURIComponent(
     `✧ COMPROBANTE DE RESERVA ✧\n` +
@@ -6763,10 +6960,11 @@ function printAll() {
 }
 
 /* ── Descarga de voucher ── */
-function downloadVoucher() {
-  const b = booking;
-  if (!b || !b.confirmNum) return;
-
+/* El comprobante como documento suelto y completo.
+   Lo usan dos cosas distintas y por eso vive acá y no dentro del botón:
+   la ventana de imprimir/PDF, y la página que se abre al tocar el link
+   del comprobante (#c=…). Un solo diseño, así no se despegan. */
+function voucherHTML(b, autoPrint) {
   const notasRow = b.notas
     ? `<tr><td class="lbl">Notas</td><td>${escHtml(b.notas)}</td></tr>`
     : '';
@@ -6844,20 +7042,212 @@ function downloadVoucher() {
       <button class="no-print" onclick="window.print()" style="background:#6B1728;color:white;border:none;padding:8px 22px;border-radius:20px;cursor:pointer;font-size:.8rem;margin-top:6px">
         🖨 Imprimir / Guardar PDF
       </button>
+      ${autoPrint ? '' : `<br><a class="no-print" href="https://presenzastudioni.com/"
+        style="display:inline-block;margin-top:12px;color:#9A8880;font-size:.75rem">← Ir a Presenza Studio</a>`}
     </div>
   </div>
-  <script>
+  ${autoPrint ? `<script>
     /* Auto-abrir diálogo de impresión al cargar */
     window.addEventListener('load', () => window.print());
-  <\/script>
+  <\/script>` : ''}
   </body></html>`;
+  return html;
+}
 
+function downloadVoucher() {
+  const b = booking;
+  if (!b || !b.confirmNum) return;
   const w = window.open('', '_blank', 'width=540,height=700');
   if (w) {
-    w.document.write(html);
+    w.document.write(voucherHTML(b, true));
     w.document.close();
   } else {
     alert('Activa las ventanas emergentes del navegador y vuelve a intentarlo.');
+  }
+}
+
+/* ════════════════════════════════════════
+   COMPROBANTE COMPARTIBLE
+
+   Dos caminos para que el comprobante llegue al WhatsApp del estudio,
+   porque ninguno solo alcanza:
+
+   · COMO IMAGEN. En celular, navigator.share abre la hoja de compartir
+     del sistema y la alumna toca WhatsApp: la imagen va como archivo
+     adjunto de verdad. Es la ÚNICA forma de conseguir un adjunto — un
+     link wa.me solo sabe llevar texto, nunca archivos, y eso no es algo
+     que se pueda programar mejor.
+
+   · COMO LINK. Cuando el navegador no sabe compartir archivos (las
+     compus casi nunca), va un link. Los datos viajan DENTRO del link,
+     después del #, que es la parte que el navegador nunca manda a
+     ningún servidor. O sea: no se guarda nada en ninguna base, no hay
+     token que se pueda adivinar, y el link solo contiene el comprobante
+     de quien lo generó.
+════════════════════════════════════════ */
+
+function b64urlEnc(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = ''; for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function b64urlDec(s) {
+  const bin = atob(s.replace(/-/g,'+').replace(/_/g,'/'));
+  return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+}
+
+/* Llaves de una letra a propósito: es lo que hace que el link quepa
+   cómodo en un mensaje en vez de ser un chorizo de mil caracteres. */
+function comprobanteDatos(b) {
+  const d = {
+    n: b.confirmNum || '', cl: b.info?.nombre || '', em: b.info?.emoji || '✧',
+    i: b.instructor || '', f: b.diaStr || '', h: b.hora || '', l: b.lugar || '',
+    c: b.nombre || '', e: b.email || '', t: b.tel || '', v: b.nivel || '',
+    p: b.metodo || '', o: b.notas || ''
+  };
+  const s = b.subAlerta;
+  if (s) d.s = [s.planNombre, s.inicio, s.fin, s.precio, s.meses];
+  return d;
+}
+function datosAComprobante(d) {
+  const b = {
+    confirmNum: d.n || '', info: { nombre: d.cl || '', emoji: d.em || '✧' },
+    instructor: d.i || '', diaStr: d.f || '', hora: d.h || '', lugar: d.l || '',
+    nombre: d.c || '', email: d.e || '', tel: d.t || '', nivel: d.v || '',
+    metodo: d.p || '', notas: d.o || ''
+  };
+  if (Array.isArray(d.s)) b.subAlerta = {
+    planNombre: d.s[0], inicio: d.s[1], fin: d.s[2], precio: d.s[3], meses: d.s[4]
+  };
+  return b;
+}
+
+function comprobanteURL(b) {
+  return location.origin + location.pathname +
+         '#c=' + b64urlEnc(JSON.stringify(comprobanteDatos(b)));
+}
+
+/* Alguien abrió un link de comprobante. Se reemplaza la página entera
+   por el comprobante: es una pantalla que solo sirve para eso.
+   Devuelve true si se hizo cargo, para que el arranque no siga. */
+function abrirComprobantePorHash() {
+  if (!esHashDeComprobante()) return false;
+  let b;
+  try { b = datosAComprobante(JSON.parse(b64urlDec(window.location.hash.slice(3)))); }
+  catch (e) { return false; }        /* link cortado o manoseado: sigue el sitio normal */
+  if (!b.confirmNum) return false;
+  document.open();
+  document.write(voucherHTML(b, false));
+  document.close();
+  return true;
+}
+
+/* Corta con … lo que no quepa en el ancho dado */
+function recortarCanvas(x, txt, ancho) {
+  if (x.measureText(txt).width <= ancho) return txt;
+  let t = txt;
+  while (t.length > 1 && x.measureText(t + '…').width > ancho) t = t.slice(0, -1);
+  return t + '…';
+}
+
+/* El comprobante dibujado como imagen, para poder adjuntarlo.
+   Se dibuja a mano en un canvas en vez de convertir el HTML: así no
+   depende de ninguna librería de afuera —el sitio entero no carga
+   ninguna— y sale igual en todos los navegadores. */
+async function comprobantePNG(b) {
+  const filas = [
+    ['Fecha',    b.diaStr],
+    ['Hora',     hora12(b.hora)],
+    b.lugar ? ['Lugar', 'Mat ' + b.lugar] : null,
+    ['Cliente',  b.nombre],
+    ['Email',    b.email],
+    ['Teléfono', b.tel || '—'],
+    ['Nivel',    b.nivel || '—'],
+    ['Pago',     b.metodo],
+    b.notas ? ['Notas', b.notas] : null,
+  ].filter(Boolean);
+
+  const W = 480, ESC = 2, yBody = 214, hFila = 34, hPie = 76;
+  const H = yBody + filas.length * hFila + hPie;
+
+  const cv = document.createElement('canvas');
+  cv.width = W * ESC; cv.height = H * ESC;
+  const x = cv.getContext('2d');
+  x.scale(ESC, ESC);
+
+  /* Sin esto la primera imagen sale en Arial: las tipografías del sitio
+     todavía no terminaron de cargar cuando se dibuja. */
+  try { await document.fonts.ready; } catch (e) {}
+  const F = (peso, tam) => `${peso} ${tam}px Poppins, 'Segoe UI', sans-serif`;
+
+  x.fillStyle = '#fff';    x.fillRect(0, 0, W, H);
+  x.fillStyle = '#4A0F1A'; x.fillRect(0, 0, W, 124);
+  x.fillStyle = '#6B1728'; x.fillRect(0, 124, W, 72);
+  x.fillStyle = '#FAF5F0'; x.fillRect(0, H - hPie, W, hPie);
+
+  x.textAlign = 'center';
+  x.fillStyle = 'rgba(245,237,227,.62)'; x.font = F(600, 11);
+  x.fillText('✧   P R E S E N Z A   S T U D I O', W/2, 38);
+  x.fillStyle = '#fff'; x.font = F(700, 19);
+  x.fillText('Comprobante de Reserva', W/2, 70);
+  x.fillStyle = 'rgba(245,237,227,.55)'; x.font = F(500, 12);
+  x.fillText(b.confirmNum, W/2, 98);
+
+  x.textAlign = 'left';
+  x.font = F(400, 30);
+  x.fillText(b.info.emoji || '✧', 28, 172);
+  x.fillStyle = '#fff'; x.font = F(700, 18);
+  x.fillText(recortarCanvas(x, b.info.nombre || '', 300), 80, 155);
+  x.fillStyle = 'rgba(245,237,227,.72)'; x.font = F(400, 12);
+  x.fillText('Instructora: ' + (b.instructor || '—'), 80, 177);
+
+  filas.forEach(([k, v], i) => {
+    const y = yBody + i * hFila;
+    if (i) {
+      x.strokeStyle = '#f0e6dc'; x.lineWidth = 1;
+      x.beginPath(); x.moveTo(28, y - 12.5); x.lineTo(W - 28, y - 12.5); x.stroke();
+    }
+    x.fillStyle = '#9A8880'; x.font = F(500, 12); x.fillText(k, 28, y + 8);
+    x.fillStyle = '#2C1810'; x.font = F(600, 13);
+    x.fillText(recortarCanvas(x, String(v || '—'), W - 168), 140, y + 8);
+  });
+
+  const yPie = H - hPie;
+  x.textAlign = 'center';
+  x.fillStyle = '#6B1728'; x.font = F(700, 12);
+  x.fillText('Presenza Studio · Managua, Nicaragua', W/2, yPie + 30);
+  x.fillStyle = '#b0a09a'; x.font = F(400, 11);
+  x.fillText('8431 7983 · presenzastudioni.com', W/2, yPie + 50);
+
+  return new Promise(res => cv.toBlob(res, 'image/png'));
+}
+
+async function compartirComprobante() {
+  const b = booking;
+  if (!b || !b.confirmNum) return;
+  const btn  = document.getElementById('btnCompartir');
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Preparando…'; }
+  try {
+    /* Camino bueno: la imagen adjunta. Solo existe en celular. */
+    try {
+      const blob = await comprobantePNG(b);
+      const img  = new File([blob], `comprobante-${b.confirmNum}.png`, { type:'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [img] })) {
+        await navigator.share({ files: [img],
+          text: `✧ Comprobante ${b.confirmNum} · Presenza Studio` });
+        return;
+      }
+    } catch (e) {
+      /* Cerró la hoja de compartir a propósito: no hay que insistir con
+         otra ventana encima. Cualquier otro error sí cae al link. */
+      if (e && e.name === 'AbortError') return;
+    }
+    /* Respaldo: el link, que sí funciona en compu */
+    const txt = `✧ Comprobante ${b.confirmNum} · Presenza Studio\n${comprobanteURL(b)}`;
+    window.open(`https://wa.me/${WA}?text=${encodeURIComponent(txt)}`, '_blank');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
   }
 }
 
@@ -7500,20 +7890,37 @@ function buildMadrugadaHtml() {
   </div>`;
 }
 
+/* Cómo se ve cada estado del pago en el panel.
+   La diferencia que importa es la del medio: "dice que pagó" es lo que
+   la alumna afirma al volver del link del banco, NO una confirmación del
+   banco. Se muestra aparte justamente para que nadie la confunda con un
+   pago verificado y active un paquete que no se cobró. */
+const ESTADO_PEND = {
+  espera:     { txt:'⏳ Esperando pago',                  cls:'pe-espera' },
+  dice_pago:  { txt:'💳 Dice que pagó · falta verificar', cls:'pe-dice'   },
+  verificado: { txt:'✓ Pago verificado',                  cls:'pe-verif'  },
+};
+
 function buildPendientesHtml() {
   const pendientes  = getSuscriptoras().filter(s => s.pendiente);
-  const pendPrimera = pendientes.filter(s => esPrimeraVez(s.pendiente.plan));
-  const pendPaquete = pendientes.filter(s => !esPrimeraVez(s.pendiente.plan));
+  /* Las que ya pasaron por el banco van primero: son las que tienen algo
+     que revisar ahora. Las que solo pidieron el plan pueden esperar. */
+  const porRevisar = (a, b) =>
+    (b.pendiente.estado === 'dice_pago') - (a.pendiente.estado === 'dice_pago');
+  const pendPrimera = pendientes.filter(s =>  esPrimeraVez(s.pendiente.plan)).sort(porRevisar);
+  const pendPaquete = pendientes.filter(s => !esPrimeraVez(s.pendiente.plan)).sort(porRevisar);
 
   const renderPendCard = (s) => {
     const pd = PLANES_SUB[s.pendiente.plan] || { nombre: s.pendiente.plan, precio: 0, clases: 0 };
     const esUnica = esPrimeraVez(s.pendiente.plan);
+    const est     = ESTADO_PEND[s.pendiente.estado] || ESTADO_PEND.espera;
     return `<div class="sa-pend-card ${esUnica ? 'pc-unica' : 'pc-paquete'}">
       <div class="sa-pend-info">
         <span class="tipo-chip ${esUnica ? 'tipo-unica' : 'tipo-paquete'}">${esUnica ? '🎟 CLASE ÚNICA · ' + fmtC(pd.precio) : '💎 PAQUETE · ' + pd.clases + ' CLASES · ' + fmtC(pd.precio)}</span>
         <strong>${escHtml(s.nombre)}</strong>
         <span>${escHtml(s.email)} · ${escHtml(s.tel)||'—'}</span>
         <span class="sa-pend-plan">${pd.nombre} · <strong>${fmtC(pd.precio)}</strong> · solicitado ${s.pendiente.fecha}</span>
+        <span class="pend-estado ${est.cls}">${est.txt}${s.pendiente.ref ? ' · ref. ' + escHtml(s.pendiente.ref) : ''}</span>
       </div>
       <div class="sa-pend-btns">
         <button class="btn-pend-ok" onclick="confirmarPagoSub('${escArg(s.email)}')">${esUnica ? '✓ Aceptar pago' : '✓ Confirmar pago'}</button>
@@ -7530,7 +7937,9 @@ function buildPendientesHtml() {
   return renderPendBlock('🎟 Clase única (de una vez) · por aceptar',
            'Pago de una sola clase: C$440. Verifica que la transferencia llegó a tu cuenta y acepta.', pendPrimera)
        + renderPendBlock('💎 Paquetes de suscripción · por confirmar',
-           'Son montos mayores: verifica que recibiste el monto COMPLETO del paquete antes de confirmar. Si no coincide, rechaza y coordina por WhatsApp.', pendPaquete);
+           'Son montos mayores: verifica que recibiste el monto COMPLETO del paquete antes de confirmar. ' +
+           'Si no coincide, rechaza y coordina por WhatsApp. Ojo: “dice que pagó” es lo que la alumna ' +
+           'marcó al volver del banco, no una confirmación del banco — revísalo igual antes de aceptar.', pendPaquete);
 }
 
 /* ── Tab: Suscriptoras ── */
@@ -9650,6 +10059,11 @@ function evSaveAll() {
 
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {
+  /* Un link de comprobante (#c=…) no es el sitio: es una sola pantalla que
+     reemplaza la página. Va antes que todo lo demás para no arrancar de
+     balde el horario, la nube ni el resto. */
+  if (abrirComprobantePorHash()) return;
+
   /* ¿Esta copia de la página sigue siendo la publicada? Si no, se recarga. */
   verificarVersion();
   /* Primero el respaldo local para pintar algo al instante, y en seguida los
@@ -9719,6 +10133,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.location.hash === '#admin') openAdminPanel();
     abrirEspecialPorHash();
   });
+
+  /* Los botones de los paquetes dicen WhatsApp o tarjeta según haya link */
+  refrescarBotonesDePago();
+
+  /* Vuelta del banco: presenzastudioni.com/#pago-ok */
+  if (esHashDePago()) procesarVueltaDePago();
 
   /* Campanas de suscripción: en celular suenan al entrar en pantalla */
   rbObservar();
