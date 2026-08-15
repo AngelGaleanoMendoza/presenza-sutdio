@@ -4177,6 +4177,19 @@ function linkDePago(planKey) {
   return (LINKS_PAGO[planKey] || '').trim();
 }
 
+/* El interruptor de toda esta función: mientras no haya NI UN link
+   pegado arriba, el pago con tarjeta no existe para nadie. Los botones
+   siguen diciendo WhatsApp, no aparece la caja de pagar en la
+   confirmación, y la dirección de vuelta del banco (#pago-ok) no hace
+   nada aunque alguien la escriba a mano.
+
+   Es una sola condición y no una bandera aparte a propósito: así no se
+   puede quedar encendida por olvido ni apagada teniendo los links. Se
+   prende sola en el momento exacto en que se pega el primero. */
+function hayLinksDePago() {
+  return Object.keys(LINKS_PAGO).some(k => linkDePago(k));
+}
+
 /* Envía la solicitud de suscripción por correo (vía FormSubmit, gratis).
    Si falla (sin internet, bloqueado) no interrumpe la reserva. */
 function notificarSolicitudCorreo(datos) {
@@ -4283,6 +4296,13 @@ function refDeLaVuelta() {
    anotado para que el panel lo revise. La base tampoco permite más:
    marcar_pago_dicho() no activa planes ni suma clases. */
 async function procesarVueltaDePago() {
+  /* Sin links configurados nadie pudo haber ido a pagar, así que esta
+     dirección solo la alcanza quien la escribió a mano. No se le dice
+     "gracias por tu pago" a alguien que no pagó nada. */
+  if (!hayLinksDePago()) {
+    history.replaceState(null, '', window.location.pathname);
+    return;
+  }
   const d = leerPagoEnCurso();
   const ref = refDeLaVuelta();
   olvidarPagoEnCurso();
@@ -4770,7 +4790,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-14.2';
+const BUILD = '2026-08-15.1';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
