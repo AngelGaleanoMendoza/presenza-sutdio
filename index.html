@@ -2838,6 +2838,104 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .agm-lleno { font-size:.72rem; color:#c0392b; margin-top:6px; }
 
 /* ═══════════════════════════════════════════════════════════
+   RENOVAR PLAN · modal de selección
+   Antes esto era un prompt() del navegador: había que escribir "plan10"
+   de memoria, un dedazo activaba el paquete equivocado y no se veía qué
+   se estaba cobrando. Ahora los planes se tocan como los mats en
+   reservas, y antes de confirmar se lee en una línea cómo queda la
+   alumna.
+   ═══════════════════════════════════════════════════════════ */
+.rnv-backdrop {
+  position:fixed; inset:0; z-index:2300;
+  background:rgba(20,5,10,.82); backdrop-filter:blur(10px);
+  display:none; align-items:center; justify-content:center; padding:18px 14px;
+}
+.rnv-backdrop.open { display:flex; }
+.rnv-modal {
+  background:var(--cream); border-radius:22px; width:100%; max-width:560px;
+  box-shadow:0 24px 80px rgba(0,0,0,.5); overflow:hidden;
+  display:flex; flex-direction:column; max-height:calc(100dvh - 36px);
+}
+.rnv-hd {
+  padding:18px 52px 15px 22px; flex-shrink:0; position:relative;
+  background:linear-gradient(135deg,var(--wine),var(--wine-d)); color:var(--cream);
+}
+.rnv-hd h3 { font-family:'Playfair Display',serif; font-size:1.16rem; font-weight:700; }
+.rnv-hd-sub { font-size:.71rem; opacity:.7; margin-top:3px; word-break:break-all; }
+.rnv-x {
+  position:absolute; top:14px; right:14px; width:30px; height:30px;
+  border-radius:50%; background:rgba(255,255,255,.12); color:var(--cream);
+  font-size:.75rem; transition:background .2s;
+}
+.rnv-x:hover { background:rgba(255,255,255,.24); }
+.rnv-body { padding:16px 22px 6px; overflow-y:auto; flex:1; }
+.rnv-estado {
+  font-size:.76rem; line-height:1.6; color:var(--text); background:var(--white);
+  border:1px solid rgba(107,23,40,.14); border-radius:12px; padding:10px 13px;
+}
+.rnv-estado strong { color:var(--wine); }
+.rnv-aviso {
+  font-size:.73rem; line-height:1.55; color:#842029; margin-top:10px;
+  background:rgba(220,53,69,.09); border:1px solid rgba(220,53,69,.22);
+  border-radius:10px; padding:9px 12px;
+}
+.rnv-tit {
+  font-size:.63rem; letter-spacing:1.6px; text-transform:uppercase;
+  color:var(--gray); margin:16px 0 8px;
+}
+.rnv-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:9px; }
+.rnv-plan {
+  position:relative; text-align:left; padding:11px 13px; cursor:pointer;
+  display:flex; flex-direction:column; gap:2px; transition:all .16s;
+  background:var(--white); border:1.5px solid rgba(107,23,40,.16); border-radius:14px;
+}
+.rnv-plan:hover { border-color:var(--wine); background:rgba(107,23,40,.045); }
+.rnv-plan-tag { font-size:.55rem; letter-spacing:1.4px; text-transform:uppercase; color:var(--blush); font-weight:700; }
+.rnv-plan-nom { font-size:.82rem; font-weight:600; color:var(--text); line-height:1.3; }
+.rnv-plan-precio { font-family:'Playfair Display',serif; font-size:1.02rem; font-weight:700; color:var(--wine); }
+.rnv-plan-clases { font-size:.67rem; color:var(--gray); }
+.rnv-plan.sel {
+  background:linear-gradient(145deg,var(--wine),var(--wine-d));
+  border-color:var(--wine); box-shadow:0 8px 22px rgba(107,23,40,.28);
+}
+.rnv-plan.sel .rnv-plan-nom, .rnv-plan.sel .rnv-plan-precio { color:#fff; }
+.rnv-plan.sel .rnv-plan-clases { color:rgba(255,255,255,.7); }
+.rnv-plan.sel .rnv-plan-tag { color:#e8c49a; }
+.rnv-plan.actual::after {
+  content:'actual'; position:absolute; top:9px; right:10px;
+  font-size:.52rem; letter-spacing:.7px; text-transform:uppercase; color:var(--gray);
+}
+.rnv-plan.sel.actual::after { color:rgba(255,255,255,.55); }
+.rnv-resumen {
+  margin-top:14px; padding:11px 13px; border-radius:12px;
+  font-size:.76rem; line-height:1.65; color:var(--text);
+  background:rgba(201,149,106,.13); border:1px solid rgba(201,149,106,.32);
+}
+.rnv-resumen strong { color:var(--wine); }
+.rnv-resumen.vacio { color:var(--gray); background:transparent; border-style:dashed; }
+.rnv-ft {
+  display:flex; gap:9px; flex-shrink:0; padding:14px 22px 18px;
+  border-top:1px solid rgba(107,23,40,.1);
+}
+.btn-rnv-ok {
+  flex:1; padding:13px; border-radius:12px; color:#fff; font-weight:600; font-size:.85rem;
+  background:linear-gradient(135deg,var(--wine),var(--wine-d)); transition:opacity .2s;
+}
+.btn-rnv-ok:disabled { opacity:.38; cursor:not-allowed; }
+.btn-rnv-no {
+  padding:13px 20px; border-radius:12px; font-size:.85rem; font-weight:500;
+  color:var(--wine); background:rgba(107,23,40,.08); transition:background .2s;
+}
+.btn-rnv-no:hover { background:rgba(107,23,40,.16); }
+@media(max-width:520px){
+  .rnv-grid { grid-template-columns:1fr 1fr; gap:7px; }
+  .rnv-plan { padding:9px 10px; }
+  .rnv-body { padding:14px 16px 6px; }
+  .rnv-ft   { padding:12px 16px 16px; }
+  .rnv-hd   { padding:16px 48px 13px 16px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
    BUSCADOR DE SUSCRIPTORAS
    ═══════════════════════════════════════════════════════════ */
 .sa-subs-buscar {
@@ -4790,7 +4888,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-15.1';
+const BUILD = '2026-08-21.1';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5573,6 +5671,8 @@ async function devolverClase(subId, email, tel) {
    lo que sea el contador de una alumna quedó mal, se arregla en el momento
    sin tener que renovarle el plan ni tocar la base a mano. */
 async function ajustarClases(email) {
+  if (!exigirStaff('corregir las clases de una alumna')) return;
+
   const sub = getSuscriptoraByEmail(email);
   if (!sub) return;
   if (esIlimitada(sub)) { alert(`${sub.nombre} tiene plan ilimitado: no se le descuentan clases.`); return; }
@@ -6384,6 +6484,8 @@ async function autoRegisterSub(nombre, email, tel, nivel, planKey) {
 
 /* ── Confirmación de pago (Super Admin) ── */
 async function confirmarPagoSub(email) {
+  if (!exigirStaff('activar un plan')) return;
+
   const arr = getSuscriptoras();
   const idx = arr.findIndex(s => s.email.toLowerCase() === email.toLowerCase());
   if (idx < 0 || !arr[idx].pendiente) return;
@@ -6409,6 +6511,8 @@ async function confirmarPagoSub(email) {
 }
 
 async function rechazarPagoSub(email) {
+  if (!exigirStaff('rechazar un pago')) return;
+
   if (!confirm(`¿Rechazar la solicitud de ${email}? No se activará ningún plan.`)) return;
   const arr = getSuscriptoras();
   const idx = arr.findIndex(s => s.email.toLowerCase() === email.toLowerCase());
@@ -7698,6 +7802,8 @@ async function deshacerAsistencia(email, clase, dateStr, hora, nombre) {
 
 /* Elimina una reservación (ej. no pagó / no se concretó el contacto) */
 async function eliminarReserva(clase, dateStr, hora, ts, origen) {
+  if (!exigirStaff('eliminar una reserva')) return;
+
   const key = slotKey(clase, dateStr, hora);
   const res = (SLOTS[key] || []).find(c => c.ts === ts);
   const sub = res && res.claseDescontada ? getSuscriptoraByEmail(res.email) : null;
@@ -8323,32 +8429,158 @@ async function guardarNuevaSub() {
   buildSAdminSubs();
 }
 
-async function renovarSub(email) {
-  const opciones = Object.entries(PLANES_SUB).map(([k,v])=>`${k} → ${v.nombre} (${fmtC(v.precio)})`).join('\n');
-  const choice   = prompt(`Renovar suscripción de ${email}\n\nEscribe el código del plan:\n${opciones}`);
-  if (choice === null) return;
-  if (!PLANES_SUB[choice]) { alert('Código de plan no válido.'); return; }
+/* ── Quién puede tocar planes y reservas ─────────────────────────────
+   Cambiar un plan mueve dinero y clases, así que solo lo hace el staff
+   con acceso total: Jimena, Laura y Carlos. Las coaches entran con su
+   propia cuenta y ni siquiera ven la pestaña Suscriptoras, pero esconder
+   un botón no es un permiso: la pregunta se hace también acá, donde
+   ocurre el cambio, para que la regla viva en un solo lugar. */
+function nombresStaff() {
+  const n = STAFF_TOTAL.map(s => s.nombre.split(' ')[0]);
+  return n.length > 1 ? `${n.slice(0, -1).join(', ')} y ${n[n.length - 1]}` : (n[0] || '');
+}
 
-  const arr  = getSuscriptoras();
-  const idx  = arr.findIndex(s => s.email.toLowerCase() === email.toLowerCase());
-  if (idx < 0) return;
-  const pd   = PLANES_SUB[choice];
-  const now  = new Date();
-  const venc = calcVence(pd.meses);
+function exigirStaff(accion) {
+  if (staffActual) return true;
+  alert(`Solo ${nombresStaff()} pueden ${accion}.\n\nEntra con tu propia cuenta si tienes ese permiso.`);
+  return false;
+}
 
-  /* Las clases de un plan ya vencido se pierden: la renovación arranca de cero */
-  if (subVencida(arr[idx])) arr[idx].clasesRestantes = 0;
-  arr[idx].clasesRestantes += pd.clases;
-  arr[idx].clasesTotal      = pd.clases;
-  arr[idx].plan             = choice;
-  arr[idx].fechaVence       = venc;
-  arr[idx].activa           = true;
-  (arr[idx].renovaciones = arr[idx].renovaciones||[]).push({ fecha:fmtISO(now), plan:choice, clases:pd.clases });
+/* Cómo queda la alumna al aplicarle un plan. Lo usan el resumen del modal
+   y el guardado, para que lo que se lee antes de confirmar sea exactamente
+   lo que se guarda. */
+function calcRenovacion(sub, planKey) {
+  const pd = PLANES_SUB[planKey];
+  /* Arranca de cero en dos casos: si el plan venció (esas clases se
+     pierden) y si viene bajando de una membresía ilimitada a un paquete
+     —el "∞" no se acumula, si no quedaría con 1000 y pico de clases y
+     seguiría contando como ilimitada para siempre. */
+  const desdeCero = subVencida(sub) || (esIlimitada(sub) && pd.clases < 1000);
+  const base      = desdeCero ? 0 : (sub.clasesRestantes || 0);
+  return { pd, desdeCero, base, quedan: base + pd.clases, vence: calcVence(pd.meses) };
+}
+
+let rnvEmail = null;   /* a quién se le está renovando */
+let rnvPlan  = null;   /* el plan que se tocó en el modal */
+
+function renovarSub(email) {
+  if (!exigirStaff('cambiar un plan')) return;
+  const sub = getSuscriptoraByEmail(email);
+  if (!sub) { alert('No se encontró esa suscriptora.'); return; }
+
+  rnvEmail = sub.email;
+  rnvPlan  = null;
+
+  const actual = PLANES_SUB[sub.plan];
+  document.getElementById('rnvNombre').textContent = `⟳ Renovar a ${sub.nombre.split(' ')[0]}`;
+  document.getElementById('rnvEmail').textContent  = sub.email;
+  document.getElementById('rnvEstado').innerHTML =
+    `Hoy tiene <strong>${escHtml(actual ? actual.nombre : (sub.plan || 'sin plan'))}</strong> · ` +
+    (esIlimitada(sub)
+      ? '<strong>∞</strong> ilimitado'
+      : `<strong>${sub.clasesRestantes}</strong> clase${sub.clasesRestantes === 1 ? '' : 's'}`) +
+    ` · vence ${sub.fechaVence ? fmtDiaLargo(sub.fechaVence) : '—'}`;
+
+  const aviso = document.getElementById('rnvAviso');
+  if (subVencida(sub)) {
+    aviso.style.display = 'block';
+    aviso.innerHTML = `⚠ Su plan venció el ${fmtDiaLargo(sub.fechaVence)}. Las clases que le quedaban <strong>se pierden</strong>: la renovación arranca de cero.`;
+  } else {
+    aviso.style.display = 'none';
+  }
+
+  document.getElementById('rnvGrid').innerHTML = Object.entries(PLANES_SUB).map(([k, v]) => `
+    <button type="button" class="rnv-plan${k === sub.plan ? ' actual' : ''}" data-plan="${k}"
+      onclick="elegirPlanRenovar('${k}')">
+      <span class="rnv-plan-tag">${escHtml(v.tag)}</span>
+      <span class="rnv-plan-nom">${escHtml(v.nombre)}</span>
+      <span class="rnv-plan-precio">${fmtC(v.precio)}</span>
+      <span class="rnv-plan-clases">${v.clases >= 1000 ? '∞ ilimitado' : v.clases + ' clases'} · ${v.meses} mes${v.meses === 1 ? '' : 'es'}</span>
+    </button>`).join('');
+
+  const res = document.getElementById('rnvResumen');
+  res.className   = 'rnv-resumen vacio';
+  res.textContent = 'Toca un plan para ver cómo le queda.';
+  const ok = document.getElementById('rnvOk');
+  ok.disabled    = true;
+  ok.textContent = 'Activar plan →';
+
+  document.getElementById('rnvBackdrop').classList.add('open');
+}
+
+function elegirPlanRenovar(k) {
+  const sub = getSuscriptoraByEmail(rnvEmail);
+  if (!sub || !PLANES_SUB[k]) return;
+  rnvPlan = k;
+
+  document.querySelectorAll('#rnvGrid .rnv-plan').forEach(b =>
+    b.classList.toggle('sel', b.dataset.plan === k));
+
+  const r   = calcRenovacion(sub, k);
+  const res = document.getElementById('rnvResumen');
+  res.className = 'rnv-resumen';
+
+  /* El detalle de la suma se escribe entero: "5 que ya tenía + 10 del
+     paquete" evita el reclamo de "¿por qué me aparecen 15?" */
+  const suma = r.pd.clases >= 1000
+    ? `Queda con <strong>clases sin límite</strong>`
+    : `Queda con <strong>${r.quedan} clase${r.quedan === 1 ? '' : 's'}</strong>` +
+      (r.base ? ` (${r.base} que ya tenía + ${r.pd.clases} del paquete)` : '');
+
+  const perdida = r.desdeCero && (sub.clasesRestantes > 0)
+    ? (esIlimitada(sub) && !subVencida(sub)
+        ? '<br>↓ Baja de una membresía ilimitada: el ∞ no se acumula, el conteo arranca en cero.'
+        : '<br>↓ Las clases del plan vencido no se suman.')
+    : '';
+
+  res.innerHTML = `${suma}, vence el <strong>${fmtDiaLargo(r.vence)}</strong>.` +
+                  `<br>A cobrar: <strong>${fmtC(r.pd.precio)}</strong>.${perdida}`;
+
+  document.getElementById('rnvOk').disabled = false;
+}
+
+function cerrarRenovar() {
+  document.getElementById('rnvBackdrop').classList.remove('open');
+  rnvEmail = null;
+  rnvPlan  = null;
+}
+
+async function confirmarRenovar() {
+  if (!exigirStaff('cambiar un plan')) return;
+  if (!rnvEmail || !rnvPlan || !PLANES_SUB[rnvPlan]) return;
+
+  const ok = document.getElementById('rnvOk');
+  ok.disabled = true; ok.textContent = 'Guardando…';
+
+  const arr = getSuscriptoras();
+  const idx = arr.findIndex(s => (s.email || '').toLowerCase() === rnvEmail.toLowerCase());
+  if (idx < 0) { cerrarRenovar(); return; }
+
+  const r = calcRenovacion(arr[idx], rnvPlan);
+  arr[idx].clasesRestantes = r.quedan;
+  arr[idx].clasesTotal     = r.pd.clases;
+  arr[idx].plan            = rnvPlan;
+  arr[idx].fechaVence      = r.vence;
+  arr[idx].activa          = true;
+  (arr[idx].renovaciones = arr[idx].renovaciones || []).push({
+    fecha: fmtISO(new Date()), plan: rnvPlan, clases: r.pd.clases
+  });
+
   await saveSuscriptoras(arr);
+  cerrarRenovar();
   buildSAdminSubs();
 }
 
+/* Escape cierra el modal, como en el resto del panel */
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const bd = document.getElementById('rnvBackdrop');
+  if (bd && bd.classList.contains('open')) cerrarRenovar();
+});
+
 async function eliminarSub(email) {
+  if (!exigirStaff('eliminar una suscriptora')) return;
+
   if (!confirm(`¿Eliminar la suscriptora ${email}? Esta acción no se puede deshacer.`)) return;
   const arr = getSuscriptoras().filter(s => s.email.toLowerCase() !== email.toLowerCase());
   await saveSuscriptoras(arr);
@@ -10933,6 +11165,28 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="sadmin-tab"        data-tab="eventos"    onclick="sadminTab('eventos')">🎉 Eventos</div>
     </div>
     <div class="sadmin-body" id="sadminBody"></div>
+  </div>
+</div>
+
+<!-- ═══ RENOVAR PLAN · selección con clic ═══ -->
+<div class="rnv-backdrop" id="rnvBackdrop" onclick="if(event.target===this)cerrarRenovar()">
+  <div class="rnv-modal" role="dialog" aria-modal="true" aria-labelledby="rnvNombre">
+    <div class="rnv-hd">
+      <h3 id="rnvNombre">Renovar plan</h3>
+      <p class="rnv-hd-sub" id="rnvEmail"></p>
+      <button class="rnv-x" onclick="cerrarRenovar()" title="Cerrar">✕</button>
+    </div>
+    <div class="rnv-body">
+      <div class="rnv-estado" id="rnvEstado"></div>
+      <div class="rnv-aviso"  id="rnvAviso" style="display:none"></div>
+      <div class="rnv-tit">Elige el plan</div>
+      <div class="rnv-grid" id="rnvGrid"></div>
+      <div class="rnv-resumen vacio" id="rnvResumen">Toca un plan para ver cómo le queda.</div>
+    </div>
+    <div class="rnv-ft">
+      <button class="btn-rnv-no" onclick="cerrarRenovar()">Cancelar</button>
+      <button class="btn-rnv-ok" id="rnvOk" disabled onclick="confirmarRenovar()">Activar plan →</button>
+    </div>
   </div>
 </div>
 
