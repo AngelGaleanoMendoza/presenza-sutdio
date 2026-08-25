@@ -3806,21 +3806,6 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
         <button class="pc-cta pc-cta-wa ring-btn" onclick="planWA('3 Meses Ilimitado','C$4,210/mes')"><span class="rb-ico" aria-hidden="true"><svg class="rb-i1" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><svg class="rb-i2" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M22 8c0-2.3-.8-4.3-2-6"/></svg><span class="rb-dot"></span></span><span class="rb-txt">Click para más información</span><span aria-hidden="true">→</span></button>
       </div>
 
-      <!-- 6 Meses Ilimitado $102/mes -->
-      <div class="pago-card r d3">
-        <div class="pago-card-head">
-          <div class="pc-icon">♾️</div>
-          <p class="pc-name">6 Meses Ilimitado</p>
-          <p class="pc-price">C$3,734 <small>/mes · total C$22,404</small></p>
-        </div>
-        <div class="pc-perks">
-          <div class="pc-perk"><span>✧</span> Clases ilimitadas por 6 meses</div>
-          <div class="pc-perk"><span>✧</span> Acceso a todas las disciplinas</div>
-          <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
-        </div>
-        <button class="pc-cta pc-cta-wa ring-btn" onclick="planWA('6 Meses Ilimitado','C$3,734/mes')"><span class="rb-ico" aria-hidden="true"><svg class="rb-i1" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><svg class="rb-i2" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M22 8c0-2.3-.8-4.3-2-6"/></svg><span class="rb-dot"></span></span><span class="rb-txt">Click para más información</span><span aria-hidden="true">→</span></button>
-      </div>
-
     </div>
 
     <div class="pagos-metodos r d1">
@@ -4981,7 +4966,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-25.3';
+const BUILD = '2026-08-25.4';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
