@@ -2224,6 +2224,23 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .pe-espera { background:rgba(154,136,128,.14); color:#6b635b; }
 .pe-dice   { background:rgba(224,169,59,.16);  color:#7a5200; }
 .pe-verif  { background:rgba(46,125,50,.13);   color:#1a5c1a; }
+/* Pagos por link: mismo esqueleto que los pendientes, en verde, para que
+   se distinga de un vistazo cuál cola ya tiene plata de por medio. */
+.pl-blk {
+  background:linear-gradient(135deg,rgba(37,211,102,.12),rgba(37,211,102,.04));
+  border-color:rgba(37,211,102,.45);
+}
+.pl-blk .sa-pend-title { color:#14663a; }
+.pl-blk .sa-pend-hint  { color:#1a7a42; }
+.pl-card { border-left:4px solid #1a7a42; border-color:rgba(37,211,102,.3); }
+.pl-chip { background:rgba(37,211,102,.16)!important; color:#14663a!important; }
+.pl-ref  { font-size:.7rem!important; color:#7a5200!important; }
+.pl-clases { display:flex; flex-direction:column; gap:2px; margin-top:6px; }
+.pl-clase {
+  font-size:.7rem!important; color:var(--wine)!important;
+  background:rgba(107,23,40,.06); border-radius:6px; padding:3px 8px; width:fit-content;
+}
+.pl-clase.pl-sin { color:var(--gray)!important; background:transparent; font-style:italic; padding-left:0; }
 .sa-pend-card.pc-unica   { border-left:4px solid #2e7d32; }
 .sa-pend-card.pc-paquete { border-left:4px solid var(--wine); }
 .sa-sub-card.pc-unica    { border-left:4px solid rgba(46,125,50,.5); }
@@ -4292,12 +4309,17 @@ const EMAIL_NOTIF = 'sebasgale65@gmail.com'; // ← correo donde llegan las soli
    2) ¿Mandan aviso automático (webhook) a un servidor? Si sí, se puede
       activar el paquete sin que nadie toque el panel. Si no, queda el
       puente por correo. */
+/* OJO al pegar uno nuevo: el monto lo fija BAC del lado del banco, esta
+   página no lo puede leer ni verificar. Si un link queda en la llave
+   equivocada, la alumna ve un precio en la tarjeta y otro en el banco.
+   Después de pegar cualquiera, abrirlo una vez y confirmar que el monto
+   coincide con el comentario de su línea. */
 const LINKS_PAGO = {
   singular: 'https://checkout.baccredomatic.com/NTM4NTU1ODgyMDNmYThjOTZjNGY0MS4xNzg3NjI1MzA0',   // C$440   · Clase singular
-  plan5:    '',   // C$1,650 · Paquete 5 clases
-  plan10:   '',   // C$2,930 · Paquete 10 clases
-  ilimit1:  '',   // C$4,760 · Mensual ilimitado
-  ilimit3:  '',   // C$4,210 · Trimestral ilimitado
+  plan5:    'https://checkout.baccredomatic.com/MTcxMmNhZmY1ODM3Njg0Yy43MGVmMjYxNzg3NjI1NDU4',   // C$1,650 · Paquete 5 clases
+  plan10:   'https://checkout.baccredomatic.com/YTJkOS4wODUwODY5YTYyYjY5NjA0MmExNzg3NjI1NjI2',   // C$2,930 · Paquete 10 clases
+  ilimit1:  'https://checkout.baccredomatic.com/MmE4OTQwMTM1ODM1NjQ2ZDc5ODA4LjgxNzg3NjI1NzY1',   // C$4,760 · Mensual ilimitado
+  ilimit3:  'https://checkout.baccredomatic.com/YTMxOC43MTEwOGQyNzA5MjA2NTY2MTYxNzg3NjI1ODc4',   // C$4,210 · Trimestral ilimitado
   // ilimit6 (Semestral ilimitado) quedó retirada: no lleva link.
 };
 
@@ -4959,7 +4981,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-25.2';
+const BUILD = '2026-08-25.3';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5468,6 +5490,52 @@ async function marcarPagoOkDB(key, ts) {
   if (c) c.pagoOk = true;
   guardarRespaldoLocal(key);
   return true;
+}
+
+async function marcarClaseDescontadaDB(key, ts) {
+  if (SB_ON) {
+    if (!COL_DESCUENTO) return false;
+    try { await sbFetch(`reservas?slot_key=eq.${encodeURIComponent(key)}&ts=eq.${ts}`,
+      { method:'PATCH', body: JSON.stringify({ clase_descontada:true }) }); }
+    catch(e) { console.warn('No se pudo marcar la clase como saldada:', e.message); return false; }
+  }
+  const c = (SLOTS[key] || []).find(x => x.ts === ts);
+  if (c) c.claseDescontada = true;
+  guardarRespaldoLocal(key);
+  return true;
+}
+
+/* ── Reservas que están esperando que se confirme un plan ─────────────
+   Cuando la alumna reserva y elige un paquete que todavía no está pagado,
+   la reserva se guarda igual (el cupo se le aparta) pero SIN descontarle
+   nada: no hay plan del cual descontar. El método queda escrito con la
+   coletilla "(pago pendiente)" —la escribe proceedToConfirm en un solo
+   lugar— y eso es lo que las marca.
+
+   Hasta ahora nadie volvía por ellas: al confirmar el pago se le cargaban
+   las N clases del paquete y la que ya había apartado quedaba de regalo.
+   Con un paquete de 5 eso son 6 clases por el precio de 5, cada vez. */
+const MARCA_PLAN_PENDIENTE = '(pago pendiente)';
+
+function esReservaDePlanPendiente(c) {
+  return !c.claseDescontada && (c.metodo || '').includes(MARCA_PLAN_PENDIENTE);
+}
+
+function reservasDePlanPendiente(email, tel) {
+  const em  = (email || '').trim().toLowerCase();
+  const tl  = normTel(tel);
+  const out = [];
+  for (const k in SLOTS) {
+    const p = parseSlotKey(k);
+    if (!p || !INFO[p.clase]) continue;
+    for (const c of (SLOTS[k] || [])) {
+      if (!esReservaDePlanPendiente(c)) continue;
+      const mismoEm = em && (c.email || '').trim().toLowerCase() === em;
+      const mismoTl = tl.length >= 8 && normTel(c.tel) === tl;
+      if (mismoEm || mismoTl) out.push({ ...c, key: k, ...p });
+    }
+  }
+  return out.sort((a, b) => (a.dateStr + a.hora).localeCompare(b.dateStr + b.hora));
 }
 
 /* ════════════════════════════════════════
@@ -6673,8 +6741,33 @@ async function confirmarPagoSub(email) {
   if (!arr[idx].fechaInicio) arr[idx].fechaInicio = hoy;
   (arr[idx].renovaciones = arr[idx].renovaciones||[]).push({ fecha: hoy, plan: planKey, clases: pd.clases });
   delete arr[idx].pendiente;
+
+  /* Las clases que ya había apartado esperando este pago se cobran ahora:
+     el paquete acaba de existir, así que ya hay de dónde descontarlas. Sin
+     esto le quedaban las N del paquete MÁS la que reservó — un paquete de 5
+     salía por 6 clases, todas las veces.
+     A las ilimitadas no se les descuenta nada, igual que en todo el resto. */
+  const colgadas = reservasDePlanPendiente(arr[idx].email, arr[idx].tel);
+  let saldadas = 0;
+  if (!esIlimitada(arr[idx])) {
+    for (const r of colgadas) {
+      if (arr[idx].clasesRestantes <= 0) break;
+      arr[idx].clasesRestantes--;
+      arr[idx].clasesUsadas = (arr[idx].clasesUsadas || 0) + 1;
+      saldadas++;
+    }
+  }
   await saveSuscriptoras(arr);
+
+  /* Marcarlas después de guardar: si esto falla, la alumna quedó con su plan
+     activo y su clase apartada —lo que le importa— y lo único perdido es la
+     marca de cuál reserva cobró. */
+  for (const r of colgadas.slice(0, esIlimitada(arr[idx]) ? colgadas.length : saldadas)) {
+    await marcarClaseDescontadaDB(r.key, r.ts);
+  }
+
   sadminTab(sadminTabActual); /* refresca la pestaña donde estés (Hoy o Suscriptoras) */
+  return { plan: pd, saldadas, colgadas };
 }
 
 async function rechazarPagoSub(email) {
@@ -7753,7 +7846,7 @@ function buildSAdminHoy() {
     /* Aunque hoy no haya clases, las de mañana temprano sí necesitan decisión */
     body.innerHTML = `<div class="sa-fecha">${diaStr}</div>
       ${buildMadrugadaHtml()}
-      ${esCoach ? '' : buildPendientesHtml() + buildPendPagoHtml()}
+      ${esCoach ? '' : buildPagosLinkHtml() + buildPendientesHtml() + buildPendPagoHtml()}
       <div class="sa-empty">
         <span class="sa-empty-ico">🌙</span>
         <strong>${esCoach ? 'Sin clases tuyas hoy' : 'Día de descanso'}</strong>
@@ -7851,6 +7944,7 @@ function buildSAdminHoy() {
     ${avisoSqlPendienteHtml()}
     <div class="sa-fecha">${diaStr}</div>
     ${buildMadrugadaHtml()}
+    ${buildPagosLinkHtml()}
     ${buildPendientesHtml()}
     ${buildPendPagoHtml()}
     <div class="sa-kpi-grid">
@@ -8245,14 +8339,97 @@ const ESTADO_PEND = {
   verificado: { txt:'✓ Pago verificado',                  cls:'pe-verif'  },
 };
 
+/* ── PAGOS POR LINK · el ámbito propio que pidió el estudio ───────────
+   Acá cae SOLO quien ya pasó por la pantalla del banco y avisó. Es la cola
+   con plata de por medio: en las otras la alumna apenas pidió el plan.
+
+   Lo que muestra y por qué: al lado del monto van las clases que ya
+   apartó. Confirmar hace las dos cosas de una —activa el paquete y salda
+   esas clases— porque separarlo era justamente lo que dejaba clases
+   regaladas.
+
+   Lo que NO es: una confirmación del banco. "Dice que pagó" es lo que
+   marcó la alumna en su celular, y un navegador nunca es prueba de que
+   entró la plata. Por eso el botón pide cuadrar contra el estado de
+   cuenta antes, y por eso la base no deja activar nada sola. */
+function buildPagosLinkHtml() {
+  const lista = getSuscriptoras()
+    .filter(s => s.pendiente && s.pendiente.estado === 'dice_pago')
+    .sort((a, b) => (a.pendiente.fecha || '').localeCompare(b.pendiente.fecha || ''));
+  if (!lista.length) return '';
+
+  const card = (s) => {
+    const pd       = PLANES_SUB[s.pendiente.plan] || { nombre: s.pendiente.plan, precio: 0, clases: 0 };
+    const colgadas = reservasDePlanPendiente(s.email, s.tel);
+    const clasesTxt = colgadas.length
+      ? colgadas.map(c => {
+          const info = INFO[c.clase] || { emoji:'✧', nombre:c.clase };
+          return `<span class="pl-clase">${info.emoji} ${info.nombre} · ${fmtDiaLargo(c.dateStr)} · ${hora12(c.hora)}${c.lugar ? ` · Mat ${c.lugar}` : ''}</span>`;
+        }).join('')
+      : '<span class="pl-clase pl-sin">Sin clases apartadas todavía</span>';
+
+    return `<div class="sa-pend-card pl-card">
+      <div class="sa-pend-info">
+        <span class="tipo-chip pl-chip">💳 PAGÓ POR LINK · ${fmtC(pd.precio)}</span>
+        <strong>${escHtml(s.nombre)}</strong>
+        <span>${escHtml(s.email)} · ${escHtml(s.tel) || '—'}</span>
+        <span class="sa-pend-plan">${escHtml(pd.nombre)} · <strong>${fmtC(pd.precio)}</strong> · ${pd.clases >= 1000 ? '∞ ilimitado' : pd.clases + ' clases'} · avisó ${s.pendiente.fecha}</span>
+        ${s.pendiente.ref ? `<span class="pl-ref">Referencia del banco: <strong>${escHtml(s.pendiente.ref)}</strong></span>` : ''}
+        <div class="pl-clases">${clasesTxt}</div>
+      </div>
+      <div class="sa-pend-btns">
+        <button class="btn-pend-ok" onclick="confirmarPagoLink('${escArg(s.email)}')">✓ Confirmar y completar</button>
+        <button class="btn-sa-historial" onclick="comprobanteSub('${escArg(s.email)}')">📄 Comprobante</button>
+        <button class="btn-pend-no" onclick="rechazarPagoSub('${escArg(s.email)}')">✕ No entró</button>
+      </div>
+    </div>`;
+  };
+
+  return `<div class="sa-pend-blk pl-blk">
+    <div class="sa-pend-title">💳 Pagos por link · listos para confirmar (${lista.length})</div>
+    <div class="sa-pend-hint">
+      Estas alumnas ya pasaron por la pantalla del banco y avisaron que pagaron.
+      <strong>Cuadrá el monto contra tu estado de cuenta de BAC antes de confirmar</strong>:
+      esto es lo que ella marcó en su celular, no un aviso del banco.
+      Al confirmar se le activa el paquete y se le saldan las clases que ya apartó, de una sola vez.
+    </div>
+    ${lista.map(card).join('')}
+  </div>`;
+}
+
+/* Confirmar desde el bloque de link: mismo trabajo que el botón de siempre,
+   pero contando en voz alta qué quedó hecho — que es lo que el estudio
+   necesita leer para saber que no le quedó nada colgando. */
+async function confirmarPagoLink(email) {
+  if (!exigirStaff('activar un plan')) return;
+  const s = getSuscriptoraByEmail(email);
+  if (!s || !s.pendiente) return;
+  const pd = PLANES_SUB[s.pendiente.plan] || { nombre: s.pendiente.plan, precio: 0 };
+
+  if (!confirm(
+    `Confirmar el pago de ${s.nombre}\n\n` +
+    `${pd.nombre} · ${fmtC(pd.precio)}\n` +
+    (s.pendiente.ref ? `Referencia: ${s.pendiente.ref}\n` : '') +
+    `\n¿Ya viste ese monto en tu estado de cuenta de BAC?`)) return;
+
+  const r = await confirmarPagoSub(email);
+  if (!r) return;
+  alert(`✓ ${s.nombre} quedó con ${r.plan.nombre} activo.\n\n` +
+    (r.colgadas.length
+      ? `Se le saldaron ${r.saldadas} de las ${r.colgadas.length} clase(s) que ya tenía apartadas.` +
+        (r.saldadas < r.colgadas.length
+          ? `\n\n⚠ Apartó más clases de las que trae el paquete: revisá las que quedaron.`
+          : '')
+      : 'No tenía clases apartadas esperando este pago.'));
+}
+
 function buildPendientesHtml() {
-  const pendientes  = getSuscriptoras().filter(s => s.pendiente);
-  /* Las que ya pasaron por el banco van primero: son las que tienen algo
-     que revisar ahora. Las que solo pidieron el plan pueden esperar. */
-  const porRevisar = (a, b) =>
-    (b.pendiente.estado === 'dice_pago') - (a.pendiente.estado === 'dice_pago');
-  const pendPrimera = pendientes.filter(s =>  esPrimeraVez(s.pendiente.plan)).sort(porRevisar);
-  const pendPaquete = pendientes.filter(s => !esPrimeraVez(s.pendiente.plan)).sort(porRevisar);
+  /* Las que pasaron por el link del banco salen de acá: tienen su propio
+     bloque arriba (buildPagosLinkHtml). Si aparecieran en los dos lados,
+     confirmar en uno dejaría la tarjeta fantasma en el otro. */
+  const pendientes  = getSuscriptoras().filter(s => s.pendiente && s.pendiente.estado !== 'dice_pago');
+  const pendPrimera = pendientes.filter(s =>  esPrimeraVez(s.pendiente.plan));
+  const pendPaquete = pendientes.filter(s => !esPrimeraVez(s.pendiente.plan));
 
   const renderPendCard = (s) => {
     const pd = PLANES_SUB[s.pendiente.plan] || { nombre: s.pendiente.plan, precio: 0, clases: 0 };
@@ -8346,7 +8523,8 @@ function aplicarFiltroSubs() {
 function buildSAdminSubs() {
   const body = document.getElementById('sadminBody');
   const subs = getSuscriptoras();
-  const pendHtml = buildPendientesHtml();
+  /* El de link va primero: es la cola con plata de por medio. */
+  const pendHtml = buildPagosLinkHtml() + buildPendientesHtml();
 
   /* Render de una tarjeta de suscriptora (si = índice global para IDs únicos) */
   const renderCard = (sub, si) => {
