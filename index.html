@@ -3787,7 +3787,7 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Acceso a todas las disciplinas</div>
           <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
         </div>
-        <button class="pc-cta pc-cta-wa ring-btn" onclick="planWA('Mensual Ilimitado','C$4,760/mes')"><span class="rb-ico" aria-hidden="true"><svg class="rb-i1" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><svg class="rb-i2" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M22 8c0-2.3-.8-4.3-2-6"/></svg><span class="rb-dot"></span></span><span class="rb-txt">Click para más información</span><span aria-hidden="true">→</span></button>
+        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="ilimit1" onclick="payLink('ilimit1')">💬 Reservar por WhatsApp →</button>
       </div>
 
       <!-- 3 Meses Ilimitado $115/mes — destacado -->
@@ -4304,7 +4304,16 @@ const LINKS_PAGO = {
   plan5:    'https://checkout.baccredomatic.com/MTcxMmNhZmY1ODM3Njg0Yy43MGVmMjYxNzg3NjI1NDU4',   // C$1,650 · Paquete 5 clases
   plan10:   'https://checkout.baccredomatic.com/YTJkOS4wODUwODY5YTYyYjY5NjA0MmExNzg3NjI1NjI2',   // C$2,930 · Paquete 10 clases
   ilimit1:  'https://checkout.baccredomatic.com/MmE4OTQwMTM1ODM1NjQ2ZDc5ODA4LjgxNzg3NjI1NzY1',   // C$4,760 · Mensual ilimitado
-  ilimit3:  'https://checkout.baccredomatic.com/YTMxOC43MTEwOGQyNzA5MjA2NTY2MTYxNzg3NjI1ODc4',   // C$4,210 · Trimestral ilimitado
+  /* APAGADO a propósito. El link que mandó BAC cobra C$4,210 con Cantidad 1,
+     y su propia pantalla aclara: "vigencia de 30 días calendario, precio por
+     mes". Pero acá el plan da 90 días (meses:3). Si la alumna deja el selector
+     en 1 —que es como viene— pagaría 30 días y recibiría 90: C$8,420 de menos
+     cada vez, sin que nadie lo note hasta cuadrar el banco.
+     Se enciende pegando el link de MONTO FIJO de C$12,630 que hay que pedirle
+     a BAC. Mientras tanto este plan se coordina por WhatsApp, como siempre.
+     El link viejo, por si sirve de referencia al pedirlo:
+     https://checkout.baccredomatic.com/YTMxOC43MTEwOGQyNzA5MjA2NTY2MTYxNzg3NjI1ODc4 */
+  ilimit3:  '',   // C$12,630 · Trimestral ilimitado (3 meses completos)
   // ilimit6 (Semestral ilimitado) quedó retirada: no lleva link.
 };
 
@@ -4345,11 +4354,31 @@ function notificarSolicitudCorreo(datos) {
    si todavía no hay, coordina por WhatsApp con el concepto y el monto.
    El monto sale de PLANES_SUB, no escrito a mano acá: es el mismo número
    que se le cobra en la reserva, así que no pueden discrepar. */
+/* Links de BAC que muestran un selector de "Cantidad" en la pantalla del
+   banco: el monto se multiplica por ese número. Como el total que espera el
+   estudio es el de Cantidad 1, se le avisa antes de mandarla — si lo sube,
+   paga de más y el comprobante deja de cuadrar. Cuando BAC entregue un link
+   de monto fijo para el plan, se saca de esta lista. */
+const LINK_CON_CANTIDAD = ['ilimit1'];
+
+function avisarCantidad(planKey) {
+  if (!LINK_CON_CANTIDAD.includes(planKey)) return true;
+  const p = PLANES_SUB[planKey];
+  return confirm(
+    `Vas a pagar ${p.nombre} — ${fmtC(p.precio)}.\n\n` +
+    `En la pantalla del banco dejá "Cantidad" en 1: ese monto ya es el total.\n\n` +
+    `¿Seguimos?`);
+}
+
 function payLink(planKey) {
   const p = PLANES_SUB[planKey];
   if (!p) return;
   const link = linkDePago(planKey);
-  if (link) { window.open(link, '_blank', 'noopener'); return; }
+  if (link) {
+    if (!avisarCantidad(planKey)) return;
+    window.open(link, '_blank', 'noopener');
+    return;
+  }
   const txt = `Hola Presenza ✧ Quiero pagar ${p.nombre} — Monto: ${fmtC(p.precio)}. ¿Me envían los datos de la cuenta para hacer la transferencia?`;
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(txt)}`, '_blank');
 }
@@ -4396,6 +4425,7 @@ function leerPagoEnCurso() {
 function irAPagar(planKey, email, tel) {
   const link = linkDePago(planKey);
   if (!link) return false;
+  if (!avisarCantidad(planKey)) return false;
   guardarPagoEnCurso({ plan: planKey, email: email || '', tel: tel || '' });
   window.open(link, '_blank', 'noopener');
 
@@ -4966,7 +4996,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-25.4';
+const BUILD = '2026-08-25.5';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
