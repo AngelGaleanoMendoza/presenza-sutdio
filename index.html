@@ -880,6 +880,16 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 }
 .pc-featured .pc-cta-wa:hover { background:rgba(255,255,255,.28); transform:translateY(-2px); }
 .pc-featured .pc-cta-link { background:rgba(255,255,255,.18); border:1.5px solid rgba(255,255,255,.36); box-shadow:none; }
+/* El segundo camino de pago. Va en secundario —contorno, no relleno— para
+   que la tarjeta siga teniendo una sola acción principal, pero sin esconder
+   la transferencia: hay clientas que solo pagan así. */
+.pc-cta-alt {
+  background:transparent; color:var(--wine);
+  border:1.5px solid rgba(107,23,40,.28); margin-top:-14px;
+}
+.pc-cta-alt:hover { background:rgba(107,23,40,.07); border-color:var(--wine); transform:translateY(-2px); }
+.pc-featured .pc-cta-alt { color:#fff; border-color:rgba(255,255,255,.32); }
+.pc-featured .pc-cta-alt:hover { background:rgba(255,255,255,.16); }
 
 /* ══════════════════════════════════════════════════════════
    BOTÓN CAMPANA (suscribirse)
@@ -3739,7 +3749,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Cualquier disciplina disponible</div>
           <div class="pc-perk"><span>✧</span> Sin compromiso mensual</div>
         </div>
-        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="singular" onclick="payLink('singular')">💬 Reservar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="singular" onclick="payLink('singular')">💳 Pagar con tarjeta →</button>
+        <button class="pc-cta pc-cta-alt rb-press" onclick="transferWA('singular')">🏦 Pagar por transferencia →</button>
       </div>
 
       <!-- 5 Clases $45 — destacado -->
@@ -3755,7 +3766,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Válido por 30 días</div>
           <div class="pc-perk"><span>✧</span> Combina Barre, Pilates & Yoga</div>
         </div>
-        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="plan5" onclick="payLink('plan5')">💬 Reservar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="plan5" onclick="payLink('plan5')">💳 Pagar con tarjeta →</button>
+        <button class="pc-cta pc-cta-alt rb-press" onclick="transferWA('plan5')">🏦 Pagar por transferencia →</button>
       </div>
 
       <!-- 10 Clases $80 -->
@@ -3770,7 +3782,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Válido por 45 días</div>
           <div class="pc-perk"><span>✧</span> Combina Barre, Pilates & Yoga</div>
         </div>
-        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="plan10" onclick="payLink('plan10')">💬 Reservar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="plan10" onclick="payLink('plan10')">💳 Pagar con tarjeta →</button>
+        <button class="pc-cta pc-cta-alt rb-press" onclick="transferWA('plan10')">🏦 Pagar por transferencia →</button>
       </div>
 
       <div class="pagos-row-label">♾️ Membresías ilimitadas</div>
@@ -3787,7 +3800,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Acceso a todas las disciplinas</div>
           <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
         </div>
-        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="ilimit1" onclick="payLink('ilimit1')">💬 Reservar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="ilimit1" onclick="payLink('ilimit1')">💳 Pagar con tarjeta →</button>
+        <button class="pc-cta pc-cta-alt rb-press" onclick="transferWA('ilimit1')">🏦 Pagar por transferencia →</button>
       </div>
 
       <!-- 3 Meses Ilimitado $115/mes — destacado -->
@@ -3796,14 +3810,15 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <span class="pc-badge">✧ Mejor valor</span>
           <div class="pc-icon">⭐</div>
           <p class="pc-name">3 Meses Ilimitado</p>
-          <p class="pc-price">C$4,210 <small>/mes · total C$12,630</small></p>
+          <p class="pc-price">C$4,210 <small>los 3 meses completos</small></p>
         </div>
         <div class="pc-perks">
           <div class="pc-perk"><span>✧</span> Clases ilimitadas por 3 meses</div>
           <div class="pc-perk"><span>✧</span> Acceso a todas las disciplinas</div>
           <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
         </div>
-        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="ilimit3" onclick="payLink('ilimit3')">💬 Reservar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="ilimit3" onclick="payLink('ilimit3')">💳 Pagar con tarjeta →</button>
+        <button class="pc-cta pc-cta-alt rb-press" onclick="transferWA('ilimit3')">🏦 Pagar por transferencia →</button>
       </div>
 
     </div>
@@ -4367,27 +4382,37 @@ function avisarCantidad(planKey) {
     `¿Seguimos?`);
 }
 
+/* Coordinar la transferencia por WhatsApp. Antes esto vivía escondido
+   dentro de payLink, como "lo que pasa si todavía no hay link". Ahora es
+   una opción por derecho propio: el estudio cobra por los dos caminos y
+   ninguno reemplaza al otro, así que cada tarjeta ofrece ambos. */
+function transferWA(planKey) {
+  const p = PLANES_SUB[planKey];
+  if (!p) return;
+  const txt = `Hola Presenza ✧ Quiero pagar ${p.nombre} — Monto: ${fmtC(p.precio)}. ¿Me envían los datos de la cuenta para hacer la transferencia?`;
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(txt)}`, '_blank');
+}
+
 function payLink(planKey) {
   const p = PLANES_SUB[planKey];
   if (!p) return;
   const link = linkDePago(planKey);
-  if (link) {
-    if (!avisarCantidad(planKey)) return;
-    window.open(link, '_blank', 'noopener');
-    return;
-  }
-  const txt = `Hola Presenza ✧ Quiero pagar ${p.nombre} — Monto: ${fmtC(p.precio)}. ¿Me envían los datos de la cuenta para hacer la transferencia?`;
-  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(txt)}`, '_blank');
+  /* Sin link, el botón de tarjeta ni se dibuja; si igual se llega acá
+     (alguien lo llama a mano) queda el camino que sí existe. */
+  if (!link) { transferWA(planKey); return; }
+  if (!avisarCantidad(planKey)) return;
+  window.open(link, '_blank', 'noopener');
 }
 
 /* Las tarjetas de precios dicen "Reservar por WhatsApp" mientras no haya
    link. Apenas se pegue uno arriba, ese botón —y solo ese— pasa a decir
    "Pagar con tarjeta", sin tocar el HTML. */
 function refrescarBotonesDePago() {
+  /* El de transferencia está siempre; el de tarjeta solo si ese plan tiene
+     link pegado. Así, quitar un link no deja un botón que no lleva a nada
+     —simplemente esa tarjeta vuelve a cobrarse solo por transferencia. */
   document.querySelectorAll('[data-plan-pago]').forEach(b => {
-    b.textContent = linkDePago(b.dataset.planPago)
-      ? '💳 Pagar con tarjeta →'
-      : '💬 Reservar por WhatsApp →';
+    b.style.display = linkDePago(b.dataset.planPago) ? '' : 'none';
   });
 }
 
@@ -4632,7 +4657,12 @@ function rbObservar(root) {
 
 function infoIlimitados() {
   const txt = `Hola Presenza ✧ Quiero más información sobre las membresías ilimitadas:\n` +
-    PLANES_ILIMITADOS.map(k => `• ${PLANES_SUB[k].nombre} — ${fmtC(PLANES_SUB[k].precio)}/mes`).join('\n');
+    /* El precio de cada plan es el TOTAL de su período, no una mensualidad:
+       el trimestral cuesta menos que el mensual a propósito, es la oferta. */
+    PLANES_ILIMITADOS.map(k => {
+      const v = PLANES_SUB[k];
+      return `• ${v.nombre} — ${fmtC(v.precio)} por ${v.meses} mes${v.meses === 1 ? '' : 'es'}`;
+    }).join('\n');
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(txt)}`, '_blank');
 }
 
@@ -4993,7 +5023,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-25.6';
+const BUILD = '2026-08-25.7';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
