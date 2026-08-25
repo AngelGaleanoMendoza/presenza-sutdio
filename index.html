@@ -4233,8 +4233,8 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
               Efectivo en estudio
             </div>
             <div class="msb msb-sub rb-press" id="msbSub" onclick="selectMetodo('sub')">
-              <span class="msb-icon">💳</span>
-              Pago con tarjeta
+              <span class="msb-icon" id="msbSubIcon">💳</span>
+              <span id="msbSubTxt">Membresía o tarjeta</span>
             </div>
           </div>
         </div>
@@ -5011,7 +5011,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-25.9';
+const BUILD = '2026-08-25.10';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -6569,6 +6569,7 @@ function setupPago() {
 
   pagoMetodo      = null;
   selectedSubPlan = null;
+  etiquetaMetodoSub(null);   /* otra alumna, otro caso: se vuelve a preguntar */
   document.getElementById('msbTransfer').classList.remove('sel');
   document.getElementById('msbCash').classList.remove('sel');
   document.getElementById('msbSub').classList.remove('sel');
@@ -6608,6 +6609,20 @@ function selectMetodo(tipo) {
    reserva no tiene sesión iniciada, así que ya no hay una copia local de
    suscriptoras para mirar. El "Verificando…" es nuevo por lo mismo: antes
    esto era instantáneo, ahora de verdad espera una respuesta. */
+/* El botón del método dice lo que le toca a ESTA alumna. Antes decía
+   "Pago con tarjeta" para todas, y quien ya tenía su plan al día leía que
+   le iban a cobrar otra vez. Arranca neutro porque hasta no consultar su
+   correo no se sabe cuál de las dos es. */
+function etiquetaMetodoSub(tienePlan) {
+  const ico = document.getElementById('msbSubIcon');
+  const txt = document.getElementById('msbSubTxt');
+  if (!ico || !txt) return;
+  ico.textContent = tienePlan === null ? '💳' : tienePlan ? '💎' : '💳';
+  txt.textContent = tienePlan === null ? 'Membresía o tarjeta'
+                  : tienePlan ? 'Usar mi membresía'
+                  : 'Pago con tarjeta';
+}
+
 async function verifySub() {
   const email  = document.getElementById('mEmail').value.trim();
   const nombre = document.getElementById('mNombre').value.trim();
@@ -6639,13 +6654,21 @@ async function verifySub() {
         Quita algunas semanas o elige un paquete nuevo.
       </div>
       <button type="button" class="sub-contacto-directo rb-press" onclick="volverALugar()">← Ajustar las semanas</button>`;
+    etiquetaMetodoSub(true);   /* plan tiene, lo que no le alcanza son clases */
     document.getElementById('btnPagar').disabled = true;
     return;
   }
 
   /* Suscriptora activa, vigente y con clases suficientes */
   if (vigente && alcanza) {
-    selectedSubPlan = sub.plan;
+    /* selectedSubPlan queda en null a propósito: significa "un plan que
+       eligió COMPRAR", no "el plan que ya tiene". Ponerle acá su propio plan
+       la dejaba a un paso de que le cobraran otro entero: si entre esta
+       pantalla y el botón de confirmar gastaba su última clase desde otro
+       celular, proceedToConfirm veía un plan elegido y le registraba una
+       compra que ella nunca pidió. */
+    selectedSubPlan = null;
+    etiquetaMetodoSub(true);
     const cls = sub.clasesRestantes <= 3 ? 'sub-cupos-low' : '';
     result.innerHTML = `
       <div class="sub-ok">
@@ -6654,9 +6677,11 @@ async function verifySub() {
           <strong>¡Bienvenida de nuevo, ${sub.nombre.split(' ')[0]}!</strong>
           <span>${PLANES_SUB[sub.plan]?.nombre || 'Suscripción'} · Vence: ${sub.fechaVence}</span>
         </div>
-        <span class="sub-cupos-badge ${cls}">${esIlimitada(sub) ? '∞ ilimitado' : sub.clasesRestantes + ' clases'}</span>
+        <span class="sub-cupos-badge ${cls}">${esIlimitada(sub) ? '∞ ilimitado' : `${sub.clasesRestantes} clase${sub.clasesRestantes === 1 ? '' : 's'}`}</span>
       </div>
-      ${esIlimitada(sub) ? '' : `<p class="sub-descuento-nota">Al confirmar se descuenta${nClases>1?'n':''} <strong>${nClases}</strong> clase${nClases>1?'s':''} de tu plan · te quedarían <strong>${Math.max(0, sub.clasesRestantes - nClases)}</strong></p>`}`;
+      <p class="sub-descuento-nota">✓ <strong>No pagás nada</strong>: tu plan ya está al día.${esIlimitada(sub)
+        ? ' Podés reservar sin límite hasta el ' + sub.fechaVence + '.'
+        : ` Se descuenta${nClases>1?'n':''} <strong>${nClases}</strong> clase${nClases>1?'s':''} y te quedarían <strong>${Math.max(0, sub.clasesRestantes - nClases)}</strong>.`}</p>`;
     document.getElementById('btnPagar').disabled = false;
     return;
   }
@@ -6697,6 +6722,7 @@ async function verifySub() {
       <button type="button" class="sub-contacto-directo rb-press" onclick="contactoDirecto()">💬 Contacto directo con el estudio</button>
     </div>`;
   selectedSubPlan = null;
+  etiquetaMetodoSub(false);
   document.getElementById('btnPagar').disabled = true;
 }
 
