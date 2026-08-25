@@ -2356,6 +2356,15 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 }
 
 /* Tab Calendario */
+.cal-mes-nav { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.cal-mes-nav .cal-mes-hd { flex:1; text-align:center; margin-bottom:0; }
+.cal-mes-sub { display:block; font-size:.68rem; color:var(--gray); letter-spacing:.4px; margin-top:2px; }
+.btn-cal-hoy {
+  display:block; margin:0 auto 12px; padding:6px 16px; border-radius:50px;
+  border:1.5px solid rgba(107,23,40,.25); background:var(--white);
+  color:var(--wine); font-family:inherit; font-size:.72rem; font-weight:600; cursor:pointer;
+}
+.btn-cal-hoy:hover { background:rgba(107,23,40,.08); border-color:var(--wine); }
 .cal-mes-hd { margin-bottom:12px; }
 .cal-mes-hd h3 { font-family:'Playfair Display',serif; font-size:1rem; color:var(--wine-d); }
 .cal-dow-hd {
@@ -5002,7 +5011,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-25.8';
+const BUILD = '2026-08-25.9';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5376,13 +5385,14 @@ async function sincronizarReservas() {
    `c.lugar`, así que estos objetos "vacíos" (sin nombre/email/tel) les
    alcanza igual.
 
-   Ventana de 90 días: cubre de sobra cualquier reserva real; si alguien
-   navega el horario más lejos que eso, el índice único de la base sigue
-   protegiendo contra un mat doble aunque la pantalla muestre algo viejo. */
+   La ventana sale de DIAS_ADELANTE, no de un número escrito acá: si se
+   estira el horario y esto se queda corto, los últimos días saldrían con
+   todos los mats libres aunque estén llenos. Se le suma una semana de
+   margen para las fechas repetidas que caen justo en el borde. */
 async function sincronizarCuposPublico() {
   if (!SB_ON) return false;
   const desde = fmtISO(new Date());
-  const hasta = fmtISO(new Date(Date.now() + 90 * 86400000));
+  const hasta = fmtISO(new Date(Date.now() + (DIAS_ADELANTE + 7) * 86400000));
   const filas = await sbRpc('cupos_del_dia', { p_desde: desde, p_hasta: hasta });
   const nuevo = {};
   (filas || []).forEach(f => {
@@ -6062,11 +6072,14 @@ function subVencida(sub) {
 }
 
 /* ── Semana ── */
-/* Cuántos días hacia adelante se puede reservar. Un mes corrido: la alumna
-   con paquete mensual aparta su horario fijo de todo el mes de una sola vez.
-   La ventana de sincronizarCuposPublico() es de 90 días, así que los cupos
-   de todas estas fechas ya vienen cargados. */
-const DIAS_ADELANTE = 30;
+/* Cuántos días hacia adelante se puede reservar. Cuatro meses corridos:
+   con un mes no alcanzaba ni para el trimestral —quien lo compra en agosto
+   tiene que poder apartar hasta noviembre—, y el horario se cortaba en
+   seco a los 30 días sin explicar por qué.
+   La ventana de cupos de sincronizarCuposPublico() se calcula a partir de
+   este número, así que estirarlo no deja fechas mostrando mats libres que
+   en realidad están tomados. */
+const DIAS_ADELANTE = 120;
 
 let schedSelDay = null; /* dateStr YYYY-MM-DD */
 
@@ -9221,15 +9234,29 @@ function buildCoachSemana() {
       </div>`}`;
 }
 
+/* Cuántos meses corrido el calendario del panel respecto de hoy. Antes no
+   existía: la pestaña dibujaba el mes actual y punto, así que para saber qué
+   había en noviembre no quedaba más que abrir la base. */
+let calMesOff = 0;
+
+function calMes(paso) {
+  calMesOff = paso === 0 ? 0 : calMesOff + paso;
+  buildSAdminCalendario();
+}
+
 function buildSAdminCalendario() {
   if (coachActual) return buildCoachSemana();
 
   const body  = document.getElementById('sadminBody');
   const hoy   = new Date();
-  const year  = hoy.getFullYear();
-  const month = hoy.getMonth();
+  /* Día 1 a propósito: sumarle meses a un día 31 se pasa de largo en los
+     meses de 30 (31 de octubre + 1 mes = 1 de diciembre, y noviembre se
+     saltaría). */
+  const vista = new Date(hoy.getFullYear(), hoy.getMonth() + calMesOff, 1);
+  const year  = vista.getFullYear();
+  const month = vista.getMonth();
 
-  /* Contar reservas por día del mes actual */
+  /* Contar reservas por día del mes que se está viendo */
   const dayCount = {};
   for (let k in SLOTS) {
     const match = k.match(/^presenza_(\w+)_(\d{4}-\d{2}-\d{2})_(\d{4})$/);
@@ -9244,7 +9271,8 @@ function buildSAdminCalendario() {
 
   const firstDow     = new Date(year, month, 1).getDay();
   const daysInMonth  = new Date(year, month+1, 0).getDate();
-  const todayDate    = hoy.getDate();
+  /* -1 = ningún día: en otro mes no hay "hoy" que marcar */
+  const todayDate    = calMesOff === 0 ? hoy.getDate() : -1;
 
   let cells = '';
   for (let i = 0; i < firstDow; i++) cells += '<div class="cal-cell empty"></div>';
@@ -9258,10 +9286,22 @@ function buildSAdminCalendario() {
     </div>`;
   }
 
+  const totalMes = Object.values(dayCount).reduce((n, x) => n + x, 0);
+  const etiqueta = calMesOff === 0 ? 'Este mes'
+                 : calMesOff === 1 ? 'Próximo mes'
+                 : calMesOff === -1 ? 'Mes pasado'
+                 : calMesOff > 0 ? `En ${calMesOff} meses` : `Hace ${-calMesOff} meses`;
+
   body.innerHTML = `
-    <div class="cal-mes-hd">
-      <h3>${MESES_ES[month]} ${year}</h3>
+    <div class="cal-mes-nav">
+      <button class="btn-cs-nav" onclick="calMes(-1)" title="Mes anterior">←</button>
+      <div class="cal-mes-hd">
+        <h3>${MESES_ES[month]} ${year}</h3>
+        <span class="cal-mes-sub">${etiqueta} · ${totalMes} reserva${totalMes === 1 ? '' : 's'}</span>
+      </div>
+      <button class="btn-cs-nav" onclick="calMes(1)" title="Mes siguiente">→</button>
     </div>
+    ${calMesOff !== 0 ? '<button class="btn-cal-hoy" onclick="calMes(0)">↺ Volver a este mes</button>' : ''}
     <div class="cal-dow-hd">
       ${['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map(d=>`<div>${d}</div>`).join('')}
     </div>
