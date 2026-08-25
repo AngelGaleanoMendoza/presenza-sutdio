@@ -880,6 +880,16 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 }
 .pc-featured .pc-cta-wa:hover { background:rgba(255,255,255,.28); transform:translateY(-2px); }
 .pc-featured .pc-cta-link { background:rgba(255,255,255,.18); border:1.5px solid rgba(255,255,255,.36); box-shadow:none; }
+/* El segundo camino de pago. Va en secundario —contorno, no relleno— para
+   que la tarjeta siga teniendo una sola acción principal, pero sin esconder
+   la transferencia: hay clientas que solo pagan así. */
+.pc-cta-alt {
+  background:transparent; color:var(--wine);
+  border:1.5px solid rgba(107,23,40,.28); margin-top:-14px;
+}
+.pc-cta-alt:hover { background:rgba(107,23,40,.07); border-color:var(--wine); transform:translateY(-2px); }
+.pc-featured .pc-cta-alt { color:#fff; border-color:rgba(255,255,255,.32); }
+.pc-featured .pc-cta-alt:hover { background:rgba(255,255,255,.16); }
 
 /* ══════════════════════════════════════════════════════════
    BOTÓN CAMPANA (suscribirse)
@@ -1604,6 +1614,18 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   font-size:.74rem; color:var(--gray); line-height:1.45;
   margin:8px 2px 14px; text-align:center;
 }
+/* Aparece recién cuando ya se abrió el banco: antes de pagar no tiene
+   sentido y solo invitaría a apretarlo de gusto. */
+.btn-ya-pague {
+  display:block; width:100%; margin:0 0 14px;
+  background:transparent; color:var(--wine);
+  border:1.5px solid rgba(107,23,40,.35); border-radius:12px;
+  font-family:'Poppins',sans-serif; font-weight:600; font-size:.85rem;
+  padding:11px; cursor:pointer; transition:all .2s;
+}
+.btn-ya-pague:hover:not(:disabled) { background:rgba(107,23,40,.07); border-color:var(--wine); }
+.btn-ya-pague:disabled { cursor:default; opacity:.75; }
+.btn-ya-pague.avisado { background:rgba(37,211,102,.12); border-color:rgba(37,211,102,.5); color:#1a7a42; opacity:1; }
 .btn-compartir {
   display:flex; align-items:center; justify-content:center; gap:8px;
   background:rgba(107,23,40,.09); color:var(--wine); border:0;
@@ -2212,6 +2234,23 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .pe-espera { background:rgba(154,136,128,.14); color:#6b635b; }
 .pe-dice   { background:rgba(224,169,59,.16);  color:#7a5200; }
 .pe-verif  { background:rgba(46,125,50,.13);   color:#1a5c1a; }
+/* Pagos por link: mismo esqueleto que los pendientes, en verde, para que
+   se distinga de un vistazo cuál cola ya tiene plata de por medio. */
+.pl-blk {
+  background:linear-gradient(135deg,rgba(37,211,102,.12),rgba(37,211,102,.04));
+  border-color:rgba(37,211,102,.45);
+}
+.pl-blk .sa-pend-title { color:#14663a; }
+.pl-blk .sa-pend-hint  { color:#1a7a42; }
+.pl-card { border-left:4px solid #1a7a42; border-color:rgba(37,211,102,.3); }
+.pl-chip { background:rgba(37,211,102,.16)!important; color:#14663a!important; }
+.pl-ref  { font-size:.7rem!important; color:#7a5200!important; }
+.pl-clases { display:flex; flex-direction:column; gap:2px; margin-top:6px; }
+.pl-clase {
+  font-size:.7rem!important; color:var(--wine)!important;
+  background:rgba(107,23,40,.06); border-radius:6px; padding:3px 8px; width:fit-content;
+}
+.pl-clase.pl-sin { color:var(--gray)!important; background:transparent; font-style:italic; padding-left:0; }
 .sa-pend-card.pc-unica   { border-left:4px solid #2e7d32; }
 .sa-pend-card.pc-paquete { border-left:4px solid var(--wine); }
 .sa-sub-card.pc-unica    { border-left:4px solid rgba(46,125,50,.5); }
@@ -2768,6 +2807,24 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .al-clase-chips { display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
 .al-chip-mat { font-size:.62rem; background:rgba(201,149,106,.18); color:#8B5A30; border-radius:50px; padding:2px 8px; font-weight:600; white-space:nowrap; }
 .al-chip-pend { font-size:.62rem; background:rgba(155,44,69,.1); color:var(--wine); border-radius:50px; padding:2px 8px; font-weight:600; white-space:nowrap; }
+/* La clase que canceló el estudio: se queda en la lista, apagada y en rojo,
+   porque enterarse es justamente el punto. */
+.al-clase.cancelada { background:rgba(220,53,69,.05); border-color:rgba(220,53,69,.25); }
+.al-clase.cancelada .al-clase-nom  { text-decoration:line-through; color:var(--gray); }
+.al-clase.cancelada .al-clase-dia  { color:#a94442; }
+.al-chip-cancel {
+  font-size:.62rem; background:rgba(220,53,69,.14); color:#842029;
+  border-radius:50px; padding:2px 8px; font-weight:600; white-space:nowrap;
+}
+.al-motivo { font-size:.66rem; color:#a94442; margin-top:3px; font-style:italic; }
+.btn-al-cancel {
+  font-size:.62rem; font-weight:600; white-space:nowrap; cursor:pointer;
+  border:1px solid rgba(107,23,40,.25); border-radius:50px; padding:3px 10px;
+  background:var(--white); color:var(--wine); transition:all .16s;
+}
+.btn-al-cancel:hover  { background:rgba(107,23,40,.08); border-color:var(--wine); }
+.btn-al-cancel:disabled { opacity:.5; cursor:default; }
+.al-nocancel { font-size:.6rem; color:var(--gray); text-align:right; max-width:104px; line-height:1.35; }
 .al-vacio { text-align:center; color:var(--gray); font-size:.8rem; padding:22px 10px; }
 .al-pie { display:flex; justify-content:space-between; margin-top:20px; padding-top:14px; border-top:1px solid rgba(107,23,40,.1); }
 .al-pie button { background:none; border:none; color:var(--gray); font-family:inherit; font-size:.72rem; cursor:pointer; text-decoration:underline; }
@@ -3692,7 +3749,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Cualquier disciplina disponible</div>
           <div class="pc-perk"><span>✧</span> Sin compromiso mensual</div>
         </div>
-        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="singular" onclick="payLink('singular')">💬 Reservar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="singular" onclick="payLink('singular')">💳 Pagar con tarjeta →</button>
+        <button class="pc-cta pc-cta-alt rb-press" onclick="transferWA('singular')">🏦 Pagar por transferencia →</button>
       </div>
 
       <!-- 5 Clases $45 — destacado -->
@@ -3708,7 +3766,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Válido por 30 días</div>
           <div class="pc-perk"><span>✧</span> Combina Barre, Pilates & Yoga</div>
         </div>
-        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="plan5" onclick="payLink('plan5')">💬 Reservar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="plan5" onclick="payLink('plan5')">💳 Pagar con tarjeta →</button>
+        <button class="pc-cta pc-cta-alt rb-press" onclick="transferWA('plan5')">🏦 Pagar por transferencia →</button>
       </div>
 
       <!-- 10 Clases $80 -->
@@ -3723,7 +3782,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Válido por 45 días</div>
           <div class="pc-perk"><span>✧</span> Combina Barre, Pilates & Yoga</div>
         </div>
-        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="plan10" onclick="payLink('plan10')">💬 Reservar por WhatsApp →</button>
+        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="plan10" onclick="payLink('plan10')">💳 Pagar con tarjeta →</button>
+        <button class="pc-cta pc-cta-alt rb-press" onclick="transferWA('plan10')">🏦 Pagar por transferencia →</button>
       </div>
 
       <div class="pagos-row-label">♾️ Membresías ilimitadas</div>
@@ -3740,7 +3800,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <div class="pc-perk"><span>✧</span> Acceso a todas las disciplinas</div>
           <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
         </div>
-        <button class="pc-cta pc-cta-wa ring-btn" onclick="planWA('Mensual Ilimitado','C$4,760/mes')"><span class="rb-ico" aria-hidden="true"><svg class="rb-i1" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><svg class="rb-i2" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M22 8c0-2.3-.8-4.3-2-6"/></svg><span class="rb-dot"></span></span><span class="rb-txt">Click para más información</span><span aria-hidden="true">→</span></button>
+        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="ilimit1" onclick="payLink('ilimit1')">💳 Pagar con tarjeta →</button>
+        <button class="pc-cta pc-cta-alt rb-press" onclick="transferWA('ilimit1')">🏦 Pagar por transferencia →</button>
       </div>
 
       <!-- 3 Meses Ilimitado $115/mes — destacado -->
@@ -3749,29 +3810,15 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           <span class="pc-badge">✧ Mejor valor</span>
           <div class="pc-icon">⭐</div>
           <p class="pc-name">3 Meses Ilimitado</p>
-          <p class="pc-price">C$4,210 <small>/mes · total C$12,630</small></p>
+          <p class="pc-price">C$4,210 <small>los 3 meses completos</small></p>
         </div>
         <div class="pc-perks">
           <div class="pc-perk"><span>✧</span> Clases ilimitadas por 3 meses</div>
           <div class="pc-perk"><span>✧</span> Acceso a todas las disciplinas</div>
           <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
         </div>
-        <button class="pc-cta pc-cta-wa ring-btn" onclick="planWA('3 Meses Ilimitado','C$4,210/mes')"><span class="rb-ico" aria-hidden="true"><svg class="rb-i1" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><svg class="rb-i2" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M22 8c0-2.3-.8-4.3-2-6"/></svg><span class="rb-dot"></span></span><span class="rb-txt">Click para más información</span><span aria-hidden="true">→</span></button>
-      </div>
-
-      <!-- 6 Meses Ilimitado $102/mes -->
-      <div class="pago-card r d3">
-        <div class="pago-card-head">
-          <div class="pc-icon">♾️</div>
-          <p class="pc-name">6 Meses Ilimitado</p>
-          <p class="pc-price">C$3,734 <small>/mes · total C$22,404</small></p>
-        </div>
-        <div class="pc-perks">
-          <div class="pc-perk"><span>✧</span> Clases ilimitadas por 6 meses</div>
-          <div class="pc-perk"><span>✧</span> Acceso a todas las disciplinas</div>
-          <div class="pc-perk"><span>✧</span> Prioridad en reservas</div>
-        </div>
-        <button class="pc-cta pc-cta-wa ring-btn" onclick="planWA('6 Meses Ilimitado','C$3,734/mes')"><span class="rb-ico" aria-hidden="true"><svg class="rb-i1" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><svg class="rb-i2" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M22 8c0-2.3-.8-4.3-2-6"/></svg><span class="rb-dot"></span></span><span class="rb-txt">Click para más información</span><span aria-hidden="true">→</span></button>
+        <button class="pc-cta pc-cta-link rb-press" data-plan-pago="ilimit3" onclick="payLink('ilimit3')">💳 Pagar con tarjeta →</button>
+        <button class="pc-cta pc-cta-alt rb-press" onclick="transferWA('ilimit3')">🏦 Pagar por transferencia →</button>
       </div>
 
     </div>
@@ -4262,13 +4309,24 @@ const EMAIL_NOTIF = 'sebasgale65@gmail.com'; // ← correo donde llegan las soli
    2) ¿Mandan aviso automático (webhook) a un servidor? Si sí, se puede
       activar el paquete sin que nadie toque el panel. Si no, queda el
       puente por correo. */
+/* OJO al pegar uno nuevo: el monto lo fija BAC del lado del banco, esta
+   página no lo puede leer ni verificar. Si un link queda en la llave
+   equivocada, la alumna ve un precio en la tarjeta y otro en el banco.
+   Después de pegar cualquiera, abrirlo una vez y confirmar que el monto
+   coincide con el comentario de su línea. */
 const LINKS_PAGO = {
-  singular: '',   // C$440   · Clase singular
-  plan5:    '',   // C$1,650 · Paquete 5 clases
-  plan10:   '',   // C$2,930 · Paquete 10 clases
-  ilimit1:  '',   // C$4,760 · Mensual ilimitado
-  ilimit3:  '',   // C$4,210 · Trimestral ilimitado
-  ilimit6:  '',   // C$3,734 · Semestral ilimitado
+  singular: 'https://checkout.baccredomatic.com/NTM4NTU1ODgyMDNmYThjOTZjNGY0MS4xNzg3NjI1MzA0',   // C$440   · Clase singular
+  plan5:    'https://checkout.baccredomatic.com/MTcxMmNhZmY1ODM3Njg0Yy43MGVmMjYxNzg3NjI1NDU4',   // C$1,650 · Paquete 5 clases
+  plan10:   'https://checkout.baccredomatic.com/YTJkOS4wODUwODY5YTYyYjY5NjA0MmExNzg3NjI1NjI2',   // C$2,930 · Paquete 10 clases
+  ilimit1:  'https://checkout.baccredomatic.com/MmE4OTQwMTM1ODM1NjQ2ZDc5ODA4LjgxNzg3NjI1NzY1',   // C$4,760 · Mensual ilimitado
+  /* El estudio confirma que este link entrega los 3 meses completos con
+     Cantidad 1. La pantalla de BAC dice "vigencia de 30 días calendario,
+     precio por mes" — ese texto está mal puesto del lado de Geopagos y
+     conviene corregirlo ahí, porque es lo que lee la alumna antes de pagar.
+     Por eso el plan va en LINK_CON_CANTIDAD: si ella sube el selector
+     creyéndole a ese texto, paga el triple. */
+  ilimit3:  'https://checkout.baccredomatic.com/YTMxOC43MTEwOGQyNzA5MjA2NTY2MTYxNzg3NjI1ODc4',   // C$4,210 · Trimestral ilimitado
+  // ilimit6 (Semestral ilimitado) quedó retirada: no lleva link.
 };
 
 function linkDePago(planKey) {
@@ -4308,23 +4366,53 @@ function notificarSolicitudCorreo(datos) {
    si todavía no hay, coordina por WhatsApp con el concepto y el monto.
    El monto sale de PLANES_SUB, no escrito a mano acá: es el mismo número
    que se le cobra en la reserva, así que no pueden discrepar. */
+/* Links de BAC que muestran un selector de "Cantidad" en la pantalla del
+   banco: el monto se multiplica por ese número. Como el total que espera el
+   estudio es el de Cantidad 1, se le avisa antes de mandarla — si lo sube,
+   paga de más y el comprobante deja de cuadrar. Cuando BAC entregue un link
+   de monto fijo para el plan, se saca de esta lista. */
+const LINK_CON_CANTIDAD = ['ilimit1', 'ilimit3'];
+
+function avisarCantidad(planKey) {
+  if (!LINK_CON_CANTIDAD.includes(planKey)) return true;
+  const p = PLANES_SUB[planKey];
+  return confirm(
+    `Vas a pagar ${p.nombre} — ${fmtC(p.precio)}.\n\n` +
+    `En la pantalla del banco dejá "Cantidad" en 1: ese monto ya es el total.\n\n` +
+    `¿Seguimos?`);
+}
+
+/* Coordinar la transferencia por WhatsApp. Antes esto vivía escondido
+   dentro de payLink, como "lo que pasa si todavía no hay link". Ahora es
+   una opción por derecho propio: el estudio cobra por los dos caminos y
+   ninguno reemplaza al otro, así que cada tarjeta ofrece ambos. */
+function transferWA(planKey) {
+  const p = PLANES_SUB[planKey];
+  if (!p) return;
+  const txt = `Hola Presenza ✧ Quiero pagar ${p.nombre} — Monto: ${fmtC(p.precio)}. ¿Me envían los datos de la cuenta para hacer la transferencia?`;
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(txt)}`, '_blank');
+}
+
 function payLink(planKey) {
   const p = PLANES_SUB[planKey];
   if (!p) return;
   const link = linkDePago(planKey);
-  if (link) { window.open(link, '_blank', 'noopener'); return; }
-  const txt = `Hola Presenza ✧ Quiero pagar ${p.nombre} — Monto: ${fmtC(p.precio)}. ¿Me envían los datos de la cuenta para hacer la transferencia?`;
-  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(txt)}`, '_blank');
+  /* Sin link, el botón de tarjeta ni se dibuja; si igual se llega acá
+     (alguien lo llama a mano) queda el camino que sí existe. */
+  if (!link) { transferWA(planKey); return; }
+  if (!avisarCantidad(planKey)) return;
+  window.open(link, '_blank', 'noopener');
 }
 
 /* Las tarjetas de precios dicen "Reservar por WhatsApp" mientras no haya
    link. Apenas se pegue uno arriba, ese botón —y solo ese— pasa a decir
    "Pagar con tarjeta", sin tocar el HTML. */
 function refrescarBotonesDePago() {
+  /* El de transferencia está siempre; el de tarjeta solo si ese plan tiene
+     link pegado. Así, quitar un link no deja un botón que no lleva a nada
+     —simplemente esa tarjeta vuelve a cobrarse solo por transferencia. */
   document.querySelectorAll('[data-plan-pago]').forEach(b => {
-    b.textContent = linkDePago(b.dataset.planPago)
-      ? '💳 Pagar con tarjeta →'
-      : '💬 Reservar por WhatsApp →';
+    b.style.display = linkDePago(b.dataset.planPago) ? '' : 'none';
   });
 }
 
@@ -4359,9 +4447,38 @@ function leerPagoEnCurso() {
 function irAPagar(planKey, email, tel) {
   const link = linkDePago(planKey);
   if (!link) return false;
+  if (!avisarCantidad(planKey)) return false;
   guardarPagoEnCurso({ plan: planKey, email: email || '', tel: tel || '' });
   window.open(link, '_blank', 'noopener');
+
+  /* El banco abre en OTRA pestaña, así que esta se queda con el comprobante
+     intacto. Acá aparece el "Ya pagué": es el camino que no depende de que
+     BAC sepa devolverla a #pago-ok. Si el banco sí la devuelve, se marca por
+     los dos lados y no pasa nada — marcar_pago_dicho deja la misma etiqueta. */
+  const ya = document.getElementById('btnYaPague');
+  if (ya) ya.style.display = 'block';
   return true;
+}
+
+/* La alumna dice que ya pagó. Es exactamente eso: lo que ELLA dice.
+   No activa el plan ni le suma clases —eso lo impide la base, no esta
+   página— y solo cambia la etiqueta del panel a "dice que pagó" para que
+   el estudio sepa contra qué cuadrar en el estado de cuenta del banco. */
+async function avisarQuePague(email, tel) {
+  const btn = document.getElementById('btnYaPague');
+  if (btn) { btn.disabled = true; btn.textContent = 'Avisando…'; }
+  olvidarPagoEnCurso();   /* ya se avisó desde acá: la vuelta no repite */
+  try {
+    if (SB_ON) await sbRpc('marcar_pago_dicho', { p_email: email, p_tel: tel, p_ref: '' });
+    if (btn) { btn.textContent = '✓ Avisado — lo verificamos'; btn.classList.add('avisado'); }
+    alert('¡Gracias! 🎉\n\nQuedó anotado que ya pagaste.\n' +
+          'Lo verificamos con el banco y te activamos el paquete.\n\n' +
+          'Si tenés el comprobante a mano, mandalo por WhatsApp y va más rápido ✧');
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Ya pagué'; }
+    alert('No pudimos avisarle al estudio desde acá.\n\n' +
+          'Mandá tu comprobante por WhatsApp y te activamos el paquete igual ✧');
+  }
 }
 
 function esHashDePago() {
@@ -4484,14 +4601,27 @@ const PLANES_SUB = {
   plan10:   { nombre:'Paquete 10 clases',      clases:10,   precio:2930, tag:'Regular',  meses:1 },
   ilimit1:  { nombre:'Mensual ilimitado',      clases:1000, precio:4760, tag:'Mensual',  meses:1 },
   ilimit3:  { nombre:'Trimestral ilimitado',   clases:1000, precio:4210, tag:'3 meses',  meses:3 },
-  ilimit6:  { nombre:'Semestral ilimitado',    clases:1000, precio:3734, tag:'6 meses',  meses:6 },
+  /* Retirada del catálogo a pedido del estudio. La definición se queda:
+     las alumnas que la compraron siguen teniendo plan:'ilimit6' en su
+     ficha, y sin esta línea su plan aparecería en blanco en el panel,
+     en su comprobante y en el historial de renovaciones. `retirado`
+     solo la saca de las listas donde se OFRECE un plan. */
+  ilimit6:  { nombre:'Semestral ilimitado',    clases:1000, precio:3734, tag:'6 meses',  meses:6, retirado:true },
 };
+
+/* Los planes que hoy se pueden contratar: todo lo que no esté retirado. */
+function planesVigentes() {
+  return Object.entries(PLANES_SUB).filter(([, v]) => !v.retirado);
+}
 
 /* En la reserva se ofrecen los 3 paquetes de clases. Las membresías
    ilimitadas (mensual/3/6 meses) solo se muestran como "más información"
    y se contratan por contacto directo. */
 const PLANES_BOOKING_VISIBLE = ['singular', 'plan5', 'plan10'];
-const PLANES_ILIMITADOS      = ['ilimit1', 'ilimit3', 'ilimit6'];
+/* Se derivan de PLANES_SUB en vez de escribirse a mano: retirar un plan
+   es poner `retirado:true` y ya, sin que quede ofreciéndose en una lista
+   suelta que alguien olvidó actualizar. */
+const PLANES_ILIMITADOS      = planesVigentes().filter(([, v]) => v.clases >= 1000).map(([k]) => k);
 
 /* Más información sobre las membresías ilimitadas → WhatsApp directo */
 /* Campana del botón de suscripción (las dos versiones + el punto rojo).
@@ -4527,7 +4657,12 @@ function rbObservar(root) {
 
 function infoIlimitados() {
   const txt = `Hola Presenza ✧ Quiero más información sobre las membresías ilimitadas:\n` +
-    PLANES_ILIMITADOS.map(k => `• ${PLANES_SUB[k].nombre} — ${fmtC(PLANES_SUB[k].precio)}/mes`).join('\n');
+    /* El precio de cada plan es el TOTAL de su período, no una mensualidad:
+       el trimestral cuesta menos que el mensual a propósito, es la oferta. */
+    PLANES_ILIMITADOS.map(k => {
+      const v = PLANES_SUB[k];
+      return `• ${v.nombre} — ${fmtC(v.precio)} por ${v.meses} mes${v.meses === 1 ? '' : 'es'}`;
+    }).join('\n');
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(txt)}`, '_blank');
 }
 
@@ -4888,7 +5023,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-21.1';
+const BUILD = '2026-08-25.7';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5108,14 +5243,22 @@ async function alCargarPanel() {
   const proximas = arr.filter(c => c.estado === 'proxima')
                       .sort((a,b) => (a.fecha+a.hora).localeCompare(b.fecha+b.hora));
   const pasadas  = arr.filter(c => c.estado === 'pasada').slice(0, 10);
+  /* Solo las canceladas que todavía no pasaron: enterarse de que se cayó una
+     clase de hace tres meses no le sirve de nada y le llena el panel. */
+  const canceladas = arr.filter(c => c.estado === 'cancelada' && c.fecha >= hoyISO())
+                        .sort((a,b) => (a.fecha+a.hora).localeCompare(b.fecha+b.hora));
 
   cont.innerHTML =
+    (canceladas.length
+      ? `<div class="al-sec-tit">🚫 Canceladas por el estudio</div>` +
+        canceladas.map(c => alFila(c,'cancelada')).join('')
+      : '') +
     `<div class="al-sec-tit">Próximas</div>` +
     (proximas.length
-      ? proximas.map(c => alFila(c,false)).join('')
+      ? proximas.map(c => alFila(c,'proxima')).join('')
       : `<div class="al-vacio">Aún no tienes clases agendadas.<br>¡Reserva la próxima! ✧</div>`) +
     (pasadas.length
-      ? `<div class="al-sec-tit">Ya tomadas</div>` + pasadas.map(c => alFila(c,true)).join('')
+      ? `<div class="al-sec-tit">Ya tomadas</div>` + pasadas.map(c => alFila(c,'pasada')).join('')
       : '');
 }
 
@@ -5124,10 +5267,25 @@ function alFecha(f) {
   const d = new Date(f + 'T12:00:00');
   return `${d.getDate()} ${MESES_ES[d.getMonth()]}`;
 }
-function alFila(c, pasada) {
-  const d    = new Date(c.fecha + 'T12:00:00');
-  const info = INFO[c.clase] || { nombre:c.clase, emoji:'✧' };
-  return `<div class="al-clase${pasada?' pasada':''}">
+function alFila(c, estado) {
+  const d      = new Date(c.fecha + 'T12:00:00');
+  const info   = INFO[c.clase] || { nombre:c.clase, emoji:'✧' };
+  const cuando = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]} · ${hora12(c.hora)}`;
+
+  /* Quién puede cancelar sola: lo decide puede_cancelar, que viene del
+     servidor. A propósito no se calcula acá: la hora del celular la mueve
+     cualquiera, y con eso se cancelaría una clase que empieza en media hora. */
+  let acciones = '';
+  if (estado === 'proxima' && c.puede_cancelar !== undefined) {
+    /* El !== undefined importa: si todavía no se corrió el SQL nuevo, la
+       función vieja no manda este campo, y sin esa guarda TODA clase saldría
+       con el aviso de "faltan menos de 6h" aunque falten tres semanas. */
+    acciones = c.puede_cancelar
+      ? `<button class="btn-al-cancel" onclick="alCancelar(${Number(c.ts)},'${escArg(info.nombre)}','${escArg(cuando)}')">Cancelar</button>`
+      : `<span class="al-nocancel">Faltan menos de ${HORAS_CANCELAR}h · escríbenos para cancelar</span>`;
+  }
+
+  return `<div class="al-clase${estado==='pasada' ? ' pasada' : ''}${estado==='cancelada' ? ' cancelada' : ''}">
     <div class="al-clase-fecha">
       <div class="al-clase-dia">${d.getDate()}</div>
       <div class="al-clase-mes">${MESES_ES[d.getMonth()]}</div>
@@ -5135,12 +5293,36 @@ function alFila(c, pasada) {
     <div class="al-clase-info">
       <div class="al-clase-nom">${info.emoji} ${info.nombre}</div>
       <div class="al-clase-meta">${DIAS_ES[d.getDay()]} · ${hora12(c.hora)}${c.instructor ? ' · '+c.instructor : ''}</div>
+      ${estado==='cancelada' && c.motivo ? `<div class="al-motivo">${escHtml(c.motivo)}</div>` : ''}
     </div>
     <div class="al-clase-chips">
+      ${estado==='cancelada' ? '<span class="al-chip-cancel">🚫 Cancelada</span>' : ''}
       ${c.lugar ? `<span class="al-chip-mat">Mat ${c.lugar}</span>` : ''}
       ${c.pago_ok === false ? `<span class="al-chip-pend">Por confirmar</span>` : ''}
+      ${acciones}
     </div>
   </div>`;
+}
+
+/* La ventana para cancelar sola. Vive en los dos lados: acá solo para el
+   texto, y en cancelar_mi_reserva() —del servidor— para la decisión real. */
+const HORAS_CANCELAR = 6;
+
+async function alCancelar(ts, nombreClase, cuando) {
+  if (!confirm(
+    `¿Cancelar tu lugar en ${nombreClase}?\n${cuando}\n\n` +
+    `Si te habíamos descontado la clase de tu paquete, te la devolvemos.\n` +
+    `Después de cancelar, para volver tenés que reservar de nuevo.`)) return;
+
+  const tok = localStorage.getItem(AL_TOKEN_KEY);
+  try {
+    const r = (await sbRpc('cancelar_mi_reserva', { p_token: tok, p_ts: ts }) || [])[0];
+    if (!r || !r.ok) { alert((r && r.mensaje) || 'No se pudo cancelar tu reserva.'); return; }
+    alert(r.mensaje + (r.devuelta ? '\n\nTe devolvimos la clase a tu paquete ✧' : ''));
+    alCargarPanel();
+  } catch (e) {
+    alert(e.message);
+  }
 }
 
 const RE_SLOT = /^presenza_(\w+)_(\d{4}-\d{2}-\d{2})_(\d{4})$/;
@@ -5172,7 +5354,23 @@ function guardarRespaldoLocal(key) {
 /* Trae todas las reservas de la nube y reemplaza la copia en memoria */
 async function sincronizarReservas() {
   if (!SB_ON) return false;
-  const filas = await sbFetch('reservas?select=*&order=ts.asc');
+  /* Las canceladas quedan en la base para que la alumna las vea en su
+     panel, pero acá no existen: no ocupan cupo ni mat ni salen en listas.
+
+     Si supabase-cancelar-y-reserva-doble.sql todavía no se corrió, la columna
+     no está y ese filtro devuelve un 400 que dejaría el panel entero en
+     blanco. En ese caso se lee sin filtro: se pierde el aviso a la alumna,
+     que es lo que ese SQL viene a agregar, pero nada de lo que ya funcionaba
+     se cae por esperar a que alguien lo corra. */
+  let filas;
+  try {
+    filas = await sbFetch('reservas?select=*&cancelada=is.null&order=ts.asc');
+    COL_CANCELADA = true;
+  } catch (e) {
+    if (!/cancelada/.test(e.body || '')) throw e;
+    COL_CANCELADA = false;
+    filas = await sbFetch('reservas?select=*&order=ts.asc');
+  }
   const nuevo = {};
   filas.forEach(f => {
     (nuevo[f.slot_key] = nuevo[f.slot_key] || []).push({
@@ -5219,6 +5417,26 @@ async function sincronizarCuposPublico() {
   return true;
 }
 
+/* ¿Esta persona ya tiene lugar en esta clase?
+   La pregunta va a la base y no a SLOTS a propósito. Para quien reserva —que
+   no ha iniciado sesión— SLOTS viene de cupos_del_dia(), que devuelve cuántos
+   lugares hay tomados y qué mats, pero NUNCA de quién: no trae correo ni
+   teléfono. Comparar contra eso siempre daba "no coincide", y por ahí se
+   colaba la reserva repetida.
+
+   Si la consulta falla (sin internet, función sin instalar) devuelve false:
+   más vale dejar pasar una reserva doble —que el estudio arregla a mano— que
+   trabar a una alumna que sí tiene derecho a su lugar. */
+async function yaTieneReserva(clase, dateStr, hora, tel, email) {
+  if (!SB_ON) return false;
+  try {
+    return !!(await sbRpc('ya_reservada', {
+      p_clase: clase, p_fecha: dateStr, p_hora: hora,
+      p_tel: tel || '', p_email: email || ''
+    }));
+  } catch (e) { console.warn('No se pudo revisar la reserva doble:', e.message); return false; }
+}
+
 /* ── Lectura (síncrona, desde la copia en memoria) ── */
 function getOcupados(clase, dateStr, hora) { return getClientes(clase, dateStr, hora).length; }
 function getClientes(clase, dateStr, hora) { return SLOTS[slotKey(clase, dateStr, hora)] || []; }
@@ -5228,6 +5446,9 @@ function getClientes(clase, dateStr, hora) { return SLOTS[slotKey(clase, dateStr
    (falta correr supabase-descuento-al-reservar.sql). Así una reserva nunca
    falla por eso: se guarda igual, solo sin la marca de descuento. */
 let COL_DESCUENTO = true;
+/* Igual que COL_DESCUENTO, pero para la columna `cancelada`: dice si ya se
+   corrió supabase-cancelar-y-reserva-doble.sql. */
+let COL_CANCELADA = true;
 function esColumnaFaltante(e) {
   return e && /clase_descontada/.test(e.body || '');
 }
@@ -5242,8 +5463,18 @@ async function verificarColumnaDescuento() {
 }
 
 function avisoSqlPendienteHtml() {
-  if (COL_DESCUENTO) return '';
-  return `<div class="sa-aviso-sql">
+  /* Dos avisos distintos, el mismo lugar. Se muestran los dos si hacen falta
+     los dos: son archivos separados y correr uno no trae el otro. */
+  const canceladas = COL_CANCELADA ? '' : `<div class="sa-aviso-sql">
+    <strong>⚠ Falta un paso en Supabase</strong>
+    <p>Cuando cancelás una clase, a las alumnas <strong>les desaparece sin aviso</strong>:
+       la reserva se borra y en su panel no queda nada. Tampoco se está bloqueando
+       que una alumna reserve dos veces la misma clase, ni pueden cancelar solas.</p>
+    <p>Abre Supabase → SQL Editor y corre el archivo
+       <code>supabase-cancelar-y-reserva-doble.sql</code> del repositorio.</p>
+  </div>`;
+  if (COL_DESCUENTO) return canceladas;
+  return canceladas + `<div class="sa-aviso-sql">
     <strong>⚠ Falta un paso en Supabase</strong>
     <p>Las clases se descuentan al reservar, pero todavía no se puede registrar
        <em>cuál</em> reserva cobró. Mientras no lo corras, al eliminar una reserva
@@ -5301,6 +5532,52 @@ async function marcarPagoOkDB(key, ts) {
   if (c) c.pagoOk = true;
   guardarRespaldoLocal(key);
   return true;
+}
+
+async function marcarClaseDescontadaDB(key, ts) {
+  if (SB_ON) {
+    if (!COL_DESCUENTO) return false;
+    try { await sbFetch(`reservas?slot_key=eq.${encodeURIComponent(key)}&ts=eq.${ts}`,
+      { method:'PATCH', body: JSON.stringify({ clase_descontada:true }) }); }
+    catch(e) { console.warn('No se pudo marcar la clase como saldada:', e.message); return false; }
+  }
+  const c = (SLOTS[key] || []).find(x => x.ts === ts);
+  if (c) c.claseDescontada = true;
+  guardarRespaldoLocal(key);
+  return true;
+}
+
+/* ── Reservas que están esperando que se confirme un plan ─────────────
+   Cuando la alumna reserva y elige un paquete que todavía no está pagado,
+   la reserva se guarda igual (el cupo se le aparta) pero SIN descontarle
+   nada: no hay plan del cual descontar. El método queda escrito con la
+   coletilla "(pago pendiente)" —la escribe proceedToConfirm en un solo
+   lugar— y eso es lo que las marca.
+
+   Hasta ahora nadie volvía por ellas: al confirmar el pago se le cargaban
+   las N clases del paquete y la que ya había apartado quedaba de regalo.
+   Con un paquete de 5 eso son 6 clases por el precio de 5, cada vez. */
+const MARCA_PLAN_PENDIENTE = '(pago pendiente)';
+
+function esReservaDePlanPendiente(c) {
+  return !c.claseDescontada && (c.metodo || '').includes(MARCA_PLAN_PENDIENTE);
+}
+
+function reservasDePlanPendiente(email, tel) {
+  const em  = (email || '').trim().toLowerCase();
+  const tl  = normTel(tel);
+  const out = [];
+  for (const k in SLOTS) {
+    const p = parseSlotKey(k);
+    if (!p || !INFO[p.clase]) continue;
+    for (const c of (SLOTS[k] || [])) {
+      if (!esReservaDePlanPendiente(c)) continue;
+      const mismoEm = em && (c.email || '').trim().toLowerCase() === em;
+      const mismoTl = tl.length >= 8 && normTel(c.tel) === tl;
+      if (mismoEm || mismoTl) out.push({ ...c, key: k, ...p });
+    }
+  }
+  return out.sort((a, b) => (a.dateStr + a.hora).localeCompare(b.dateStr + b.hora));
 }
 
 /* ════════════════════════════════════════
@@ -6506,8 +6783,33 @@ async function confirmarPagoSub(email) {
   if (!arr[idx].fechaInicio) arr[idx].fechaInicio = hoy;
   (arr[idx].renovaciones = arr[idx].renovaciones||[]).push({ fecha: hoy, plan: planKey, clases: pd.clases });
   delete arr[idx].pendiente;
+
+  /* Las clases que ya había apartado esperando este pago se cobran ahora:
+     el paquete acaba de existir, así que ya hay de dónde descontarlas. Sin
+     esto le quedaban las N del paquete MÁS la que reservó — un paquete de 5
+     salía por 6 clases, todas las veces.
+     A las ilimitadas no se les descuenta nada, igual que en todo el resto. */
+  const colgadas = reservasDePlanPendiente(arr[idx].email, arr[idx].tel);
+  let saldadas = 0;
+  if (!esIlimitada(arr[idx])) {
+    for (const r of colgadas) {
+      if (arr[idx].clasesRestantes <= 0) break;
+      arr[idx].clasesRestantes--;
+      arr[idx].clasesUsadas = (arr[idx].clasesUsadas || 0) + 1;
+      saldadas++;
+    }
+  }
   await saveSuscriptoras(arr);
+
+  /* Marcarlas después de guardar: si esto falla, la alumna quedó con su plan
+     activo y su clase apartada —lo que le importa— y lo único perdido es la
+     marca de cuál reserva cobró. */
+  for (const r of colgadas.slice(0, esIlimitada(arr[idx]) ? colgadas.length : saldadas)) {
+    await marcarClaseDescontadaDB(r.key, r.ts);
+  }
+
   sadminTab(sadminTabActual); /* refresca la pestaña donde estés (Hoy o Suscriptoras) */
+  return { plan: pd, saldadas, colgadas };
 }
 
 async function rechazarPagoSub(email) {
@@ -6599,7 +6901,7 @@ async function proceedToConfirm() {
 
   /* ── Alerta de membresía ilimitada activada ── */
   const subAlertEl = document.getElementById('subAlertContainer');
-  const esIlimit   = pagoMetodo === 'sub' && ['ilimit1','ilimit3','ilimit6'].includes(planUsado);
+  const esIlimit   = pagoMetodo === 'sub' && (PLANES_SUB[planUsado]?.clases || 0) >= 1000;
   if (esIlimit) {
     const pd      = PLANES_SUB[planUsado];
     /* subActiva, no getSuscriptoraByEmail: la que reserva no tiene sesión y su
@@ -6666,10 +6968,11 @@ async function proceedToConfirm() {
   }
 
   /* Misma alumna, misma clase: evita la reserva doble por tocar el botón dos
-     veces o por volver atrás en el navegador. */
-  const emailNorm = email.trim().toLowerCase();
-  if (emailNorm && clientesAhora.some(c => (c.email||'').trim().toLowerCase() === emailNorm)) {
-    alert('Ya tienes una reserva en esta clase. Si necesitas cambiarla, escríbenos por WhatsApp ✧');
+     veces, por volver atrás en el navegador, o por reservar de nuevo sin
+     acordarse. Lo contesta la base, que es la única que ve de quién es cada
+     reserva; el teléfono manda porque es con lo que la alumna inicia sesión. */
+  if (await yaTieneReserva(clase, dateStr, hora, tel, email)) {
+    alert('Ya tienes una reserva en esta clase ✧\n\nRevisala en "Mis clases". Si necesitas cambiarla, escríbenos por WhatsApp.');
     closeModal();
     renderCards();
     return;
@@ -6741,7 +7044,7 @@ async function proceedToConfirm() {
     try {
       const clientesDs = getClientes(clase, ds, hora);
 
-      if (emailNorm && clientesDs.some(c => (c.email||'').trim().toLowerCase() === emailNorm)) {
+      if (await yaTieneReserva(clase, ds, hora, tel, email)) {
         repFallidas.push({ ds, motivo: 'ya tenías reserva' }); continue;
       }
       const totalMats = cuposDe(clase, ds, hora);
@@ -6831,12 +7134,16 @@ async function proceedToConfirm() {
     const conLink = esPlanPendiente && planPend && linkDePago(selectedSubPlan);
     pagoBox.style.display = conLink ? 'block' : 'none';
     pagoBox.innerHTML = conLink ? `
-      <button class="btn-pagar-link rb-press"
+      <button class="btn-pagar-link rb-press" id="btnPagarLink"
         onclick="irAPagar('${escArg(selectedSubPlan)}','${escArg(email)}','${escArg(tel)}')">
         💳 Pagar ${escHtml(planPend.nombre)} · ${fmtC(planPend.precio)}
       </button>
-      <p class="pl-nota">Se abre la página segura del banco. Al volver, tu paquete
-        queda anotado como pagado y lo activamos apenas lo verifiquemos.</p>` : '';
+      <p class="pl-nota">Se abre la página segura del banco en otra pestaña.
+        Esta se queda acá con tu comprobante.</p>
+      <button class="btn-ya-pague" id="btnYaPague" style="display:none"
+        onclick="avisarQuePague('${escArg(email)}','${escArg(tel)}')">
+        ✓ Ya pagué
+      </button>` : '';
   }
 
   const notaWA = notas ? `📝 Notas: ${notas}\n` : '';
@@ -7581,7 +7888,7 @@ function buildSAdminHoy() {
     /* Aunque hoy no haya clases, las de mañana temprano sí necesitan decisión */
     body.innerHTML = `<div class="sa-fecha">${diaStr}</div>
       ${buildMadrugadaHtml()}
-      ${esCoach ? '' : buildPendientesHtml() + buildPendPagoHtml()}
+      ${esCoach ? '' : buildPagosLinkHtml() + buildPendientesHtml() + buildPendPagoHtml()}
       <div class="sa-empty">
         <span class="sa-empty-ico">🌙</span>
         <strong>${esCoach ? 'Sin clases tuyas hoy' : 'Día de descanso'}</strong>
@@ -7679,6 +7986,7 @@ function buildSAdminHoy() {
     ${avisoSqlPendienteHtml()}
     <div class="sa-fecha">${diaStr}</div>
     ${buildMadrugadaHtml()}
+    ${buildPagosLinkHtml()}
     ${buildPendientesHtml()}
     ${buildPendPagoHtml()}
     <div class="sa-kpi-grid">
@@ -8073,14 +8381,97 @@ const ESTADO_PEND = {
   verificado: { txt:'✓ Pago verificado',                  cls:'pe-verif'  },
 };
 
+/* ── PAGOS POR LINK · el ámbito propio que pidió el estudio ───────────
+   Acá cae SOLO quien ya pasó por la pantalla del banco y avisó. Es la cola
+   con plata de por medio: en las otras la alumna apenas pidió el plan.
+
+   Lo que muestra y por qué: al lado del monto van las clases que ya
+   apartó. Confirmar hace las dos cosas de una —activa el paquete y salda
+   esas clases— porque separarlo era justamente lo que dejaba clases
+   regaladas.
+
+   Lo que NO es: una confirmación del banco. "Dice que pagó" es lo que
+   marcó la alumna en su celular, y un navegador nunca es prueba de que
+   entró la plata. Por eso el botón pide cuadrar contra el estado de
+   cuenta antes, y por eso la base no deja activar nada sola. */
+function buildPagosLinkHtml() {
+  const lista = getSuscriptoras()
+    .filter(s => s.pendiente && s.pendiente.estado === 'dice_pago')
+    .sort((a, b) => (a.pendiente.fecha || '').localeCompare(b.pendiente.fecha || ''));
+  if (!lista.length) return '';
+
+  const card = (s) => {
+    const pd       = PLANES_SUB[s.pendiente.plan] || { nombre: s.pendiente.plan, precio: 0, clases: 0 };
+    const colgadas = reservasDePlanPendiente(s.email, s.tel);
+    const clasesTxt = colgadas.length
+      ? colgadas.map(c => {
+          const info = INFO[c.clase] || { emoji:'✧', nombre:c.clase };
+          return `<span class="pl-clase">${info.emoji} ${info.nombre} · ${fmtDiaLargo(c.dateStr)} · ${hora12(c.hora)}${c.lugar ? ` · Mat ${c.lugar}` : ''}</span>`;
+        }).join('')
+      : '<span class="pl-clase pl-sin">Sin clases apartadas todavía</span>';
+
+    return `<div class="sa-pend-card pl-card">
+      <div class="sa-pend-info">
+        <span class="tipo-chip pl-chip">💳 PAGÓ POR LINK · ${fmtC(pd.precio)}</span>
+        <strong>${escHtml(s.nombre)}</strong>
+        <span>${escHtml(s.email)} · ${escHtml(s.tel) || '—'}</span>
+        <span class="sa-pend-plan">${escHtml(pd.nombre)} · <strong>${fmtC(pd.precio)}</strong> · ${pd.clases >= 1000 ? '∞ ilimitado' : pd.clases + ' clases'} · avisó ${s.pendiente.fecha}</span>
+        ${s.pendiente.ref ? `<span class="pl-ref">Referencia del banco: <strong>${escHtml(s.pendiente.ref)}</strong></span>` : ''}
+        <div class="pl-clases">${clasesTxt}</div>
+      </div>
+      <div class="sa-pend-btns">
+        <button class="btn-pend-ok" onclick="confirmarPagoLink('${escArg(s.email)}')">✓ Confirmar y completar</button>
+        <button class="btn-sa-historial" onclick="comprobanteSub('${escArg(s.email)}')">📄 Comprobante</button>
+        <button class="btn-pend-no" onclick="rechazarPagoSub('${escArg(s.email)}')">✕ No entró</button>
+      </div>
+    </div>`;
+  };
+
+  return `<div class="sa-pend-blk pl-blk">
+    <div class="sa-pend-title">💳 Pagos por link · listos para confirmar (${lista.length})</div>
+    <div class="sa-pend-hint">
+      Estas alumnas ya pasaron por la pantalla del banco y avisaron que pagaron.
+      <strong>Cuadrá el monto contra tu estado de cuenta de BAC antes de confirmar</strong>:
+      esto es lo que ella marcó en su celular, no un aviso del banco.
+      Al confirmar se le activa el paquete y se le saldan las clases que ya apartó, de una sola vez.
+    </div>
+    ${lista.map(card).join('')}
+  </div>`;
+}
+
+/* Confirmar desde el bloque de link: mismo trabajo que el botón de siempre,
+   pero contando en voz alta qué quedó hecho — que es lo que el estudio
+   necesita leer para saber que no le quedó nada colgando. */
+async function confirmarPagoLink(email) {
+  if (!exigirStaff('activar un plan')) return;
+  const s = getSuscriptoraByEmail(email);
+  if (!s || !s.pendiente) return;
+  const pd = PLANES_SUB[s.pendiente.plan] || { nombre: s.pendiente.plan, precio: 0 };
+
+  if (!confirm(
+    `Confirmar el pago de ${s.nombre}\n\n` +
+    `${pd.nombre} · ${fmtC(pd.precio)}\n` +
+    (s.pendiente.ref ? `Referencia: ${s.pendiente.ref}\n` : '') +
+    `\n¿Ya viste ese monto en tu estado de cuenta de BAC?`)) return;
+
+  const r = await confirmarPagoSub(email);
+  if (!r) return;
+  alert(`✓ ${s.nombre} quedó con ${r.plan.nombre} activo.\n\n` +
+    (r.colgadas.length
+      ? `Se le saldaron ${r.saldadas} de las ${r.colgadas.length} clase(s) que ya tenía apartadas.` +
+        (r.saldadas < r.colgadas.length
+          ? `\n\n⚠ Apartó más clases de las que trae el paquete: revisá las que quedaron.`
+          : '')
+      : 'No tenía clases apartadas esperando este pago.'));
+}
+
 function buildPendientesHtml() {
-  const pendientes  = getSuscriptoras().filter(s => s.pendiente);
-  /* Las que ya pasaron por el banco van primero: son las que tienen algo
-     que revisar ahora. Las que solo pidieron el plan pueden esperar. */
-  const porRevisar = (a, b) =>
-    (b.pendiente.estado === 'dice_pago') - (a.pendiente.estado === 'dice_pago');
-  const pendPrimera = pendientes.filter(s =>  esPrimeraVez(s.pendiente.plan)).sort(porRevisar);
-  const pendPaquete = pendientes.filter(s => !esPrimeraVez(s.pendiente.plan)).sort(porRevisar);
+  /* Las que pasaron por el link del banco salen de acá: tienen su propio
+     bloque arriba (buildPagosLinkHtml). Si aparecieran en los dos lados,
+     confirmar en uno dejaría la tarjeta fantasma en el otro. */
+  const pendientes  = getSuscriptoras().filter(s => s.pendiente && s.pendiente.estado !== 'dice_pago');
+  const pendPrimera = pendientes.filter(s =>  esPrimeraVez(s.pendiente.plan));
+  const pendPaquete = pendientes.filter(s => !esPrimeraVez(s.pendiente.plan));
 
   const renderPendCard = (s) => {
     const pd = PLANES_SUB[s.pendiente.plan] || { nombre: s.pendiente.plan, precio: 0, clases: 0 };
@@ -8174,7 +8565,8 @@ function aplicarFiltroSubs() {
 function buildSAdminSubs() {
   const body = document.getElementById('sadminBody');
   const subs = getSuscriptoras();
-  const pendHtml = buildPendientesHtml();
+  /* El de link va primero: es la cola con plata de por medio. */
+  const pendHtml = buildPagosLinkHtml() + buildPendientesHtml();
 
   /* Render de una tarjeta de suscriptora (si = índice global para IDs únicos) */
   const renderCard = (sub, si) => {
@@ -8311,7 +8703,7 @@ function buildSAdminSubs() {
         <div class="nsm-field"><label>Teléfono</label><input id="nsTel" placeholder="8888-1234" oninput="nsRevisarHistorial()"/></div>
         <div class="nsm-field"><label>Plan</label>
           <select id="nsPlan">
-            ${Object.entries(PLANES_SUB).map(([k,v])=>`<option value="${k}">${v.nombre} — ${fmtC(v.precio)}</option>`).join('')}
+            ${planesVigentes().map(([k,v])=>`<option value="${k}">${v.nombre} — ${fmtC(v.precio)}</option>`).join('')}
           </select>
         </div>
         <div class="nsm-field full"><label>Notas (opcional)</label><input id="nsNotas" placeholder="Nivel, preferencias..."/></div>
@@ -8489,7 +8881,7 @@ function renovarSub(email) {
     aviso.style.display = 'none';
   }
 
-  document.getElementById('rnvGrid').innerHTML = Object.entries(PLANES_SUB).map(([k, v]) => `
+  document.getElementById('rnvGrid').innerHTML = planesVigentes().map(([k, v]) => `
     <button type="button" class="rnv-plan${k === sub.plan ? ' actual' : ''}" data-plan="${k}"
       onclick="elegirPlanRenovar('${k}')">
       <span class="rnv-plan-tag">${escHtml(v.tag)}</span>
@@ -8651,7 +9043,11 @@ async function agendarSubAClase(email, clase, dateStr, hora, instructor, lugarPe
   }
   const info     = INFO[clase];
   const clientes = getClientes(clase, dateStr, hora);
-  if (clientes.some(c => (c.email||'').toLowerCase() === email.toLowerCase())) {
+  /* También por teléfono: una alumna puede tener la ficha con un correo y
+     haber reservado ella misma con otro, y quedaría agendada dos veces. */
+  const telSub = normTel(sub.tel);
+  if (clientes.some(c => (c.email||'').toLowerCase() === email.toLowerCase()
+                      || (telSub.length >= 8 && normTel(c.tel) === telSub))) {
     alert(`${sub.nombre} ya está agendada en esta clase.`);
     return false;
   }
@@ -10460,18 +10856,30 @@ async function cancelarSesion(clase, fecha, hora, motivo) {
 
   if (!await cancelarClaseDB(clase, fecha, hora, motivo)) return false;
 
-  /* Se eliminan las reservas devolviendo la clase a quien la había pagado
-     con su paquete. eliminarReserva ya se encarga de la devolución. */
-  const key = slotKey(clase, fecha, hora);
+  /* Las reservas se MARCAN como canceladas, no se borran. Antes se borraban
+     y la clase simplemente desaparecía del panel de la alumna: se enteraba
+     llegando al estudio. Marcada, le sale en "Mis clases" con el motivo.
+
+     Lo hace la base en una sola llamada (cancelar_sesion_estudio) en vez de
+     un ciclo de borrados desde acá: si se corta el internet a mitad, antes
+     quedaban unas liberadas y otras no, con clases devueltas a medias. */
   let devueltas = 0;
-  for (const c of clientes.slice()) {
-    try {
-      if (!await borrarReservaDB(key, c.ts)) continue;
-      if (c.claseDescontada) {
-        const sub = getSuscriptoraByEmail(c.email);
-        if (sub) { await devolverClase(sub.id); devueltas++; }
-      }
-    } catch (e) { console.warn('No se pudo liberar una reserva:', e.message); }
+  try {
+    const r = (await sbRpc('cancelar_sesion_estudio', {
+      p_clase: clase, p_fecha: fecha, p_hora: hora, p_motivo: motivo || null
+    }) || [])[0];
+    devueltas = (r && r.devueltas) || 0;
+    await sincronizarReservas();
+    await sincronizarSubs();
+  } catch (e) {
+    const faltaSql = /cancelar_sesion_estudio|does not exist|404/.test(e.message || '');
+    alert(faltaSql
+      ? 'La clase quedó cancelada en el horario, pero las reservas siguen ahí.\n\n' +
+        'Falta correr supabase-cancelar-y-reserva-doble.sql en Supabase → SQL Editor.\n\n' +
+        'Mientras tanto, avisale vos a las alumnas.'
+      : 'La clase quedó cancelada en el horario, pero no se pudieron liberar ' +
+        'las reservas:\n' + e.message + '\n\nRevisá la clase antes de avisarle a nadie.');
+    return true;
   }
   renderCards();   /* los cupos de las tarjetas públicas cambian */
 
@@ -10692,11 +11100,6 @@ function buildAdminContent(customContainer) {
 /* ────────────────────────────────────────
    PLANES — WhatsApp CTA
 ──────────────────────────────────────── */
-function planWA(nombre, precio) {
-  const msg = `Hola Presenza ✧ Quiero más información sobre la suscripción ${nombre} (${precio}).`;
-  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`, '_blank');
-}
-
 function toggleCumpleChip(btn, group) {
   if (group === 'playlist') {
     btn.closest('.cumple-chips').querySelectorAll('.cumple-chip').forEach(b => b.classList.remove('active'));
