@@ -43,6 +43,7 @@
 
   <div class="card espera" id="t-version"><h2><span class="icono">⏳</span> Versión de la página publicada</h2><p>Revisando…</p></div>
   <div class="card espera" id="t-cupos"><h2><span class="icono">⏳</span> Cupos de la web pública (cupos_del_dia)</h2><p>Revisando…</p></div>
+  <div class="card espera" id="t-cancelar"><h2><span class="icono">⏳</span> Cancelar y reserva doble</h2><p>Revisando…</p></div>
   <div class="card espera" id="t-reservas"><h2><span class="icono">⏳</span> Reservas cerradas al público</h2><p>Revisando…</p></div>
   <div class="card espera" id="t-subs"><h2><span class="icono">⏳</span> Suscriptoras cerradas al público</h2><p>Revisando…</p></div>
   <div class="card espera" id="t-asist"><h2><span class="icono">⏳</span> Asistencias cerradas al público</h2><p>Revisando…</p></div>
@@ -65,7 +66,7 @@
 const URL_SB = 'https://sdsjhmtugtfndsxilzge.supabase.co';
 const KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkc2pobXR1Z3RmbmRzeGlsemdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNjM0MjIsImV4cCI6MjEwMDczOTQyMn0.iJu7nQoEr-hFYkBGvlVrjdckvXtes0vTawTKrzVv1Yo';
 let fallas = 0, hechas = 0;
-const TOTAL = 5;
+const TOTAL = 6;   /* versión · cupos · cancelar · reservas · subs · asistencias */
 
 function pinta(id, estado, titulo, detalle) {
   const el = document.getElementById(id);
@@ -83,7 +84,7 @@ function cerrarPrueba(exito) {
     r.innerHTML = '<strong>✅ Todo en orden del lado público.</strong> La web ya debería mostrar los cupos ocupados. Si abajo la prueba del panel también sale verde, no queda nada pendiente.';
   } else {
     r.className = 'mal';
-    r.innerHTML = '<strong>❌ Falta aplicar la reparación en Supabase.</strong> Abre Supabase → SQL Editor, pega COMPLETO el archivo <code>supabase-reparacion-total.sql</code> y dale Run. Después recarga esta página: todo debe quedar verde.';
+    r.innerHTML = '<strong>❌ Falta correr algo en Supabase.</strong> Mirá arriba cuál tarjeta salió roja: cada una dice qué archivo le falta. Abre Supabase → SQL Editor, pega COMPLETO ese archivo y dale Run. Después recarga esta página: todo debe quedar verde.';
   }
 }
 
@@ -133,7 +134,24 @@ async function api(ruta, opts = {}, token = KEY) {
     }
   } catch (e) { pinta('t-cupos', 'mal', 'No se pudo probar los cupos', e.message); cerrarPrueba(false); }
 
-  /* 3, 4 y 5 · Las tablas con datos de alumnas deben estar CERRADAS al público */
+  /* 3 · Las tres cosas que pidió Jimena viven en el mismo archivo de SQL.
+         Basta con preguntarle a ya_reservada() por una clase inventada: si
+         contesta, el archivo está corrido; si da 404, falta. */
+  try {
+    const r = await api('/rest/v1/rpc/ya_reservada', { method: 'POST', body: JSON.stringify({
+      p_clase: '__diagnostico__', p_fecha: hoyNI(), p_hora: '00:00', p_tel: '', p_email: '' }) });
+    if (r.status === 200) {
+      pinta('t-cancelar', 'ok', 'Cancelar y reserva doble están puestos',
+        'La alumna puede cancelar sola con más de 6 horas, ve las clases que cancela el estudio, y no puede reservar dos veces la misma clase.');
+      cerrarPrueba(true);
+    } else {
+      pinta('t-cancelar', 'mal', 'FALTA correr supabase-cancelar-y-reserva-doble.sql',
+        'Sin esto: una alumna puede reservar dos veces la misma clase, no puede cancelar sola, y cuando el estudio cancela una clase a ella le desaparece sin aviso. Abre Supabase → SQL Editor, pega COMPLETO ese archivo y dale Run.');
+      cerrarPrueba(false);
+    }
+  } catch (e) { pinta('t-cancelar', 'mal', 'No se pudo probar la cancelación', e.message); cerrarPrueba(false); }
+
+  /* 4, 5 y 6 · Las tablas con datos de alumnas deben estar CERRADAS al público */
   for (const [id, tabla, nombre] of [['t-reservas', 'reservas', 'reservas'],
                                      ['t-subs', 'suscriptoras', 'suscriptoras'],
                                      ['t-asist', 'asistencias', 'asistencias']]) {

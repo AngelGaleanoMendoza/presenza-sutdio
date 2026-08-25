@@ -2768,6 +2768,24 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .al-clase-chips { display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
 .al-chip-mat { font-size:.62rem; background:rgba(201,149,106,.18); color:#8B5A30; border-radius:50px; padding:2px 8px; font-weight:600; white-space:nowrap; }
 .al-chip-pend { font-size:.62rem; background:rgba(155,44,69,.1); color:var(--wine); border-radius:50px; padding:2px 8px; font-weight:600; white-space:nowrap; }
+/* La clase que canceló el estudio: se queda en la lista, apagada y en rojo,
+   porque enterarse es justamente el punto. */
+.al-clase.cancelada { background:rgba(220,53,69,.05); border-color:rgba(220,53,69,.25); }
+.al-clase.cancelada .al-clase-nom  { text-decoration:line-through; color:var(--gray); }
+.al-clase.cancelada .al-clase-dia  { color:#a94442; }
+.al-chip-cancel {
+  font-size:.62rem; background:rgba(220,53,69,.14); color:#842029;
+  border-radius:50px; padding:2px 8px; font-weight:600; white-space:nowrap;
+}
+.al-motivo { font-size:.66rem; color:#a94442; margin-top:3px; font-style:italic; }
+.btn-al-cancel {
+  font-size:.62rem; font-weight:600; white-space:nowrap; cursor:pointer;
+  border:1px solid rgba(107,23,40,.25); border-radius:50px; padding:3px 10px;
+  background:var(--white); color:var(--wine); transition:all .16s;
+}
+.btn-al-cancel:hover  { background:rgba(107,23,40,.08); border-color:var(--wine); }
+.btn-al-cancel:disabled { opacity:.5; cursor:default; }
+.al-nocancel { font-size:.6rem; color:var(--gray); text-align:right; max-width:104px; line-height:1.35; }
 .al-vacio { text-align:center; color:var(--gray); font-size:.8rem; padding:22px 10px; }
 .al-pie { display:flex; justify-content:space-between; margin-top:20px; padding-top:14px; border-top:1px solid rgba(107,23,40,.1); }
 .al-pie button { background:none; border:none; color:var(--gray); font-family:inherit; font-size:.72rem; cursor:pointer; text-decoration:underline; }
@@ -4268,7 +4286,7 @@ const LINKS_PAGO = {
   plan10:   '',   // C$2,930 · Paquete 10 clases
   ilimit1:  '',   // C$4,760 · Mensual ilimitado
   ilimit3:  '',   // C$4,210 · Trimestral ilimitado
-  ilimit6:  '',   // C$3,734 · Semestral ilimitado
+  // ilimit6 (Semestral ilimitado) quedó retirada: no lleva link.
 };
 
 function linkDePago(planKey) {
@@ -4484,14 +4502,27 @@ const PLANES_SUB = {
   plan10:   { nombre:'Paquete 10 clases',      clases:10,   precio:2930, tag:'Regular',  meses:1 },
   ilimit1:  { nombre:'Mensual ilimitado',      clases:1000, precio:4760, tag:'Mensual',  meses:1 },
   ilimit3:  { nombre:'Trimestral ilimitado',   clases:1000, precio:4210, tag:'3 meses',  meses:3 },
-  ilimit6:  { nombre:'Semestral ilimitado',    clases:1000, precio:3734, tag:'6 meses',  meses:6 },
+  /* Retirada del catálogo a pedido del estudio. La definición se queda:
+     las alumnas que la compraron siguen teniendo plan:'ilimit6' en su
+     ficha, y sin esta línea su plan aparecería en blanco en el panel,
+     en su comprobante y en el historial de renovaciones. `retirado`
+     solo la saca de las listas donde se OFRECE un plan. */
+  ilimit6:  { nombre:'Semestral ilimitado',    clases:1000, precio:3734, tag:'6 meses',  meses:6, retirado:true },
 };
+
+/* Los planes que hoy se pueden contratar: todo lo que no esté retirado. */
+function planesVigentes() {
+  return Object.entries(PLANES_SUB).filter(([, v]) => !v.retirado);
+}
 
 /* En la reserva se ofrecen los 3 paquetes de clases. Las membresías
    ilimitadas (mensual/3/6 meses) solo se muestran como "más información"
    y se contratan por contacto directo. */
 const PLANES_BOOKING_VISIBLE = ['singular', 'plan5', 'plan10'];
-const PLANES_ILIMITADOS      = ['ilimit1', 'ilimit3', 'ilimit6'];
+/* Se derivan de PLANES_SUB en vez de escribirse a mano: retirar un plan
+   es poner `retirado:true` y ya, sin que quede ofreciéndose en una lista
+   suelta que alguien olvidó actualizar. */
+const PLANES_ILIMITADOS      = planesVigentes().filter(([, v]) => v.clases >= 1000).map(([k]) => k);
 
 /* Más información sobre las membresías ilimitadas → WhatsApp directo */
 /* Campana del botón de suscripción (las dos versiones + el punto rojo).
@@ -4888,7 +4919,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-21.1';
+const BUILD = '2026-08-25.1';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5108,14 +5139,22 @@ async function alCargarPanel() {
   const proximas = arr.filter(c => c.estado === 'proxima')
                       .sort((a,b) => (a.fecha+a.hora).localeCompare(b.fecha+b.hora));
   const pasadas  = arr.filter(c => c.estado === 'pasada').slice(0, 10);
+  /* Solo las canceladas que todavía no pasaron: enterarse de que se cayó una
+     clase de hace tres meses no le sirve de nada y le llena el panel. */
+  const canceladas = arr.filter(c => c.estado === 'cancelada' && c.fecha >= hoyISO())
+                        .sort((a,b) => (a.fecha+a.hora).localeCompare(b.fecha+b.hora));
 
   cont.innerHTML =
+    (canceladas.length
+      ? `<div class="al-sec-tit">🚫 Canceladas por el estudio</div>` +
+        canceladas.map(c => alFila(c,'cancelada')).join('')
+      : '') +
     `<div class="al-sec-tit">Próximas</div>` +
     (proximas.length
-      ? proximas.map(c => alFila(c,false)).join('')
+      ? proximas.map(c => alFila(c,'proxima')).join('')
       : `<div class="al-vacio">Aún no tienes clases agendadas.<br>¡Reserva la próxima! ✧</div>`) +
     (pasadas.length
-      ? `<div class="al-sec-tit">Ya tomadas</div>` + pasadas.map(c => alFila(c,true)).join('')
+      ? `<div class="al-sec-tit">Ya tomadas</div>` + pasadas.map(c => alFila(c,'pasada')).join('')
       : '');
 }
 
@@ -5124,10 +5163,25 @@ function alFecha(f) {
   const d = new Date(f + 'T12:00:00');
   return `${d.getDate()} ${MESES_ES[d.getMonth()]}`;
 }
-function alFila(c, pasada) {
-  const d    = new Date(c.fecha + 'T12:00:00');
-  const info = INFO[c.clase] || { nombre:c.clase, emoji:'✧' };
-  return `<div class="al-clase${pasada?' pasada':''}">
+function alFila(c, estado) {
+  const d      = new Date(c.fecha + 'T12:00:00');
+  const info   = INFO[c.clase] || { nombre:c.clase, emoji:'✧' };
+  const cuando = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]} · ${hora12(c.hora)}`;
+
+  /* Quién puede cancelar sola: lo decide puede_cancelar, que viene del
+     servidor. A propósito no se calcula acá: la hora del celular la mueve
+     cualquiera, y con eso se cancelaría una clase que empieza en media hora. */
+  let acciones = '';
+  if (estado === 'proxima' && c.puede_cancelar !== undefined) {
+    /* El !== undefined importa: si todavía no se corrió el SQL nuevo, la
+       función vieja no manda este campo, y sin esa guarda TODA clase saldría
+       con el aviso de "faltan menos de 6h" aunque falten tres semanas. */
+    acciones = c.puede_cancelar
+      ? `<button class="btn-al-cancel" onclick="alCancelar(${Number(c.ts)},'${escArg(info.nombre)}','${escArg(cuando)}')">Cancelar</button>`
+      : `<span class="al-nocancel">Faltan menos de ${HORAS_CANCELAR}h · escríbenos para cancelar</span>`;
+  }
+
+  return `<div class="al-clase${estado==='pasada' ? ' pasada' : ''}${estado==='cancelada' ? ' cancelada' : ''}">
     <div class="al-clase-fecha">
       <div class="al-clase-dia">${d.getDate()}</div>
       <div class="al-clase-mes">${MESES_ES[d.getMonth()]}</div>
@@ -5135,12 +5189,36 @@ function alFila(c, pasada) {
     <div class="al-clase-info">
       <div class="al-clase-nom">${info.emoji} ${info.nombre}</div>
       <div class="al-clase-meta">${DIAS_ES[d.getDay()]} · ${hora12(c.hora)}${c.instructor ? ' · '+c.instructor : ''}</div>
+      ${estado==='cancelada' && c.motivo ? `<div class="al-motivo">${escHtml(c.motivo)}</div>` : ''}
     </div>
     <div class="al-clase-chips">
+      ${estado==='cancelada' ? '<span class="al-chip-cancel">🚫 Cancelada</span>' : ''}
       ${c.lugar ? `<span class="al-chip-mat">Mat ${c.lugar}</span>` : ''}
       ${c.pago_ok === false ? `<span class="al-chip-pend">Por confirmar</span>` : ''}
+      ${acciones}
     </div>
   </div>`;
+}
+
+/* La ventana para cancelar sola. Vive en los dos lados: acá solo para el
+   texto, y en cancelar_mi_reserva() —del servidor— para la decisión real. */
+const HORAS_CANCELAR = 6;
+
+async function alCancelar(ts, nombreClase, cuando) {
+  if (!confirm(
+    `¿Cancelar tu lugar en ${nombreClase}?\n${cuando}\n\n` +
+    `Si te habíamos descontado la clase de tu paquete, te la devolvemos.\n` +
+    `Después de cancelar, para volver tenés que reservar de nuevo.`)) return;
+
+  const tok = localStorage.getItem(AL_TOKEN_KEY);
+  try {
+    const r = (await sbRpc('cancelar_mi_reserva', { p_token: tok, p_ts: ts }) || [])[0];
+    if (!r || !r.ok) { alert((r && r.mensaje) || 'No se pudo cancelar tu reserva.'); return; }
+    alert(r.mensaje + (r.devuelta ? '\n\nTe devolvimos la clase a tu paquete ✧' : ''));
+    alCargarPanel();
+  } catch (e) {
+    alert(e.message);
+  }
 }
 
 const RE_SLOT = /^presenza_(\w+)_(\d{4}-\d{2}-\d{2})_(\d{4})$/;
@@ -5172,7 +5250,23 @@ function guardarRespaldoLocal(key) {
 /* Trae todas las reservas de la nube y reemplaza la copia en memoria */
 async function sincronizarReservas() {
   if (!SB_ON) return false;
-  const filas = await sbFetch('reservas?select=*&order=ts.asc');
+  /* Las canceladas quedan en la base para que la alumna las vea en su
+     panel, pero acá no existen: no ocupan cupo ni mat ni salen en listas.
+
+     Si supabase-cancelar-y-reserva-doble.sql todavía no se corrió, la columna
+     no está y ese filtro devuelve un 400 que dejaría el panel entero en
+     blanco. En ese caso se lee sin filtro: se pierde el aviso a la alumna,
+     que es lo que ese SQL viene a agregar, pero nada de lo que ya funcionaba
+     se cae por esperar a que alguien lo corra. */
+  let filas;
+  try {
+    filas = await sbFetch('reservas?select=*&cancelada=is.null&order=ts.asc');
+    COL_CANCELADA = true;
+  } catch (e) {
+    if (!/cancelada/.test(e.body || '')) throw e;
+    COL_CANCELADA = false;
+    filas = await sbFetch('reservas?select=*&order=ts.asc');
+  }
   const nuevo = {};
   filas.forEach(f => {
     (nuevo[f.slot_key] = nuevo[f.slot_key] || []).push({
@@ -5219,6 +5313,26 @@ async function sincronizarCuposPublico() {
   return true;
 }
 
+/* ¿Esta persona ya tiene lugar en esta clase?
+   La pregunta va a la base y no a SLOTS a propósito. Para quien reserva —que
+   no ha iniciado sesión— SLOTS viene de cupos_del_dia(), que devuelve cuántos
+   lugares hay tomados y qué mats, pero NUNCA de quién: no trae correo ni
+   teléfono. Comparar contra eso siempre daba "no coincide", y por ahí se
+   colaba la reserva repetida.
+
+   Si la consulta falla (sin internet, función sin instalar) devuelve false:
+   más vale dejar pasar una reserva doble —que el estudio arregla a mano— que
+   trabar a una alumna que sí tiene derecho a su lugar. */
+async function yaTieneReserva(clase, dateStr, hora, tel, email) {
+  if (!SB_ON) return false;
+  try {
+    return !!(await sbRpc('ya_reservada', {
+      p_clase: clase, p_fecha: dateStr, p_hora: hora,
+      p_tel: tel || '', p_email: email || ''
+    }));
+  } catch (e) { console.warn('No se pudo revisar la reserva doble:', e.message); return false; }
+}
+
 /* ── Lectura (síncrona, desde la copia en memoria) ── */
 function getOcupados(clase, dateStr, hora) { return getClientes(clase, dateStr, hora).length; }
 function getClientes(clase, dateStr, hora) { return SLOTS[slotKey(clase, dateStr, hora)] || []; }
@@ -5228,6 +5342,9 @@ function getClientes(clase, dateStr, hora) { return SLOTS[slotKey(clase, dateStr
    (falta correr supabase-descuento-al-reservar.sql). Así una reserva nunca
    falla por eso: se guarda igual, solo sin la marca de descuento. */
 let COL_DESCUENTO = true;
+/* Igual que COL_DESCUENTO, pero para la columna `cancelada`: dice si ya se
+   corrió supabase-cancelar-y-reserva-doble.sql. */
+let COL_CANCELADA = true;
 function esColumnaFaltante(e) {
   return e && /clase_descontada/.test(e.body || '');
 }
@@ -5242,8 +5359,18 @@ async function verificarColumnaDescuento() {
 }
 
 function avisoSqlPendienteHtml() {
-  if (COL_DESCUENTO) return '';
-  return `<div class="sa-aviso-sql">
+  /* Dos avisos distintos, el mismo lugar. Se muestran los dos si hacen falta
+     los dos: son archivos separados y correr uno no trae el otro. */
+  const canceladas = COL_CANCELADA ? '' : `<div class="sa-aviso-sql">
+    <strong>⚠ Falta un paso en Supabase</strong>
+    <p>Cuando cancelás una clase, a las alumnas <strong>les desaparece sin aviso</strong>:
+       la reserva se borra y en su panel no queda nada. Tampoco se está bloqueando
+       que una alumna reserve dos veces la misma clase, ni pueden cancelar solas.</p>
+    <p>Abre Supabase → SQL Editor y corre el archivo
+       <code>supabase-cancelar-y-reserva-doble.sql</code> del repositorio.</p>
+  </div>`;
+  if (COL_DESCUENTO) return canceladas;
+  return canceladas + `<div class="sa-aviso-sql">
     <strong>⚠ Falta un paso en Supabase</strong>
     <p>Las clases se descuentan al reservar, pero todavía no se puede registrar
        <em>cuál</em> reserva cobró. Mientras no lo corras, al eliminar una reserva
@@ -6599,7 +6726,7 @@ async function proceedToConfirm() {
 
   /* ── Alerta de membresía ilimitada activada ── */
   const subAlertEl = document.getElementById('subAlertContainer');
-  const esIlimit   = pagoMetodo === 'sub' && ['ilimit1','ilimit3','ilimit6'].includes(planUsado);
+  const esIlimit   = pagoMetodo === 'sub' && (PLANES_SUB[planUsado]?.clases || 0) >= 1000;
   if (esIlimit) {
     const pd      = PLANES_SUB[planUsado];
     /* subActiva, no getSuscriptoraByEmail: la que reserva no tiene sesión y su
@@ -6666,10 +6793,11 @@ async function proceedToConfirm() {
   }
 
   /* Misma alumna, misma clase: evita la reserva doble por tocar el botón dos
-     veces o por volver atrás en el navegador. */
-  const emailNorm = email.trim().toLowerCase();
-  if (emailNorm && clientesAhora.some(c => (c.email||'').trim().toLowerCase() === emailNorm)) {
-    alert('Ya tienes una reserva en esta clase. Si necesitas cambiarla, escríbenos por WhatsApp ✧');
+     veces, por volver atrás en el navegador, o por reservar de nuevo sin
+     acordarse. Lo contesta la base, que es la única que ve de quién es cada
+     reserva; el teléfono manda porque es con lo que la alumna inicia sesión. */
+  if (await yaTieneReserva(clase, dateStr, hora, tel, email)) {
+    alert('Ya tienes una reserva en esta clase ✧\n\nRevisala en "Mis clases". Si necesitas cambiarla, escríbenos por WhatsApp.');
     closeModal();
     renderCards();
     return;
@@ -6741,7 +6869,7 @@ async function proceedToConfirm() {
     try {
       const clientesDs = getClientes(clase, ds, hora);
 
-      if (emailNorm && clientesDs.some(c => (c.email||'').trim().toLowerCase() === emailNorm)) {
+      if (await yaTieneReserva(clase, ds, hora, tel, email)) {
         repFallidas.push({ ds, motivo: 'ya tenías reserva' }); continue;
       }
       const totalMats = cuposDe(clase, ds, hora);
@@ -8311,7 +8439,7 @@ function buildSAdminSubs() {
         <div class="nsm-field"><label>Teléfono</label><input id="nsTel" placeholder="8888-1234" oninput="nsRevisarHistorial()"/></div>
         <div class="nsm-field"><label>Plan</label>
           <select id="nsPlan">
-            ${Object.entries(PLANES_SUB).map(([k,v])=>`<option value="${k}">${v.nombre} — ${fmtC(v.precio)}</option>`).join('')}
+            ${planesVigentes().map(([k,v])=>`<option value="${k}">${v.nombre} — ${fmtC(v.precio)}</option>`).join('')}
           </select>
         </div>
         <div class="nsm-field full"><label>Notas (opcional)</label><input id="nsNotas" placeholder="Nivel, preferencias..."/></div>
@@ -8489,7 +8617,7 @@ function renovarSub(email) {
     aviso.style.display = 'none';
   }
 
-  document.getElementById('rnvGrid').innerHTML = Object.entries(PLANES_SUB).map(([k, v]) => `
+  document.getElementById('rnvGrid').innerHTML = planesVigentes().map(([k, v]) => `
     <button type="button" class="rnv-plan${k === sub.plan ? ' actual' : ''}" data-plan="${k}"
       onclick="elegirPlanRenovar('${k}')">
       <span class="rnv-plan-tag">${escHtml(v.tag)}</span>
@@ -8651,7 +8779,11 @@ async function agendarSubAClase(email, clase, dateStr, hora, instructor, lugarPe
   }
   const info     = INFO[clase];
   const clientes = getClientes(clase, dateStr, hora);
-  if (clientes.some(c => (c.email||'').toLowerCase() === email.toLowerCase())) {
+  /* También por teléfono: una alumna puede tener la ficha con un correo y
+     haber reservado ella misma con otro, y quedaría agendada dos veces. */
+  const telSub = normTel(sub.tel);
+  if (clientes.some(c => (c.email||'').toLowerCase() === email.toLowerCase()
+                      || (telSub.length >= 8 && normTel(c.tel) === telSub))) {
     alert(`${sub.nombre} ya está agendada en esta clase.`);
     return false;
   }
@@ -10460,18 +10592,30 @@ async function cancelarSesion(clase, fecha, hora, motivo) {
 
   if (!await cancelarClaseDB(clase, fecha, hora, motivo)) return false;
 
-  /* Se eliminan las reservas devolviendo la clase a quien la había pagado
-     con su paquete. eliminarReserva ya se encarga de la devolución. */
-  const key = slotKey(clase, fecha, hora);
+  /* Las reservas se MARCAN como canceladas, no se borran. Antes se borraban
+     y la clase simplemente desaparecía del panel de la alumna: se enteraba
+     llegando al estudio. Marcada, le sale en "Mis clases" con el motivo.
+
+     Lo hace la base en una sola llamada (cancelar_sesion_estudio) en vez de
+     un ciclo de borrados desde acá: si se corta el internet a mitad, antes
+     quedaban unas liberadas y otras no, con clases devueltas a medias. */
   let devueltas = 0;
-  for (const c of clientes.slice()) {
-    try {
-      if (!await borrarReservaDB(key, c.ts)) continue;
-      if (c.claseDescontada) {
-        const sub = getSuscriptoraByEmail(c.email);
-        if (sub) { await devolverClase(sub.id); devueltas++; }
-      }
-    } catch (e) { console.warn('No se pudo liberar una reserva:', e.message); }
+  try {
+    const r = (await sbRpc('cancelar_sesion_estudio', {
+      p_clase: clase, p_fecha: fecha, p_hora: hora, p_motivo: motivo || null
+    }) || [])[0];
+    devueltas = (r && r.devueltas) || 0;
+    await sincronizarReservas();
+    await sincronizarSubs();
+  } catch (e) {
+    const faltaSql = /cancelar_sesion_estudio|does not exist|404/.test(e.message || '');
+    alert(faltaSql
+      ? 'La clase quedó cancelada en el horario, pero las reservas siguen ahí.\n\n' +
+        'Falta correr supabase-cancelar-y-reserva-doble.sql en Supabase → SQL Editor.\n\n' +
+        'Mientras tanto, avisale vos a las alumnas.'
+      : 'La clase quedó cancelada en el horario, pero no se pudieron liberar ' +
+        'las reservas:\n' + e.message + '\n\nRevisá la clase antes de avisarle a nadie.');
+    return true;
   }
   renderCards();   /* los cupos de las tarjetas públicas cambian */
 
