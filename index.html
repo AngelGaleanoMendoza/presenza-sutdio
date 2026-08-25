@@ -4224,8 +4224,8 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
               Efectivo en estudio
             </div>
             <div class="msb msb-sub rb-press" id="msbSub" onclick="selectMetodo('sub')">
-              <span class="msb-icon">💎</span>
-              Suscripción
+              <span class="msb-icon">💳</span>
+              Pago con tarjeta
             </div>
           </div>
         </div>
@@ -4614,24 +4614,13 @@ function planesVigentes() {
   return Object.entries(PLANES_SUB).filter(([, v]) => !v.retirado);
 }
 
-/* En la reserva se ofrecen los 3 paquetes de clases. Las membresías
-   ilimitadas (mensual/3/6 meses) solo se muestran como "más información"
-   y se contratan por contacto directo. */
-const PLANES_BOOKING_VISIBLE = ['singular', 'plan5', 'plan10'];
-/* Se derivan de PLANES_SUB en vez de escribirse a mano: retirar un plan
-   es poner `retirado:true` y ya, sin que quede ofreciéndose en una lista
-   suelta que alguien olvidó actualizar. */
-const PLANES_ILIMITADOS      = planesVigentes().filter(([, v]) => v.clases >= 1000).map(([k]) => k);
+/* Todo lo que se puede contratar se elige acá mismo. Antes las membresías
+   ilimitadas solo salían como "más información" y había que cerrar la
+   reserva para pedirlas por WhatsApp; ahora que todas tienen link de pago,
+   esconderlas era perder la venta a mitad de camino. */
+const PLANES_BOOKING_VISIBLE = planesVigentes().map(([k]) => k);
 
 /* Más información sobre las membresías ilimitadas → WhatsApp directo */
-/* Campana del botón de suscripción (las dos versiones + el punto rojo).
-   El CSS .ring-btn se encarga del cambio con rebote entre una y otra. */
-function bellSVG() {
-  return '<span class="rb-ico" aria-hidden="true">' +
-    '<svg class="rb-i1" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>' +
-    '<svg class="rb-i2" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M22 8c0-2.3-.8-4.3-2-6"/></svg>' +
-    '<span class="rb-dot"></span></span>';
-}
 
 /* El original reacciona al hover del mouse, que en un celular no existe —
    y casi todas las alumnas entran desde el teléfono. Ahí la campana suena
@@ -4655,16 +4644,6 @@ function rbObservar(root) {
   btns.forEach(b => obs.observe(b));
 }
 
-function infoIlimitados() {
-  const txt = `Hola Presenza ✧ Quiero más información sobre las membresías ilimitadas:\n` +
-    /* El precio de cada plan es el TOTAL de su período, no una mensualidad:
-       el trimestral cuesta menos que el mensual a propósito, es la oferta. */
-    PLANES_ILIMITADOS.map(k => {
-      const v = PLANES_SUB[k];
-      return `• ${v.nombre} — ${fmtC(v.precio)} por ${v.meses} mes${v.meses === 1 ? '' : 'es'}`;
-    }).join('\n');
-  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(txt)}`, '_blank');
-}
 
 /* Contacto directo con el estudio desde el flujo de reserva */
 function contactoDirecto() {
@@ -5023,7 +5002,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-25.7';
+const BUILD = '2026-08-25.8';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -6692,26 +6671,20 @@ async function verifySub() {
       <span class="sub-plane-tag">${v.tag}</span>
       <span class="sub-plane-name">${v.nombre}</span>
       <span class="sub-plane-price">${fmtC(v.precio)}</span>
-      <span class="sub-plane-clases">${v.clases >= 1000 ? '∞ ilimitado' : v.clases + ' clases'}</span>
+      <span class="sub-plane-clases">${v.clases >= 1000
+        ? `∞ · ${v.meses} mes${v.meses === 1 ? '' : 'es'}`
+        : `${v.clases} clase${v.clases === 1 ? '' : 's'}`}</span>
     </div>`;
   }).join('');
 
   result.innerHTML = `
     <div class="sub-plan-new">
-      <p>${esVencida ? `⚠ Tu plan venció el ${sub.fechaVence}. Elige un paquete para renovar:` : esRenovacion ? '⟳ Tus clases se agotaron. Elige tu paquete para renovar:' : '🎟️ Elige tu paquete de clases:'}</p>
+      <p>${esVencida ? `⚠ Tu plan venció el ${sub.fechaVence}. Elige un paquete para renovar:` : esRenovacion ? '⟳ Tus clases se agotaron. Elige tu paquete para renovar:' : '🎟️ Elige tu paquete o membresía:'}</p>
       <div class="sub-planes">${planesHtml}</div>
       <button type="button" class="sub-contacto-directo rb-press" onclick="contactoDirecto()">💬 Contacto directo con el estudio</button>
-      <div class="sub-ilimit-box rb-trigger" onclick="infoIlimitados()">
-        <div class="sub-ilimit-txt">
-          <strong>♾️ Suscripciones ilimitadas</strong>
-          <span>Mensual · 3 meses · 6 meses — clases sin límite</span>
-        </div>
-        <span class="sub-ilimit-cta ring-btn">${bellSVG()}Más información →</span>
-      </div>
     </div>`;
   selectedSubPlan = null;
   document.getElementById('btnPagar').disabled = true;
-  rbObservar(result);   /* la campana de "ilimitadas" acaba de crearse aquí */
 }
 
 function selectSubPlan(planKey) {
