@@ -1604,6 +1604,18 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   font-size:.74rem; color:var(--gray); line-height:1.45;
   margin:8px 2px 14px; text-align:center;
 }
+/* Aparece recién cuando ya se abrió el banco: antes de pagar no tiene
+   sentido y solo invitaría a apretarlo de gusto. */
+.btn-ya-pague {
+  display:block; width:100%; margin:0 0 14px;
+  background:transparent; color:var(--wine);
+  border:1.5px solid rgba(107,23,40,.35); border-radius:12px;
+  font-family:'Poppins',sans-serif; font-weight:600; font-size:.85rem;
+  padding:11px; cursor:pointer; transition:all .2s;
+}
+.btn-ya-pague:hover:not(:disabled) { background:rgba(107,23,40,.07); border-color:var(--wine); }
+.btn-ya-pague:disabled { cursor:default; opacity:.75; }
+.btn-ya-pague.avisado { background:rgba(37,211,102,.12); border-color:rgba(37,211,102,.5); color:#1a7a42; opacity:1; }
 .btn-compartir {
   display:flex; align-items:center; justify-content:center; gap:8px;
   background:rgba(107,23,40,.09); color:var(--wine); border:0;
@@ -4281,7 +4293,7 @@ const EMAIL_NOTIF = 'sebasgale65@gmail.com'; // ← correo donde llegan las soli
       activar el paquete sin que nadie toque el panel. Si no, queda el
       puente por correo. */
 const LINKS_PAGO = {
-  singular: '',   // C$440   · Clase singular
+  singular: 'https://checkout.baccredomatic.com/NTM4NTU1ODgyMDNmYThjOTZjNGY0MS4xNzg3NjI1MzA0',   // C$440   · Clase singular
   plan5:    '',   // C$1,650 · Paquete 5 clases
   plan10:   '',   // C$2,930 · Paquete 10 clases
   ilimit1:  '',   // C$4,760 · Mensual ilimitado
@@ -4379,7 +4391,35 @@ function irAPagar(planKey, email, tel) {
   if (!link) return false;
   guardarPagoEnCurso({ plan: planKey, email: email || '', tel: tel || '' });
   window.open(link, '_blank', 'noopener');
+
+  /* El banco abre en OTRA pestaña, así que esta se queda con el comprobante
+     intacto. Acá aparece el "Ya pagué": es el camino que no depende de que
+     BAC sepa devolverla a #pago-ok. Si el banco sí la devuelve, se marca por
+     los dos lados y no pasa nada — marcar_pago_dicho deja la misma etiqueta. */
+  const ya = document.getElementById('btnYaPague');
+  if (ya) ya.style.display = 'block';
   return true;
+}
+
+/* La alumna dice que ya pagó. Es exactamente eso: lo que ELLA dice.
+   No activa el plan ni le suma clases —eso lo impide la base, no esta
+   página— y solo cambia la etiqueta del panel a "dice que pagó" para que
+   el estudio sepa contra qué cuadrar en el estado de cuenta del banco. */
+async function avisarQuePague(email, tel) {
+  const btn = document.getElementById('btnYaPague');
+  if (btn) { btn.disabled = true; btn.textContent = 'Avisando…'; }
+  olvidarPagoEnCurso();   /* ya se avisó desde acá: la vuelta no repite */
+  try {
+    if (SB_ON) await sbRpc('marcar_pago_dicho', { p_email: email, p_tel: tel, p_ref: '' });
+    if (btn) { btn.textContent = '✓ Avisado — lo verificamos'; btn.classList.add('avisado'); }
+    alert('¡Gracias! 🎉\n\nQuedó anotado que ya pagaste.\n' +
+          'Lo verificamos con el banco y te activamos el paquete.\n\n' +
+          'Si tenés el comprobante a mano, mandalo por WhatsApp y va más rápido ✧');
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Ya pagué'; }
+    alert('No pudimos avisarle al estudio desde acá.\n\n' +
+          'Mandá tu comprobante por WhatsApp y te activamos el paquete igual ✧');
+  }
 }
 
 function esHashDePago() {
@@ -4919,7 +4959,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-25.1';
+const BUILD = '2026-08-25.2';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -6959,12 +6999,16 @@ async function proceedToConfirm() {
     const conLink = esPlanPendiente && planPend && linkDePago(selectedSubPlan);
     pagoBox.style.display = conLink ? 'block' : 'none';
     pagoBox.innerHTML = conLink ? `
-      <button class="btn-pagar-link rb-press"
+      <button class="btn-pagar-link rb-press" id="btnPagarLink"
         onclick="irAPagar('${escArg(selectedSubPlan)}','${escArg(email)}','${escArg(tel)}')">
         💳 Pagar ${escHtml(planPend.nombre)} · ${fmtC(planPend.precio)}
       </button>
-      <p class="pl-nota">Se abre la página segura del banco. Al volver, tu paquete
-        queda anotado como pagado y lo activamos apenas lo verifiquemos.</p>` : '';
+      <p class="pl-nota">Se abre la página segura del banco en otra pestaña.
+        Esta se queda acá con tu comprobante.</p>
+      <button class="btn-ya-pague" id="btnYaPague" style="display:none"
+        onclick="avisarQuePague('${escArg(email)}','${escArg(tel)}')">
+        ✓ Ya pagué
+      </button>` : '';
   }
 
   const notaWA = notas ? `📝 Notas: ${notas}\n` : '';
