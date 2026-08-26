@@ -5011,7 +5011,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-25.10';
+const BUILD = '2026-08-26.1';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5550,6 +5550,20 @@ const MARCA_PLAN_PENDIENTE = '(pago pendiente)';
 
 function esReservaDePlanPendiente(c) {
   return !c.claseDescontada && (c.metodo || '').includes(MARCA_PLAN_PENDIENTE);
+}
+
+/* La forma de pago pertenece a LA RESERVA, no al estado actual de la alumna.
+   Una clienta puede tener una suscripción activa y aun así pagar una clase
+   puntual por transferencia o efectivo. En ese caso sigue enlazada a su ficha,
+   pero esta reserva no debe contarse ni mostrarse como uso de suscripción.
+
+   `clase_descontada` queda como respaldo para registros antiguos. Los métodos
+   explícitos de pago único mandan siempre; esto también cubre las membresías
+   ilimitadas, que no descuentan saldo pero sí guardan "Suscripción". */
+function esReservaPorSuscripcion(c) {
+  const m = (c?.metodo || '').toLowerCase();
+  if (m.includes('transfer') || m.includes('efectivo') || m.includes('cash') || m.includes('gratis')) return false;
+  return m.includes('suscri') || m.includes('💎') || c?.claseDescontada === true;
 }
 
 function reservasDePlanPendiente(email, tel) {
@@ -7937,24 +7951,32 @@ function buildSAdminHoy() {
   const clasesHtml = slots.map(({ clase, hora, instructor }) => {
     const info     = INFO[clase];
     const clientes = getClientes(clase, dateStr, hora);
-    totalSubs += clientes.filter(c => getSuscriptoraByEmail(c.email)?.activa).length;
+    /* Cuenta reservas realmente cubiertas por suscripción, no simplemente
+       alumnas que tengan una ficha de suscriptora activa. */
+    totalSubs += clientes.filter(esReservaPorSuscripcion).length;
 
     const filas = clientes.map(c => {
       const sub       = getSuscriptoraByEmail(c.email);
-      const esSub     = !!(sub && sub.activa);
+      const tieneSub  = !!(sub && sub.activa);
+      const pagoConSub = esReservaPorSuscripcion(c);
       const estadoA   = estadoAsistencia(clase, dateStr, hora, c.email);
       const cupos     = sub ? sub.clasesRestantes : null;
       const cuposCls  = cupos === null ? '' : cupos <= 2 ? 'sa-cupos-low' : cupos <= 0 ? 'sa-cupos-out' : 'sa-cupos-ok';
+      const formaPago = c.pagoOk === false
+        ? '🏦 ⏳ Transferencia por confirmar'
+        : pagoConSub
+        ? (esReservaDePlanPendiente(c) ? '💎 Suscripción · pago del plan pendiente' : '💎 Suscripción')
+        : (c.metodo||'—').split('·')[0].trim();
 
       return `<div class="sa-alumna-row">
         <div class="sa-alumna-info">
           <div class="sa-alumna-nombre">${escHtml(c.nombre)} ${c.lugar ? `<span class="sa-lugar-badge">📍 ${c.lugar}</span>` : ''}</div>
           <div class="sa-alumna-email">${escHtml(c.email)||'—'}</div>
-          <div class="sa-alumna-sub">${c.pagoOk === false ? '🏦 ⏳ pago por confirmar' : esSub ? (c.claseDescontada ? '💎 Suscriptora · clase ya descontada' : '💎 Suscriptora') : (sub && sub.pendiente) ? '⏳ Sub pendiente de pago' : (c.metodo||'—').split('·')[0].trim()}</div>
+          <div class="sa-alumna-sub">${formaPago}</div>
           ${notaAlumnaHtml(c)}
         </div>
         <span class="sa-alumna-tel">${escHtml(c.tel)||'—'}</span>
-        ${esSub
+        ${tieneSub
           ? `<span class="sa-cupos-left ${cuposCls}">${cupos >= 1000 ? '∞' : cupos} clases</span>`
           : `<span></span>`}
         ${botonesAsistencia(estadoA, c, clase, dateStr, hora)}
@@ -8015,7 +8037,7 @@ function buildSAdminHoy() {
       <div class="sa-kpi">
         <span class="sa-kpi-ico">💎</span>
         <span class="sa-kpi-num">${totalSubs}</span>
-        <span class="sa-kpi-lbl">Suscriptoras</span>
+        <span class="sa-kpi-lbl">Reservas por sub</span>
       </div>
       <div class="sa-kpi">
         <span class="sa-kpi-ico">💰</span>
@@ -9201,8 +9223,7 @@ function buildCoachSemana() {
       totalAlumnas  += clientes.length;
 
       const filas = clientes.map(c => {
-        const sub    = getSuscriptoraByEmail(c.email);
-        const esSub  = !!(sub && sub.activa);
+        const pagoConSub = esReservaPorSuscripcion(c);
         const estadoA = estadoAsistencia(clase, ds, hora, c.email);
         return `<div class="sa-alumna-row">
           <div class="sa-alumna-info">
@@ -9210,7 +9231,7 @@ function buildCoachSemana() {
             <div class="sa-alumna-email">${c.tel || c.email || '—'}</div>
             ${notaAlumnaHtml(c)}
           </div>
-          <span class="sa-alumna-tel">${esSub ? '💎' : ''}</span>
+          <span class="sa-alumna-tel">${pagoConSub ? '💎' : ''}</span>
           <span></span>
           ${esHoy
             ? botonesAsistencia(estadoA, c, clase, ds, hora)
@@ -9912,13 +9933,8 @@ function repPersonKey(c) {
 
 /* Tipo de suscripción / pago de un registro */
 function repTipoSub(c) {
-  const sub = getSuscriptoraByEmail(c.email);
-  if (sub && sub.activa) {
-    const p = PLANES_SUB[sub.plan];
-    return { label: p ? p.nombre : 'Suscripción', esSub:true };
-  }
   const m = (c.metodo||'').toLowerCase();
-  if (m.includes('suscri') || m.includes('💎')) {
+  if (esReservaPorSuscripcion(c)) {
     const mt = (c.metodo||'').match(/·\s*(.+)$/);
     return { label: mt ? mt[1].trim() : 'Suscripción', esSub:true };
   }
@@ -9962,11 +9978,22 @@ function repAgregar(regs) {
     byTipo[t.label] = (byTipo[t.label]||0) + 1;
 
     const key = repPersonKey(c);
-    if (!byPerson[key]) byPerson[key] = { nombre:c.nombre||'—', email:c.email||'', tel:c.tel||'', count:0, tipo:t };
-    byPerson[key].count++;
-    if ((c.nombre||'').length > (byPerson[key].nombre||'').length) byPerson[key].nombre = c.nombre;
-    if (c.email && !byPerson[key].email) byPerson[key].email = c.email;
-    if (c.tel   && !byPerson[key].tel)   byPerson[key].tel   = c.tel;
+    if (!byPerson[key]) byPerson[key] = {
+      nombre:c.nombre||'—', email:c.email||'', tel:c.tel||'', count:0,
+      tipo:t, tipos:{ [t.label]:t }
+    };
+    const persona = byPerson[key];
+    persona.count++;
+    persona.tipos[t.label] = t;
+    const modalidades = Object.values(persona.tipos);
+    /* Una persona puede alternar entre paquete y pago único. El resumen por
+       persona debe mostrar ambas modalidades, no la del primer registro. */
+    persona.tipo = modalidades.length === 1
+      ? modalidades[0]
+      : { label:'Mixto · ' + modalidades.map(x => `${x.esSub ? '💎 ' : ''}${x.label}`).join(' + '), esSub:false };
+    if ((c.nombre||'').length > (persona.nombre||'').length) persona.nombre = c.nombre;
+    if (c.email && !persona.email) persona.email = c.email;
+    if (c.tel   && !persona.tel)   persona.tel   = c.tel;
   });
 
   return { sessions, byClase, byPerson, byTipo, ingresoTotal, subUsos };
