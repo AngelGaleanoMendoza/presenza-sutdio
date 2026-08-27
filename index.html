@@ -2133,6 +2133,16 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   font-size:.74rem; color:var(--gray);
 }
 .sa-hist-row:last-child { border-bottom:none; }
+.sa-hist-titulo {
+  margin-top:8px; padding:5px 0 3px; font-size:.62rem; font-weight:700;
+  letter-spacing:1.2px; text-transform:uppercase; color:var(--wine-d);
+}
+.sa-hist-titulo:first-child { margin-top:0; }
+.sa-hist-compra { align-items:center; flex-wrap:wrap; }
+.sa-compra-link {
+  color:var(--wine); font-size:.68rem; font-weight:700; text-decoration:underline;
+  text-underline-offset:2px; margin-left:auto;
+}
 
 /* Form nueva suscriptora */
 .nueva-sub-modal {
@@ -2972,6 +2982,11 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   font-size:.52rem; letter-spacing:.7px; text-transform:uppercase; color:var(--gray);
 }
 .rnv-plan.sel.actual::after { color:rgba(255,255,255,.55); }
+.rnv-metodo {
+  width:100%; padding:11px 13px; border:1.5px solid rgba(107,23,40,.16);
+  border-radius:12px; background:var(--white); color:var(--text); font-size:.78rem;
+}
+.rnv-metodo:focus { outline:none; border-color:var(--wine); }
 .rnv-resumen {
   margin-top:14px; padding:11px 13px; border-radius:12px;
   font-size:.76rem; line-height:1.65; color:var(--text);
@@ -4228,13 +4243,9 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
               <span class="msb-icon">🏦</span>
               Transferencia
             </div>
-            <div class="msb" id="msbCash" onclick="selectMetodo('cash')" style="display:none">
-              <span class="msb-icon">💵</span>
-              Efectivo en estudio
-            </div>
             <div class="msb msb-sub rb-press" id="msbSub" onclick="selectMetodo('sub')">
               <span class="msb-icon" id="msbSubIcon">💳</span>
-              <span id="msbSubTxt">Membresía o tarjeta</span>
+              <span id="msbSubTxt">Membresía o link BAC</span>
             </div>
           </div>
         </div>
@@ -4243,10 +4254,6 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
           <p class="tb-num" id="linkMonto">C$440</p>
           <p class="tb-bank">Transferencia bancaria · Presenza Studio</p>
           <p class="tb-nota">Te enviamos los datos de la cuenta por WhatsApp. Envíanos tu comprobante para confirmar tu reserva.</p>
-        </div>
-        <div class="pago-note" id="cashNote" style="display:none">
-          <strong>💵 Pago en el estudio</strong>
-          <p>Paga al llegar a tu clase. Por favor llegar 10 min antes.</p>
         </div>
         <div class="sub-check-box" id="subCheckBox">
           <div id="subCheckResult"></div>
@@ -4340,6 +4347,48 @@ const LINKS_PAGO = {
 
 function linkDePago(planKey) {
   return (LINKS_PAGO[planKey] || '').trim();
+}
+
+/* Cada alta o renovación es también una compra. Desde esta versión el
+   historial conserva el canal y, si fue BAC, una copia del URL exacto que
+   estaba configurado al confirmarla. Guardar la copia importa: si BAC cambia
+   un link el próximo mes, las ventas anteriores siguen apuntando al que se
+   utilizó entonces. Todo vive dentro del JSON `renovaciones`, que ya existe. */
+const METODO_LINK_BAC = 'link_bac';
+const METODO_TRANSFER = 'transferencia';
+
+function registroCompra(planKey, clases, metodo, referencia = '', fecha = hoyISO()) {
+  const r = { fecha, plan: planKey, clases, metodo };
+  if (metodo === METODO_LINK_BAC) {
+    r.linkPlan = planKey;
+    r.linkPago = linkDePago(planKey);
+  }
+  if (referencia) r.referencia = referencia;
+  return r;
+}
+
+function etiquetaMetodoCompra(compra) {
+  if (compra?.metodo === METODO_LINK_BAC || compra?.linkPago) return '🔗 Link de pago BAC';
+  if (compra?.metodo === METODO_TRANSFER) return '🏦 Transferencia bancaria';
+  return '◷ Método no registrado';
+}
+
+/* Los URLs del historial terminan en un href. Solo se aceptan links HTTPS de
+   BAC; así un dato viejo o manipulado en el JSON nunca se vuelve ejecutable. */
+function linkSeguroDeCompra(compra) {
+  const link = String(compra?.linkPago || '').trim();
+  if (!link) return '';
+  try {
+    const u = new URL(link);
+    return u.protocol === 'https:' && u.hostname === 'checkout.baccredomatic.com' ? u.href : '';
+  } catch (e) { return ''; }
+}
+
+function linkCompraHtml(compra, texto = 'Abrir link usado ↗') {
+  const link = linkSeguroDeCompra(compra);
+  return link
+    ? `<a class="sa-compra-link" href="${escHtml(link)}" target="_blank" rel="noopener">${texto}</a>`
+    : '';
 }
 
 /* El interruptor de toda esta función: mientras no haya NI UN link
@@ -6585,10 +6634,8 @@ function setupPago() {
   selectedSubPlan = null;
   etiquetaMetodoSub(null);   /* otra alumna, otro caso: se vuelve a preguntar */
   document.getElementById('msbTransfer').classList.remove('sel');
-  document.getElementById('msbCash').classList.remove('sel');
   document.getElementById('msbSub').classList.remove('sel');
   document.getElementById('transferBox').classList.remove('show');
-  document.getElementById('cashNote').style.display = 'none';
   document.getElementById('subCheckBox').classList.remove('visible');
   document.getElementById('btnPagar').disabled = true;
 }
@@ -6602,12 +6649,11 @@ function confirmLugar() {
 }
 
 function selectMetodo(tipo) {
+  if (!['transfer','sub'].includes(tipo)) return;
   pagoMetodo = tipo;
   document.getElementById('msbTransfer').classList.toggle('sel', tipo==='transfer');
-  document.getElementById('msbCash').classList.toggle('sel', tipo==='cash');
   document.getElementById('msbSub').classList.toggle('sel', tipo==='sub');
   document.getElementById('transferBox').classList.toggle('show', tipo==='transfer');
-  document.getElementById('cashNote').style.display    = tipo==='cash' ? 'block' : 'none';
   const subBox = document.getElementById('subCheckBox');
   subBox.classList.toggle('visible', tipo==='sub');
   if (tipo==='sub') {
@@ -6632,9 +6678,9 @@ function etiquetaMetodoSub(tienePlan) {
   const txt = document.getElementById('msbSubTxt');
   if (!ico || !txt) return;
   ico.textContent = tienePlan === null ? '💳' : tienePlan ? '💎' : '💳';
-  txt.textContent = tienePlan === null ? 'Membresía o tarjeta'
+  txt.textContent = tienePlan === null ? 'Membresía o link BAC'
                   : tienePlan ? 'Usar mi membresía'
-                  : 'Pago con tarjeta';
+                  : 'Comprar con link BAC';
 }
 
 async function verifySub() {
@@ -6795,6 +6841,11 @@ async function confirmarPagoSub(email) {
   const planKey = arr[idx].pendiente.plan;
   const pd      = PLANES_SUB[planKey];
   if (!pd) { alert('Plan no válido.'); return; }
+  /* `dice_pago` solo se alcanza después de abrir el checkout BAC. Las demás
+     solicitudes se confirman como transferencia. La referencia y el URL se
+     copian antes de borrar `pendiente`, para que la compra quede auditable. */
+  const pagoPendiente = arr[idx].pendiente;
+  const metodoCompra  = pagoPendiente.estado === 'dice_pago' ? METODO_LINK_BAC : METODO_TRANSFER;
   const now  = new Date();
   const hoy  = fmtISO(now);
   const venc = calcVence(pd.meses);
@@ -6807,7 +6858,8 @@ async function confirmarPagoSub(email) {
   arr[idx].fechaVence      = venc;
   arr[idx].activa          = true;
   if (!arr[idx].fechaInicio) arr[idx].fechaInicio = hoy;
-  (arr[idx].renovaciones = arr[idx].renovaciones||[]).push({ fecha: hoy, plan: planKey, clases: pd.clases });
+  (arr[idx].renovaciones = arr[idx].renovaciones||[]).push(
+    registroCompra(planKey, pd.clases, metodoCompra, pagoPendiente.ref || '', hoy));
   delete arr[idx].pendiente;
 
   /* Las clases que ya había apartado esperando este pago se cobran ahora:
@@ -6907,8 +6959,8 @@ async function proceedToConfirm() {
     : pagoMetodo==='transfer'
     ? '🏦 Transferencia'
     : pagoMetodo==='sub'
-    ? `💎 Suscripción · ${PLANES_SUB[planUsado]?.nombre || 'Membresía'}${esPlanPendiente ? ' (pago pendiente)' : ''}`
-    : 'Efectivo en el estudio';
+    ? `${esPlanPendiente ? '🔗 Compra por link BAC' : '💎 Suscripción'} · ${PLANES_SUB[planUsado]?.nombre || 'Membresía'}${esPlanPendiente ? ' (pago pendiente)' : ''}`
+    : 'Método no seleccionado';
 
   /* Monto real a pagar: gratis si es clase especial; el del plan elegido si pide
      un paquete; "incluida" si usa suscripción activa; el de la clase en pago único */
@@ -8281,9 +8333,15 @@ function comprobanteSub(email) {
   const sub = getSuscriptoraByEmail(email);
   if (!sub) return;
   const pd = PLANES_SUB[sub.plan] || { nombre: sub.plan, precio: 0 };
+  const ultimaCompra = (sub.renovaciones || []).slice().reverse()
+    .find(r => r.plan === sub.plan) || (sub.renovaciones || []).slice(-1)[0] || null;
+  const linkUsado = linkSeguroDeCompra(ultimaCompra);
   printComprobante('Comprobante de suscripción', [
     ['Plan', pd.nombre],
     ['Monto', fmtC(pd.precio)],
+    ['Método', etiquetaMetodoCompra(ultimaCompra)],
+    ...(linkUsado ? [['Link utilizado', linkUsado]] : []),
+    ...(ultimaCompra?.referencia ? [['Referencia', ultimaCompra.referencia]] : []),
     ['Alumna', sub.nombre],
     ['Teléfono', sub.tel || '—'],
     ['Email', sub.email],
@@ -8611,7 +8669,7 @@ function buildSAdminSubs() {
     const cuposCls = vencida ? 'sa-cupos-out' : ilim ? 'sa-cupos-ok' : sub.clasesRestantes <= 0 ? 'sa-cupos-out' : sub.clasesRestantes <= 3 ? 'sa-cupos-low' : 'sa-cupos-ok';
     const clasesTxt = ilim ? '∞ ilimitado' : `${sub.clasesRestantes} clases`;
     const initials = sub.nombre.split(' ').slice(0,2).map(w => w[0]||'').join('').toUpperCase();
-    const histRows = (sub.historial||[]).slice(-5).reverse().map(h => {
+    const clasesRows = (sub.historial||[]).slice(-5).reverse().map(h => {
       const inf = INFO[h.clase] || { emoji:'📋', nombre: h.clase };
       const d   = new Date(h.fecha+'T12:00:00');
       /* h.no = estaba inscrita y no llegó. Se muestra para que quede el
@@ -8622,6 +8680,17 @@ function buildSAdminSubs() {
         <span>${hora12(h.hora)}</span>
       </div>`;
     }).join('') || '<div style="color:var(--gray);font-size:.74rem;padding:6px 0">Sin asistencias aún</div>';
+
+    const comprasRows = (sub.renovaciones||[]).slice(-5).reverse().map(rr => {
+      const pd = PLANES_SUB[rr.plan] || { nombre: rr.plan || 'Plan', precio: 0 };
+      return `<div class="sa-hist-row sa-hist-compra">
+        <span>💳 ${escHtml(pd.nombre)} · ${fmtC(pd.precio)} · ${rr.fecha ? fmtDiaLargo(rr.fecha) : 'sin fecha'}</span>
+        <span>${etiquetaMetodoCompra(rr)}${rr.referencia ? ` · Ref. ${escHtml(rr.referencia)}` : ''}</span>
+        ${linkCompraHtml(rr)}
+      </div>`;
+    }).join('') || '<div style="color:var(--gray);font-size:.74rem;padding:6px 0">Sin compras registradas</div>';
+    const histRows = `<div class="sa-hist-titulo">Compras y pagos</div>${comprasRows}` +
+                     `<div class="sa-hist-titulo">Clases recientes</div>${clasesRows}`;
 
     const esUnica = esPrimeraVez(sub.plan);
     /* Texto contra el que busca el filtro: nombre y correo normalizados
@@ -8740,6 +8809,13 @@ function buildSAdminSubs() {
             ${planesVigentes().map(([k,v])=>`<option value="${k}">${v.nombre} — ${fmtC(v.precio)}</option>`).join('')}
           </select>
         </div>
+        <div class="nsm-field"><label>Pago recibido por</label>
+          <select id="nsMetodo">
+            <option value="">Selecciona el método…</option>
+            <option value="${METODO_LINK_BAC}">🔗 Link de pago BAC</option>
+            <option value="${METODO_TRANSFER}">🏦 Transferencia bancaria</option>
+          </select>
+        </div>
         <div class="nsm-field full"><label>Notas (opcional)</label><input id="nsNotas" placeholder="Nivel, preferencias..."/></div>
       </div>
       <div class="nsm-hist-preview" id="nsHistPreview" style="display:none"></div>
@@ -8767,6 +8843,7 @@ function toggleNuevaSub() {
   m.classList.toggle('open');
   if (m.classList.contains('open')) {
     ['nsNombre','nsEmail','nsTel','nsNotas'].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('nsMetodo').value = '';
     const box = document.getElementById('nsHistPreview');
     if (box) { box.style.display = 'none'; box.innerHTML = ''; }
   }
@@ -8816,8 +8893,15 @@ async function guardarNuevaSub() {
   const email  = document.getElementById('nsEmail').value.trim();
   const tel    = document.getElementById('nsTel').value.trim();
   const plan   = document.getElementById('nsPlan').value;
+  const metodo = document.getElementById('nsMetodo').value;
   const notas  = document.getElementById('nsNotas').value.trim();
   if (!nombre || !email) { alert('Nombre y email son obligatorios.'); return; }
+  if (![METODO_LINK_BAC, METODO_TRANSFER].includes(metodo)) {
+    alert('Selecciona si el pago llegó por link BAC o por transferencia.'); return;
+  }
+  if (metodo === METODO_LINK_BAC && !linkDePago(plan)) {
+    alert('Este plan no tiene un link BAC configurado. Selecciona transferencia.'); return;
+  }
 
   const arr  = getSuscriptoras();
   /* Anti-duplicados: email; si no aparece, teléfono + nombre (misma persona) */
@@ -8836,7 +8920,8 @@ async function guardarNuevaSub() {
     arr[idx].plan             = plan;
     arr[idx].fechaVence       = venc;
     arr[idx].activa           = true;
-    (arr[idx].renovaciones = arr[idx].renovaciones||[]).push({ fecha:fmtISO(now), plan, clases:pd.clases });
+    (arr[idx].renovaciones = arr[idx].renovaciones||[]).push(
+      registroCompra(plan, pd.clases, metodo, '', fmtISO(now)));
   } else {
     arr.push({
       id:               'SUB-'+Date.now().toString(36).toUpperCase().slice(-6),
@@ -8848,7 +8933,7 @@ async function guardarNuevaSub() {
       fechaInicio:      fmtISO(now),
       fechaVence:       venc,
       historial:        [],
-      renovaciones:     [{ fecha:fmtISO(now), plan, clases:pd.clases }]
+      renovaciones:     [registroCompra(plan, pd.clases, metodo, '', fmtISO(now))]
     });
   }
   await saveSuscriptoras(arr);
@@ -8930,6 +9015,7 @@ function renovarSub(email) {
   const ok = document.getElementById('rnvOk');
   ok.disabled    = true;
   ok.textContent = 'Activar plan →';
+  document.getElementById('rnvMetodo').value = '';
 
   document.getElementById('rnvBackdrop').classList.add('open');
 }
@@ -8962,7 +9048,18 @@ function elegirPlanRenovar(k) {
   res.innerHTML = `${suma}, vence el <strong>${fmtDiaLargo(r.vence)}</strong>.` +
                   `<br>A cobrar: <strong>${fmtC(r.pd.precio)}</strong>.${perdida}`;
 
-  document.getElementById('rnvOk').disabled = false;
+  actualizarRenovacionMetodo();
+}
+
+function actualizarRenovacionMetodo() {
+  const sel = document.getElementById('rnvMetodo');
+  const metodo = sel?.value || '';
+  if (rnvPlan && metodo === METODO_LINK_BAC && !linkDePago(rnvPlan)) {
+    sel.value = '';
+    alert('Este plan no tiene un link BAC configurado. Selecciona transferencia.');
+  }
+  document.getElementById('rnvOk').disabled =
+    !rnvPlan || ![METODO_LINK_BAC, METODO_TRANSFER].includes(sel?.value);
 }
 
 function cerrarRenovar() {
@@ -8974,6 +9071,10 @@ function cerrarRenovar() {
 async function confirmarRenovar() {
   if (!exigirStaff('cambiar un plan')) return;
   if (!rnvEmail || !rnvPlan || !PLANES_SUB[rnvPlan]) return;
+  const metodo = document.getElementById('rnvMetodo').value;
+  if (![METODO_LINK_BAC, METODO_TRANSFER].includes(metodo)) {
+    alert('Selecciona si el pago llegó por link BAC o por transferencia.'); return;
+  }
 
   const ok = document.getElementById('rnvOk');
   ok.disabled = true; ok.textContent = 'Guardando…';
@@ -8988,9 +9089,8 @@ async function confirmarRenovar() {
   arr[idx].plan            = rnvPlan;
   arr[idx].fechaVence      = r.vence;
   arr[idx].activa          = true;
-  (arr[idx].renovaciones = arr[idx].renovaciones || []).push({
-    fecha: fmtISO(new Date()), plan: rnvPlan, clases: r.pd.clases
-  });
+  (arr[idx].renovaciones = arr[idx].renovaciones || []).push(
+    registroCompra(rnvPlan, r.pd.clases, metodo));
 
   await saveSuscriptoras(arr);
   cerrarRenovar();
@@ -9850,6 +9950,8 @@ function ventasDelPeriodo(desde, hasta) {
       ventas.push({
         sub: s, fecha: r.fecha, plan: r.plan,
         nombre: pd.nombre, precio: pd.precio,
+        metodo: r.metodo || '', linkPago: r.linkPago || '',
+        linkPlan: r.linkPlan || '', referencia: r.referencia || '',
         /* La primera renovación de su historia = alumna nueva, no una
            que vuelve. Es la diferencia entre crecer y retener. */
         esAlta: i === 0,
@@ -9859,14 +9961,19 @@ function ventasDelPeriodo(desde, hasta) {
   ventas.sort((a, b) => a.fecha.localeCompare(b.fecha));
 
   const porPlan = {};
+  const porMetodo = {};
   ventas.forEach(v => {
     if (!porPlan[v.plan]) porPlan[v.plan] = { nombre: v.nombre, n: 0, total: 0 };
     porPlan[v.plan].n++;
     porPlan[v.plan].total += v.precio;
+    const mk = v.metodo || 'no_registrado';
+    if (!porMetodo[mk]) porMetodo[mk] = { etiqueta: etiquetaMetodoCompra(v), n: 0, total: 0 };
+    porMetodo[mk].n++;
+    porMetodo[mk].total += v.precio;
   });
 
   return {
-    ventas, porPlan,
+    ventas, porPlan, porMetodo,
     total:  ventas.reduce((n, v) => n + v.precio, 0),
     altas:  ventas.filter(v =>  v.esAlta).length,
     renovs: ventas.filter(v => !v.esAlta).length,
@@ -10260,6 +10367,25 @@ function buildReporteCartera(body, vistas, r) {
       <div class="rep-cl-num">${fmtC(d.total)}<small>en total</small></div>
     </div>`).join('');
 
+  const metodosHtml = Object.values(v.porMetodo)
+    .sort((a, b) => b.total - a.total)
+    .map(d => `<div class="rep-clase-row">
+      <span class="rep-cl-emoji">${d.etiqueta.startsWith('🔗') ? '🔗' : d.etiqueta.startsWith('🏦') ? '🏦' : '◷'}</span>
+      <div class="rep-cl-info"><strong>${d.etiqueta.replace(/^[^ ]+\s*/, '')}</strong>
+        <span>${d.n} ${d.n === 1 ? 'compra' : 'compras'}</span></div>
+      <div class="rep-cl-num">${fmtC(d.total)}<small>en total</small></div>
+    </div>`).join('');
+
+  const comprasHtml = v.ventas.slice().reverse().map(venta => `<div class="rep-clase-row">
+    <span class="rep-cl-emoji">💳</span>
+    <div class="rep-cl-info">
+      <strong>${escHtml(venta.sub.nombre)} · ${escHtml(venta.nombre)}</strong>
+      <span>${venta.fecha ? fmtDiaLargo(venta.fecha) : 'Sin fecha'} · ${etiquetaMetodoCompra(venta)}${venta.referencia ? ` · Ref. ${escHtml(venta.referencia)}` : ''}</span>
+      ${linkCompraHtml(venta)}
+    </div>
+    <div class="rep-cl-num">${fmtC(venta.precio)}<small>${venta.esAlta ? 'alta' : 'renovación'}</small></div>
+  </div>`).join('');
+
   const dinero = v.ventas.length ? `
     <div class="sa-kpi-grid">
       <div class="sa-kpi"><span class="sa-kpi-ico">💰</span><span class="sa-kpi-num">${fmtC(v.total)}</span><span class="sa-kpi-lbl">Vendido</span></div>
@@ -10267,7 +10393,12 @@ function buildReporteCartera(body, vistas, r) {
       <div class="sa-kpi"><span class="sa-kpi-ico">⟳</span><span class="sa-kpi-num">${v.renovs}</span><span class="sa-kpi-lbl">Renovaciones</span></div>
       <div class="sa-kpi"><span class="sa-kpi-ico">📊</span><span class="sa-kpi-num">${fmtC(Math.round(v.total / v.ventas.length))}</span><span class="sa-kpi-lbl">Venta promedio</span></div>
     </div>
-    <div class="sa-clase-blk">${planesHtml}</div>`
+    <div class="rep-sec-title">Por plan</div>
+    <div class="sa-clase-blk">${planesHtml}</div>
+    <div class="rep-sec-title">Por método de pago</div>
+    <div class="sa-clase-blk">${metodosHtml}</div>
+    <div class="rep-sec-title">Detalle de cada compra</div>
+    <div class="sa-clase-blk">${comprasHtml}</div>`
   : `<div class="cart-ayuda">Sin paquetes vendidos en este ${r.periodo.toLowerCase()}.</div>`;
 
   /* ── 4 · Aprovechamiento ──
@@ -10517,7 +10648,7 @@ function fichaSuscriptora(email) {
   const renov = (s.renovaciones || []).slice().reverse();
   const renovHtml = renov.length ? `
     <table>
-      <tr><th>Fecha</th><th>Paquete</th><th>Clases</th><th>Monto</th></tr>
+      <tr><th>Fecha</th><th>Paquete</th><th>Clases</th><th>Monto</th><th>Método</th><th>Link utilizado</th></tr>
       ${renov.map(rr => {
         const pd = PLANES_SUB[rr.plan] || { nombre: rr.plan || '—', precio: 0 };
         return `<tr>
@@ -10525,6 +10656,8 @@ function fichaSuscriptora(email) {
           <td>${escHtml(pd.nombre)}</td>
           <td>${rr.clases >= 1000 ? '∞' : rr.clases}</td>
           <td>${fmtC(pd.precio)}</td>
+          <td>${etiquetaMetodoCompra(rr)}${rr.referencia ? `<br>Ref. ${escHtml(rr.referencia)}` : ''}</td>
+          <td>${linkCompraHtml(rr, 'Abrir link ↗') || '—'}</td>
         </tr>`;
       }).join('')}
     </table>`
@@ -11650,6 +11783,12 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="rnv-aviso"  id="rnvAviso" style="display:none"></div>
       <div class="rnv-tit">Elige el plan</div>
       <div class="rnv-grid" id="rnvGrid"></div>
+      <div class="rnv-tit">Pago recibido por</div>
+      <select class="rnv-metodo" id="rnvMetodo" onchange="actualizarRenovacionMetodo()">
+        <option value="">Selecciona el método…</option>
+        <option value="link_bac">🔗 Link de pago BAC</option>
+        <option value="transferencia">🏦 Transferencia bancaria</option>
+      </select>
       <div class="rnv-resumen vacio" id="rnvResumen">Toca un plan para ver cómo le queda.</div>
     </div>
     <div class="rnv-ft">
