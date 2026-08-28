@@ -1402,6 +1402,12 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 }
 .pago-note strong { font-size:.82rem; color:var(--wine); display:block; margin-bottom:3px; }
 .pago-note p { font-size:.75rem; color:var(--gray); line-height:1.65; }
+/* El monto, del mismo tamaño que en la caja de transferencia: es el dato
+   que la alumna se lleva de esta pantalla. */
+.pago-note .cn-monto {
+  font-size:1.4rem; font-weight:800; color:var(--wine);
+  line-height:1.25; margin:2px 0 4px;
+}
 
 .btn-confirmar {
   width:100%; background:var(--wine); color:#fff;
@@ -1487,9 +1493,11 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   display:block; font-size:.68rem; font-weight:600;
   color:var(--gray); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:8px;
 }
-.metodo-sel-btns { display:flex; gap:8px; }
+/* Grid y no flex: con tres métodos, flex les daba anchos distintos según
+   el largo del texto y "Membresía o link BAC" se comía a "Efectivo". */
+.metodo-sel-btns { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
 .msb {
-  flex:1; padding:11px 8px; border-radius:10px; text-align:center;
+  padding:11px 6px; border-radius:10px; text-align:center;
   border:1.5px solid rgba(107,23,40,.1); background:var(--white);
   cursor:pointer; transition:all .22s;
   font-size:.78rem; font-weight:500; color:var(--text);
@@ -1614,6 +1622,16 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   font-size:.74rem; color:var(--gray); line-height:1.45;
   margin:8px 2px 14px; text-align:center;
 }
+/* Pagando en el estudio no hay botón que apretar —la acción es llegar con
+   la plata—, pero el aviso tiene que pesar lo mismo que el del banco: es
+   lo único que le queda a la alumna de esta pantalla. */
+.pl-efectivo {
+  background:rgba(107,23,40,.05); border:1.5px dashed rgba(107,23,40,.25);
+  border-radius:12px; padding:14px 16px; margin:0 0 14px; text-align:center;
+}
+.pl-efectivo .ple-ico { display:block; font-size:1.5rem; margin-bottom:4px; }
+.pl-efectivo strong { display:block; font-size:.92rem; color:var(--wine); margin-bottom:4px; }
+.pl-efectivo span { font-size:.74rem; color:var(--gray); line-height:1.45; }
 /* Aparece recién cuando ya se abrió el banco: antes de pagar no tiene
    sentido y solo invitaría a apretarlo de gusto. */
 .btn-ya-pague {
@@ -1787,6 +1805,24 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .sub-plane-name  { display:block; font-size:.76rem; font-weight:600; color:var(--text); margin-bottom:2px; }
 .sub-plane-price { display:block; font-size:1rem; font-weight:800; color:var(--wine); }
 .sub-plane-clases{ display:block; font-size:.67rem; color:var(--gray); margin-top:2px; }
+/* Cómo va a pagar el paquete elegido */
+.sub-como-pago { margin-top:12px; }
+/* Doble clase para ganarle a `.sub-plan-new p`, que pinta de vino y en
+   negrita todo párrafo de esta caja. Sale más barato que un !important. */
+.sub-plan-new .scp-lbl {
+  font-size:.68rem; font-weight:600; color:var(--gray);
+  letter-spacing:1.2px; text-transform:uppercase; margin-bottom:7px;
+}
+.scp-btns { display:grid; grid-template-columns:repeat(3, 1fr); gap:7px; }
+.scp-btn {
+  padding:9px 4px; border-radius:10px; background:white;
+  border:1.5px solid rgba(107,23,40,.15); cursor:pointer; transition:all .2s;
+  font-size:.7rem; font-weight:600; color:var(--text); line-height:1.25;
+}
+.scp-btn:hover { border-color:var(--wine); }
+.scp-btn.sel   { border-color:var(--wine); background:rgba(107,23,40,.07); color:var(--wine); }
+.scp-ico { display:block; font-size:1.05rem; margin-bottom:2px; }
+.sub-plan-new .scp-nota { font-size:.7rem; color:var(--gray); font-weight:400; margin:7px 0 0; }
 .sub-contacto-directo {
   width:100%; margin-top:10px; padding:10px;
   border:1.5px solid rgba(107,23,40,.25); border-radius:12px;
@@ -4243,6 +4279,10 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
               <span class="msb-icon">🏦</span>
               Transferencia
             </div>
+            <div class="msb" id="msbCash" onclick="selectMetodo('cash')">
+              <span class="msb-icon">💵</span>
+              Efectivo en estudio
+            </div>
             <div class="msb msb-sub rb-press" id="msbSub" onclick="selectMetodo('sub')">
               <span class="msb-icon" id="msbSubIcon">💳</span>
               <span id="msbSubTxt">Membresía o link BAC</span>
@@ -4254,6 +4294,11 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
           <p class="tb-num" id="linkMonto">C$440</p>
           <p class="tb-bank">Transferencia bancaria · Presenza Studio</p>
           <p class="tb-nota">Te enviamos los datos de la cuenta por WhatsApp. Envíanos tu comprobante para confirmar tu reserva.</p>
+        </div>
+        <div class="pago-note" id="cashNote" style="display:none">
+          <strong>💵 Pago en el estudio</strong>
+          <p class="cn-monto" id="cashMonto">C$440</p>
+          <p>Llevá ese monto y pagás al llegar a tu clase. Te esperamos 10 min antes ✧</p>
         </div>
         <div class="sub-check-box" id="subCheckBox">
           <div id="subCheckResult"></div>
@@ -4356,6 +4401,19 @@ function linkDePago(planKey) {
    utilizó entonces. Todo vive dentro del JSON `renovaciones`, que ya existe. */
 const METODO_LINK_BAC = 'link_bac';
 const METODO_TRANSFER = 'transferencia';
+/* Tercer canal: la plata que entra en caja. No deja rastro en ningún banco,
+   así que si no queda anotada acá no queda anotada en ningún lado —y el
+   reporte por método daría un total menor al que de verdad entró. */
+const METODO_EFECTIVO = 'efectivo';
+
+/* Los tres, en el orden en que se ofrecen. Una sola lista para que el alta,
+   la renovación y la validación no se puedan desincronizar entre ellas. */
+const METODOS_COMPRA = [
+  { id: METODO_LINK_BAC, ico: '🔗', txt: 'Link de pago BAC' },
+  { id: METODO_TRANSFER, ico: '🏦', txt: 'Transferencia bancaria' },
+  { id: METODO_EFECTIVO, ico: '💵', txt: 'Efectivo en el estudio' }
+];
+const IDS_METODO_COMPRA = METODOS_COMPRA.map(m => m.id);
 
 function registroCompra(planKey, clases, metodo, referencia = '', fecha = hoyISO()) {
   const r = { fecha, plan: planKey, clases, metodo };
@@ -4369,8 +4427,20 @@ function registroCompra(planKey, clases, metodo, referencia = '', fecha = hoyISO
 
 function etiquetaMetodoCompra(compra) {
   if (compra?.metodo === METODO_LINK_BAC || compra?.linkPago) return '🔗 Link de pago BAC';
-  if (compra?.metodo === METODO_TRANSFER) return '🏦 Transferencia bancaria';
-  return '◷ Método no registrado';
+  const m = METODOS_COMPRA.find(x => x.id === compra?.metodo);
+  return m ? `${m.ico} ${m.txt}` : '◷ Método no registrado';
+}
+
+/* Lee, del método escrito en las reservas que esperan el plan, cuál de los
+   tres canales declaró la alumna. Las reservas de antes de esta versión no
+   dicen ninguno y devuelven '' — quien llama decide con qué se queda. */
+function metodoDeclaradoEnReservas(reservas) {
+  for (const r of reservas || []) {
+    const m = (r.metodo || '').toLowerCase();
+    const hit = METODOS_COMPRA.find(x => m.includes(x.txt.toLowerCase()));
+    if (hit) return hit.id;
+  }
+  return '';
 }
 
 /* Los URLs del historial terminan en un href. Solo se aceptan links HTTPS de
@@ -5060,7 +5130,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-26.1';
+const BUILD = '2026-08-28.1';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -6324,6 +6394,16 @@ let booking = {};
 let pagoMetodo      = null;
 let selectedSubPlan = null;
 
+/* Cómo va a pagar el PAQUETE que acaba de elegir —no la clase suelta, eso
+   es pagoMetodo. Antes el único camino que se le ofrecía era el link del
+   banco: la que iba a pagar por transferencia o en efectivo terminaba
+   mirando un botón de tarjeta que no iba a usar, y el estudio no se
+   enteraba de por dónde le iba a entrar la plata.
+   El plan queda pendiente igual en los tres casos —lo activa el estudio
+   cuando cobra—; esto decide qué se le ofrece al final y con qué método
+   queda anotada la compra. */
+let subPagoComo = METODO_LINK_BAC;
+
 function openBooking(clase, dateStr, hora, instructor) {
   /* Candado por si la página quedó abierta desde antes de las 22:00 y el
      cierre pasó mientras tanto: la tarjeta se ve reservable pero ya no lo es. */
@@ -6629,13 +6709,17 @@ function setupPago() {
   const precioReal = precioDe(clase, dateStr, hora) * nClases;
   document.getElementById('psPrice').textContent  = `${fmtC(precioReal)}`;
   document.getElementById('linkMonto').textContent = fmtC(precioReal);
+  document.getElementById('cashMonto').textContent = fmtC(precioReal);
 
   pagoMetodo      = null;
   selectedSubPlan = null;
+  subPagoComo     = METODO_LINK_BAC;
   etiquetaMetodoSub(null);   /* otra alumna, otro caso: se vuelve a preguntar */
   document.getElementById('msbTransfer').classList.remove('sel');
+  document.getElementById('msbCash').classList.remove('sel');
   document.getElementById('msbSub').classList.remove('sel');
   document.getElementById('transferBox').classList.remove('show');
+  document.getElementById('cashNote').style.display = 'none';
   document.getElementById('subCheckBox').classList.remove('visible');
   document.getElementById('btnPagar').disabled = true;
 }
@@ -6649,11 +6733,13 @@ function confirmLugar() {
 }
 
 function selectMetodo(tipo) {
-  if (!['transfer','sub'].includes(tipo)) return;
+  if (!['transfer','cash','sub'].includes(tipo)) return;
   pagoMetodo = tipo;
   document.getElementById('msbTransfer').classList.toggle('sel', tipo==='transfer');
+  document.getElementById('msbCash').classList.toggle('sel', tipo==='cash');
   document.getElementById('msbSub').classList.toggle('sel', tipo==='sub');
   document.getElementById('transferBox').classList.toggle('show', tipo==='transfer');
+  document.getElementById('cashNote').style.display = tipo==='cash' ? 'block' : 'none';
   const subBox = document.getElementById('subCheckBox');
   subBox.classList.toggle('visible', tipo==='sub');
   if (tipo==='sub') {
@@ -6779,6 +6865,11 @@ async function verifySub() {
     <div class="sub-plan-new">
       <p>${esVencida ? `⚠ Tu plan venció el ${sub.fechaVence}. Elige un paquete para renovar:` : esRenovacion ? '⟳ Tus clases se agotaron. Elige tu paquete para renovar:' : '🎟️ Elige tu paquete o membresía:'}</p>
       <div class="sub-planes">${planesHtml}</div>
+      <div class="sub-como-pago" id="subComoPago" style="display:none">
+        <p class="scp-lbl">¿Cómo vas a pagarlo?</p>
+        <div class="scp-btns" id="scpBtns"></div>
+        <p class="scp-nota" id="scpNota"></p>
+      </div>
       <button type="button" class="sub-contacto-directo rb-press" onclick="contactoDirecto()">💬 Contacto directo con el estudio</button>
     </div>`;
   selectedSubPlan = null;
@@ -6790,7 +6881,41 @@ function selectSubPlan(planKey) {
   selectedSubPlan = planKey;
   document.querySelectorAll('.sub-plane').forEach(el =>
     el.classList.toggle('sel', el.dataset.plan === planKey));
+  /* Sin argumento: si cambia de paquete se le respeta la forma de pago que
+     ya había elegido, y solo se cae a la primera disponible cuando la suya
+     dejó de existir —el caso real es el link BAC en un plan que no tiene. */
+  pintarComoPago();
   document.getElementById('btnPagar').disabled = false;
+}
+
+/* Las tres formas de pagar el paquete. Viene preseleccionado el link, para
+   no agregarle un toque a quien iba a pagar así de todos modos: la que va a
+   pagar de otra forma la cambia y listo. */
+function pintarComoPago(elegida) {
+  const caja = document.getElementById('subComoPago');
+  const btns = document.getElementById('scpBtns');
+  const nota = document.getElementById('scpNota');
+  if (!caja || !btns) return;
+
+  if (elegida) subPagoComo = elegida;
+  /* El link solo se ofrece en los paquetes que tienen uno pegado; en los
+     demás, ese botón mandaría a la alumna a ninguna parte. */
+  const opciones = METODOS_COMPRA
+    .filter(m => m.id !== METODO_LINK_BAC || linkDePago(selectedSubPlan));
+  if (!opciones.some(m => m.id === subPagoComo)) subPagoComo = opciones[0].id;
+
+  caja.style.display = 'block';
+  btns.innerHTML = opciones.map(m => `
+    <button type="button" class="scp-btn rb-press${m.id === subPagoComo ? ' sel' : ''}"
+      onclick="pintarComoPago('${m.id}')">
+      <span class="scp-ico">${m.ico}</span>${m.id === METODO_LINK_BAC ? 'Link BAC'
+        : m.id === METODO_TRANSFER ? 'Transferencia' : 'Efectivo'}
+    </button>`).join('');
+
+  if (nota) nota.textContent =
+      subPagoComo === METODO_LINK_BAC ? 'Al terminar te abrimos la página segura del banco.'
+    : subPagoComo === METODO_TRANSFER ? 'Te pasamos los datos de la cuenta por WhatsApp.'
+    : 'Pagás al llegar a tu clase. Tu paquete se activa cuando lo recibimos.';
 }
 
 /* La alumna elige plan → queda PENDIENTE hasta que el admin confirme el pago.
@@ -6841,11 +6966,23 @@ async function confirmarPagoSub(email) {
   const planKey = arr[idx].pendiente.plan;
   const pd      = PLANES_SUB[planKey];
   if (!pd) { alert('Plan no válido.'); return; }
-  /* `dice_pago` solo se alcanza después de abrir el checkout BAC. Las demás
-     solicitudes se confirman como transferencia. La referencia y el URL se
-     copian antes de borrar `pendiente`, para que la compra quede auditable. */
+  /* Con qué método queda anotada la compra, de la evidencia más dura a la
+     más blanda:
+       1. `dice_pago` solo se alcanza volviendo del checkout de BAC.
+       2. Si no, lo que la alumna declaró al reservar, que viaja escrito en
+          el método de su reserva pendiente (`pendiente` en la base no tiene
+          columna de método, así que ese texto es el único lugar donde está).
+       3. Y si tampoco —una solicitud vieja, de antes de que se preguntara—,
+          transferencia, que es como se venía asumiendo.
+     Es lo que ella dijo, no un comprobante: quien aprieta este botón es el
+     estudio, que ya vio si la plata entró y por dónde.
+     La referencia y el URL se copian antes de borrar `pendiente`, para que
+     la compra quede auditable. */
   const pagoPendiente = arr[idx].pendiente;
-  const metodoCompra  = pagoPendiente.estado === 'dice_pago' ? METODO_LINK_BAC : METODO_TRANSFER;
+  const colgadas = reservasDePlanPendiente(arr[idx].email, arr[idx].tel);
+  const metodoCompra = pagoPendiente.estado === 'dice_pago'
+    ? METODO_LINK_BAC
+    : (metodoDeclaradoEnReservas(colgadas) || METODO_TRANSFER);
   const now  = new Date();
   const hoy  = fmtISO(now);
   const venc = calcVence(pd.meses);
@@ -6867,7 +7004,6 @@ async function confirmarPagoSub(email) {
      esto le quedaban las N del paquete MÁS la que reservó — un paquete de 5
      salía por 6 clases, todas las veces.
      A las ilimitadas no se les descuenta nada, igual que en todo el resto. */
-  const colgadas = reservasDePlanPendiente(arr[idx].email, arr[idx].tel);
   let saldadas = 0;
   if (!esIlimitada(arr[idx])) {
     for (const r of colgadas) {
@@ -6954,12 +7090,21 @@ async function proceedToConfirm() {
     if (pasoPago >= 0) mGoStep(pasoPago + 1);
     return;
   }
+  /* Un paquete pendiente ya no es siempre "por link BAC": la alumna dice en
+     qué forma lo va a pagar y eso queda escrito acá. Es lo único que lo
+     guarda —`pendiente` en la base no tiene columna de método—, y de acá lo
+     vuelve a leer confirmarPagoSub() para anotar bien la compra.
+     La coletilla "(pago pendiente)" no se toca: es la marca exacta con la
+     que esReservaDePlanPendiente() encuentra estas reservas. */
+  const comoPend = METODOS_COMPRA.find(m => m.id === subPagoComo) || METODOS_COMPRA[0];
   const metodoDtxt = booking.gratis
     ? '🎁 Clase gratis'
     : pagoMetodo==='transfer'
     ? '🏦 Transferencia'
+    : pagoMetodo==='cash'
+    ? '💵 Efectivo en el estudio'
     : pagoMetodo==='sub'
-    ? `${esPlanPendiente ? '🔗 Compra por link BAC' : '💎 Suscripción'} · ${PLANES_SUB[planUsado]?.nombre || 'Membresía'}${esPlanPendiente ? ' (pago pendiente)' : ''}`
+    ? `${esPlanPendiente ? comoPend.ico + ' Compra por ' + comoPend.txt : '💎 Suscripción'} · ${PLANES_SUB[planUsado]?.nombre || 'Membresía'}${esPlanPendiente ? ' (pago pendiente)' : ''}`
     : 'Método no seleccionado';
 
   /* Monto real a pagar: gratis si es clase especial; el del plan elegido si pide
@@ -7170,6 +7315,7 @@ async function proceedToConfirm() {
       Nivel: nivel || '—',
       Plan: planPend.nombre,
       Monto: fmtC(planPend.precio),
+      'Forma de pago': comoPend.txt,
       'Clase reservada': `${info.nombre} · ${diaStr} · ${hora12(hora)}${booking.lugar ? ' · Lugar ' + booking.lugar : ''}`,
       Solicitado: new Date().toLocaleString('es-NI')
     });
@@ -7209,9 +7355,10 @@ async function proceedToConfirm() {
      WhatsApp igual que hasta ahora. */
   const pagoBox = document.getElementById('pagoLinkBox');
   if (pagoBox) {
-    const conLink = esPlanPendiente && planPend && linkDePago(selectedSubPlan);
-    pagoBox.style.display = conLink ? 'block' : 'none';
-    pagoBox.innerHTML = conLink ? `
+    const pidePlan = !!(esPlanPendiente && planPend);
+    const conLink  = pidePlan && subPagoComo === METODO_LINK_BAC && linkDePago(selectedSubPlan);
+    pagoBox.style.display = pidePlan ? 'block' : 'none';
+    pagoBox.innerHTML = !pidePlan ? '' : conLink ? `
       <button class="btn-pagar-link rb-press" id="btnPagarLink"
         onclick="irAPagar('${escArg(selectedSubPlan)}','${escArg(email)}','${escArg(tel)}')">
         💳 Pagar ${escHtml(planPend.nombre)} · ${fmtC(planPend.precio)}
@@ -7221,7 +7368,20 @@ async function proceedToConfirm() {
       <button class="btn-ya-pague" id="btnYaPague" style="display:none"
         onclick="avisarQuePague('${escArg(email)}','${escArg(tel)}')">
         ✓ Ya pagué
-      </button>` : '';
+      </button>`
+    : subPagoComo === METODO_EFECTIVO ? `
+      <div class="pl-efectivo">
+        <span class="ple-ico">💵</span>
+        <strong>${escHtml(planPend.nombre)} · ${fmtC(planPend.precio)}</strong>
+        <span>Llevá el monto a tu clase. Tu paquete queda activado apenas lo recibimos.</span>
+      </div>`
+    : `
+      <button class="btn-pagar-link rb-press"
+        onclick="transferWA('${escArg(selectedSubPlan)}')">
+        🏦 Pedir los datos de la cuenta
+      </button>
+      <p class="pl-nota">Te pasamos la cuenta por WhatsApp. Mandanos el
+        comprobante y activamos tu ${escHtml(planPend.nombre)}.</p>`;
   }
 
   const notaWA = notas ? `📝 Notas: ${notas}\n` : '';
@@ -7246,6 +7406,9 @@ async function proceedToConfirm() {
     `📱 Tel: ${tel}\n` +
     `📧 Email: ${email}\n` +
     `💳 Pago: ${metodoDtxt}\n` +
+    /* El estudio necesita saber por dónde le entra la plata del paquete:
+       es lo que decide si la espera en la cuenta o en caja. */
+    (esPlanPendiente ? `   Va a pagar: ${comoPend.txt}\n` : ``) +
     notaWA +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
     `¡Gracias por elegir Presenza! ✧`
@@ -8812,8 +8975,7 @@ function buildSAdminSubs() {
         <div class="nsm-field"><label>Pago recibido por</label>
           <select id="nsMetodo">
             <option value="">Selecciona el método…</option>
-            <option value="${METODO_LINK_BAC}">🔗 Link de pago BAC</option>
-            <option value="${METODO_TRANSFER}">🏦 Transferencia bancaria</option>
+            ${METODOS_COMPRA.map(m => `<option value="${m.id}">${m.ico} ${m.txt}</option>`).join('')}
           </select>
         </div>
         <div class="nsm-field full"><label>Notas (opcional)</label><input id="nsNotas" placeholder="Nivel, preferencias..."/></div>
@@ -8896,11 +9058,11 @@ async function guardarNuevaSub() {
   const metodo = document.getElementById('nsMetodo').value;
   const notas  = document.getElementById('nsNotas').value.trim();
   if (!nombre || !email) { alert('Nombre y email son obligatorios.'); return; }
-  if (![METODO_LINK_BAC, METODO_TRANSFER].includes(metodo)) {
-    alert('Selecciona si el pago llegó por link BAC o por transferencia.'); return;
+  if (!IDS_METODO_COMPRA.includes(metodo)) {
+    alert('Selecciona cómo llegó el pago: link BAC, transferencia o efectivo.'); return;
   }
   if (metodo === METODO_LINK_BAC && !linkDePago(plan)) {
-    alert('Este plan no tiene un link BAC configurado. Selecciona transferencia.'); return;
+    alert('Este plan no tiene un link BAC configurado. Selecciona transferencia o efectivo.'); return;
   }
 
   const arr  = getSuscriptoras();
@@ -9056,10 +9218,10 @@ function actualizarRenovacionMetodo() {
   const metodo = sel?.value || '';
   if (rnvPlan && metodo === METODO_LINK_BAC && !linkDePago(rnvPlan)) {
     sel.value = '';
-    alert('Este plan no tiene un link BAC configurado. Selecciona transferencia.');
+    alert('Este plan no tiene un link BAC configurado. Selecciona transferencia o efectivo.');
   }
   document.getElementById('rnvOk').disabled =
-    !rnvPlan || ![METODO_LINK_BAC, METODO_TRANSFER].includes(sel?.value);
+    !rnvPlan || !IDS_METODO_COMPRA.includes(sel?.value);
 }
 
 function cerrarRenovar() {
@@ -9072,8 +9234,8 @@ async function confirmarRenovar() {
   if (!exigirStaff('cambiar un plan')) return;
   if (!rnvEmail || !rnvPlan || !PLANES_SUB[rnvPlan]) return;
   const metodo = document.getElementById('rnvMetodo').value;
-  if (![METODO_LINK_BAC, METODO_TRANSFER].includes(metodo)) {
-    alert('Selecciona si el pago llegó por link BAC o por transferencia.'); return;
+  if (!IDS_METODO_COMPRA.includes(metodo)) {
+    alert('Selecciona cómo llegó el pago: link BAC, transferencia o efectivo.'); return;
   }
 
   const ok = document.getElementById('rnvOk');
@@ -10370,7 +10532,7 @@ function buildReporteCartera(body, vistas, r) {
   const metodosHtml = Object.values(v.porMetodo)
     .sort((a, b) => b.total - a.total)
     .map(d => `<div class="rep-clase-row">
-      <span class="rep-cl-emoji">${d.etiqueta.startsWith('🔗') ? '🔗' : d.etiqueta.startsWith('🏦') ? '🏦' : '◷'}</span>
+      <span class="rep-cl-emoji">${d.etiqueta.split(' ')[0]}</span>
       <div class="rep-cl-info"><strong>${d.etiqueta.replace(/^[^ ]+\s*/, '')}</strong>
         <span>${d.n} ${d.n === 1 ? 'compra' : 'compras'}</span></div>
       <div class="rep-cl-num">${fmtC(d.total)}<small>en total</small></div>
@@ -11788,6 +11950,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <option value="">Selecciona el método…</option>
         <option value="link_bac">🔗 Link de pago BAC</option>
         <option value="transferencia">🏦 Transferencia bancaria</option>
+        <option value="efectivo">💵 Efectivo en el estudio</option>
       </select>
       <div class="rnv-resumen vacio" id="rnvResumen">Toca un plan para ver cómo le queda.</div>
     </div>
