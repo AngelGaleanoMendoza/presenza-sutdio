@@ -2509,6 +2509,9 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   font-size:.78rem; color:var(--text); background:white; outline:none; width:100%;
 }
 .hor-sel:focus, .hor-inp:focus { border-color:var(--wine); }
+/* Sin esto, "María Del Carmen Somarriba" estira su columna del grid y
+   empuja al botón de borrar fuera de la fila. */
+.hor-instr { min-width:0; }
 .btn-hor-del {
   width:28px; height:28px; border-radius:50%; border:none;
   background:rgba(220,53,69,.08); color:#c0392b;
@@ -4212,8 +4215,11 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
           <input type="text" id="mNombre" placeholder="Tu nombre" oninput="checkMForm()"/>
         </div>
         <div class="mfg">
-          <label>Email</label>
+          <label>Email <span style="color:#c0392b">*</span></label>
           <input type="email" id="mEmail" placeholder="tu@email.com" oninput="checkMForm()"/>
+          <span id="mEmailHint" style="display:none;font-size:.68rem;color:#c0392b;margin-top:4px">
+            📧 Revisa tu correo: acá te llega la confirmación cuando validemos tu pago.
+          </span>
         </div>
         <div class="mfg">
           <label>WhatsApp / Teléfono <span style="color:#c0392b">*</span></label>
@@ -4347,7 +4353,12 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 ════════════════════════════════════════ */
 
 const WA = '50584317983';
-const EMAIL_NOTIF = 'sebasgale65@gmail.com'; // ← correo donde llegan las solicitudes de suscripción
+
+/* El correo del estudio. Es de donde salen las confirmaciones que le llegan
+   a la alumna y a donde entran las solicitudes de plan, así que es el que
+   ella va a ver y al que le va a responder. */
+const EMAIL_ESTUDIO = 'presenza.studio@outlook.com';
+const EMAIL_NOTIF   = EMAIL_ESTUDIO;   // ← correo donde llegan las solicitudes de suscripción
 
 /* ── LINKS DE PAGO BAC ────────────────────────────────────────────────
    Un link por monto: el banco entrega uno por cada precio, no uno solo
@@ -4488,6 +4499,69 @@ function notificarSolicitudCorreo(datos) {
       ...datos
     })
   }).catch(() => {});
+}
+
+/* ── CONFIRMACIÓN POR CORREO A LA ALUMNA ──────────────────────────────
+   Reservar por transferencia o por link deja el pago "por confirmar": la
+   alumna se queda esperando sin saber si su cupo es suyo, y hasta hoy la
+   única forma de enterarse era que alguien le escribiera por WhatsApp.
+   Ahora, cuando el estudio marca el pago como verificado, le sale el
+   correo solo.
+
+   Va por FormSubmit —lo mismo que ya usaba el aviso de solicitudes— con el
+   correo del estudio como destinatario y el de la alumna en copia. Es a
+   propósito: FormSubmit solo entrega a una dirección verificada de
+   antemano, así que no se le puede escribir directo a cada alumna nueva.
+   De paso, el estudio se queda con la copia de todo lo que salió.
+
+   OJO: `presenza.studio@outlook.com` tiene que activarse UNA vez. El primer
+   envío hace que FormSubmit le mande un link de confirmación a esa bandeja;
+   hasta que alguien lo abra, no se entrega nada. */
+async function correoAAlumna(para, asunto, datos) {
+  if (!EMAIL_ESTUDIO || !emailValido(para)) return false;
+  try {
+    const r = await fetch('https://formsubmit.co/ajax/' + EMAIL_ESTUDIO, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        _subject: asunto,
+        _template: 'table',
+        _captcha: 'false',
+        _cc: para,               /* la alumna, en copia */
+        _replyto: EMAIL_ESTUDIO, /* si responde, le llega al estudio */
+        ...datos
+      })
+    });
+    return r.ok;
+  } catch (e) { return false; }
+}
+
+/* Si el envío automático no salió, esto abre el correo ya escrito en el
+   programa de correo de quien está en el panel. El aviso igual llega; lo
+   único que cambia es que lo manda una persona. */
+function borradorCorreo(para, asunto, datos) {
+  const cuerpo = Object.entries(datos).map(([k, v]) => `${k}: ${v}`).join('\n');
+  window.open(`mailto:${encodeURIComponent(para)}`
+    + `?subject=${encodeURIComponent(asunto)}`
+    + `&body=${encodeURIComponent(cuerpo)}`, '_blank');
+}
+
+/* Manda la confirmación y, si no se pudo, ofrece mandarla a mano. Nunca
+   tira error hacia arriba: el pago YA quedó confirmado en la base y eso es
+   lo que no se puede perder por un correo que no salió. */
+async function confirmarPorCorreo(para, asunto, datos, queEs) {
+  if (!emailValido(para)) {
+    alert(`El pago quedó confirmado, pero no se le puede avisar por correo:\n` +
+          `esta reserva no tiene una dirección válida (${para || 'sin correo'}).\n\n` +
+          `Avísale por WhatsApp ✧`);
+    return false;
+  }
+  if (await correoAAlumna(para, asunto, datos)) return true;
+  if (confirm(`El pago quedó confirmado, pero no se pudo enviar el correo de ${queEs} a ${para}.\n\n` +
+              `¿Abrir el correo ya escrito para mandarlo desde acá?`)) {
+    borradorCorreo(para, asunto, datos);
+  }
+  return false;
 }
 
 /* Botón de una tarjeta de precios: abre el link de pago de ese paquete y,
@@ -4699,6 +4773,45 @@ const COACHES = [
   { usuario:'gladys',    nombre:'Gladys Pastora'             },
   { usuario:'yeni',      nombre:'Yeni Noreña'                },
 ];
+
+/* Las cinco que dan clase, para el selector del horario. Jimena entra con
+   acceso total (es la dueña) pero imparte, así que va acá también.
+
+   `corto` es lo que se guarda en el horario y se copia a cada reserva; es
+   el mismo texto que ya traía el horario de fábrica, para no dejar huérfano
+   nada de lo ya guardado. `nombre` es solo para leer.
+
+   El texto libre se fue justamente por esto: "M. Carmen", "Carmen",
+   "M.Carmen" y "maria carmen" eran cuatro coaches distintas para el reporte
+   de clases impartidas, y ninguna sumaba lo que de verdad había dado. */
+const COACHES_CLASE = [
+  { corto:'Jimena',    nombre:'Jimena'                     },
+  { corto:'M. Carmen', nombre:'María Del Carmen Somarriba' },
+  { corto:'Alejandra', nombre:'Alejandra Mondragón'        },
+  { corto:'Gladys',    nombre:'Gladys Pastora'             },
+  { corto:'Yeni',      nombre:'Yeni Noreña'                },
+];
+
+/* El nombre largo para mostrar. Un horario viejo puede traer un nombre que
+   ya no está en la lista: se devuelve tal cual en vez de perderlo. */
+function nombreCoach(corto) {
+  const c = (corto || '').trim();
+  if (!c) return '';
+  return COACHES_CLASE.find(x => x.corto === c)?.nombre
+      || COACHES_CLASE.find(x => coincideCoach(c, x.nombre))?.nombre
+      || c;
+}
+
+/* Las opciones del selector. Si lo guardado no es ninguna de las cinco
+   —un horario de antes de esta versión— se le agrega su propia opción para
+   que abrir el editor no se lo cambie solo sin que nadie lo pida. */
+function opcionesCoach(sel) {
+  const v = (sel || '').trim();
+  const lista = COACHES_CLASE.slice();
+  if (v && !lista.some(c => c.corto === v)) lista.push({ corto:v, nombre:v + ' (fuera de la lista)' });
+  return `<option value=""${v ? '' : ' selected'}>Sin asignar</option>` +
+    lista.map(c => `<option value="${escHtml(c.corto)}"${c.corto === v ? ' selected' : ''}>${escHtml(c.nombre)}</option>`).join('');
+}
 
 function buscarStaffTotal(usr) { return STAFF_TOTAL.find(s => s.usuario === usr) || null; }
 function emailDeUsuario(usr)   { return `${usr}@presenza.auth`; }
@@ -5130,7 +5243,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-08-28.1';
+const BUILD = '2026-09-01.1';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -6529,14 +6642,28 @@ function mGoStep(n) {
   });
 }
 
+/* El correo dejó de ser un dato de contacto más: es por donde le llega la
+   confirmación cuando el estudio le valida el pago. Uno mal escrito no
+   rebota a ningún lado —la alumna simplemente nunca se entera—, así que se
+   revisa la forma acá, no solo que no esté vacío. */
+function emailValido(v) {
+  return /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test((v || '').trim());
+}
+
 function checkMForm() {
   const telVal = document.getElementById('mTel').value;
   const telOk  = normTel(telVal).length >= 8;
   const hint   = document.getElementById('mTelHint');
   /* Aviso visible si escribió algo pero el número está incompleto */
   if (hint) hint.style.display = (telVal.trim() && !telOk) ? 'block' : 'none';
+
+  const emailVal = document.getElementById('mEmail').value;
+  const emailOk  = emailValido(emailVal);
+  const hintMail = document.getElementById('mEmailHint');
+  if (hintMail) hintMail.style.display = (emailVal.trim() && !emailOk) ? 'block' : 'none';
+
   const ok = document.getElementById('mNombre').value.trim() &&
-             document.getElementById('mEmail').value.trim()  &&
+             emailOk &&
              telOk &&
              document.getElementById('mNivel').value;
   document.getElementById('btnConfirmar').disabled = !ok;
@@ -6549,6 +6676,14 @@ function submitR() {
     const hint = document.getElementById('mTelHint');
     if (hint) hint.style.display = 'block';
     document.getElementById('mTel').focus();
+    return;
+  }
+  /* Y sin correo válido tampoco: es la dirección a la que se le va a
+     confirmar el pago. El botón ya está apagado, pero esto atrapa el Enter. */
+  if (!emailValido(document.getElementById('mEmail').value)) {
+    const hint = document.getElementById('mEmailHint');
+    if (hint) { hint.textContent = '📧 Escribe un correo válido: acá te llega la confirmación de tu pago.'; hint.style.display = 'block'; }
+    document.getElementById('mEmail').focus();
     return;
   }
   renderLugares();
@@ -7021,6 +7156,28 @@ async function confirmarPagoSub(email) {
   for (const r of colgadas.slice(0, esIlimitada(arr[idx]) ? colgadas.length : saldadas)) {
     await marcarClaseDescontadaDB(r.key, r.ts);
   }
+
+  /* Y se le avisa: su paquete pasó de "pendiente" a activo, y las clases que
+     ya había apartado esperando este pago quedaron cubiertas. */
+  const sub = arr[idx];
+  const clasesTxt = esIlimitada(sub)
+    ? `Ilimitadas hasta el ${fmtDiaLargo(sub.fechaVence)}`
+    : `${sub.clasesRestantes} ${sub.clasesRestantes === 1 ? 'clase disponible' : 'clases disponibles'}`;
+  await confirmarPorCorreo(sub.email,
+    `✧ Tu ${pd.nombre} ya está activo — Presenza`,
+    {
+      'Hola': (sub.nombre || '').split(' ')[0] || 'hola',
+      'Tu pago': '✓ CONFIRMADO — tu paquete ya está activo',
+      'Plan': pd.nombre,
+      'Monto': fmtC(pd.precio),
+      'Pagaste con': etiquetaMetodoCompra({ metodo: metodoCompra }),
+      'Te queda': clasesTxt,
+      'Vence': fmtDiaLargo(sub.fechaVence),
+      ...(saldadas ? { 'Ya cubierto': `${saldadas} ${saldadas === 1 ? 'clase que ya tenías apartada' : 'clases que ya tenías apartadas'} — no tenés que hacer nada` } : {}),
+      'Reserva tus clases': 'https://presenzastudioni.com',
+      'WhatsApp': '+505 8431 7983'
+    },
+    'activación del paquete');
 
   sadminTab(sadminTabActual); /* refresca la pestaña donde estés (Hoy o Suscriptoras) */
   return { plan: pd, saldadas, colgadas };
@@ -8437,7 +8594,31 @@ function buildPendPagoHtml() {
 }
 
 async function confirmarPagoReserva(clase, dateStr, hora, ts) {
+  /* La reserva se lee ANTES de confirmar: marcarPagoOkDB la saca de la cola
+     de pendientes y después ya no habría de dónde tomar el correo. */
+  const res = (SLOTS[slotKey(clase, dateStr, hora)] || []).find(c => c.ts === ts);
   if (!await marcarPagoOkDB(slotKey(clase, dateStr, hora), ts)) return;
+
+  if (res) {
+    const info = INFO[clase] || { nombre: clase, emoji: '📋' };
+    await confirmarPorCorreo(res.email,
+      `✧ Tu pago quedó confirmado — ${info.nombre}`,
+      {
+        'Hola': (res.nombre || '').split(' ')[0] || 'hola',
+        'Tu pago': '✓ CONFIRMADO — tu cupo ya es tuyo',
+        'Clase': `${info.emoji} ${info.nombre}`,
+        'Día': fmtDiaLargo(dateStr),
+        'Hora': hora12(hora),
+        ...(res.lugar ? { 'Tu lugar': `Mat ${res.lugar}` } : {}),
+        'Instructora': nombreCoach(res.instructor) || 'Por confirmar',
+        'Pagaste con': res.metodo || '—',
+        'Monto': fmtC(precioDe(clase, dateStr, hora)),
+        'Te esperamos': 'Llega 10 minutos antes. Trae tu botella de agua ✧',
+        'Estudio': 'Presenza Studio · TerraPlaza, Km 9.8 Carretera a Masaya, Managua',
+        'WhatsApp': '+505 8431 7983'
+      },
+      'confirmación');
+  }
   sadminTab(sadminTabActual);
 }
 
@@ -10367,7 +10548,10 @@ function buildSAdminReportes() {
   /* Clases dadas por cada coach (sesiones con al menos una reserva) */
   const byCoach = {};
   regs.forEach(c => {
-    const nom = (c.instructor||'').trim() || 'Sin asignar';
+    /* Por nombre largo: el horario guarda "M. Carmen" y una reserva vieja
+       pudo quedar con "Carmen" o "maria carmen". Sin resolverlo, la misma
+       coach salía en tres filas y ninguna decía cuántas clases dio. */
+    const nom = nombreCoach(c.instructor) || 'Sin asignar';
     if (!byCoach[nom]) byCoach[nom] = { sesiones:new Set(), asist:0, dets:{} };
     byCoach[nom].sesiones.add(`${c.clase}_${c.dateStr}_${c.hora}`);
     byCoach[nom].asist++;
@@ -11027,7 +11211,7 @@ function buildSAdminHorarios() {
           ${Object.entries(INFO).map(([k,v])=>`<option value="${k}"${s.clase===k?' selected':''}>${v.emoji} ${v.nombre}</option>`).join('')}
         </select>
         <input class="hor-inp hor-time" type="time" value="${s.hora}" id="horHora_${dia}_${i}"/>
-        <input class="hor-inp hor-instr" type="text"  value="${s.instructor}" placeholder="Instructor" id="horInstr_${dia}_${i}"/>
+        <select class="hor-inp hor-instr" id="horInstr_${dia}_${i}">${opcionesCoach(s.instructor)}</select>
         <button class="btn-hor-del" onclick="horDel(${dia},${i})">✕</button>
       </div>`).join('');
 
@@ -11090,7 +11274,7 @@ function buildEspecialesHtml() {
       <select class="hor-sel" id="espClase" onchange="espTopeCupos()">${opcClase}</select>
       <input class="hor-inp" type="date" id="espFecha" min="${hoy}"/>
       <input class="hor-inp hor-time" type="time" id="espHora" value="10:30"/>
-      <input class="hor-inp hor-instr" type="text" id="espInstr" placeholder="Instructora"/>
+      <select class="hor-inp hor-instr" id="espInstr">${opcionesCoach('')}</select>
       <input class="hor-inp" type="number" id="espCupos" value="${CUPOS_SALON}" min="1" max="${CUPOS_SALON}" title="Cupos"/>
       <input class="hor-inp" type="number" id="espPrecio" value="0" min="0" step="10" title="Precio en C$ · 0 = gratis"/>
       <input class="hor-inp" type="text" id="espTitulo" placeholder="Título (opcional)"/>
@@ -11331,6 +11515,14 @@ function horAdd(dia) {
 }
 
 function saveHorarios() {
+  /* Con qué instructora estaba cada clase ANTES de tocar nada: es contra
+     esto que se sabe a cuál se le cambió la coach. */
+  const antes = {};
+  DIAS_EDITABLES.forEach(dia => (HORARIO[dia] || []).forEach(sl => {
+    antes[`${dia}|${sl.clase}|${sl.hora}`] = sl.instructor || '';
+  }));
+
+  const cambios = [];
   DIAS_EDITABLES.forEach(dia => {
     const rows = document.querySelectorAll(`#horSlots${dia} .hor-row`);
     const newSlots = [];
@@ -11344,15 +11536,72 @@ function saveHorarios() {
     /* Ordenar por hora: una clase añadida al final quedaba pintada al final del
        día en la web pública (la de 08:00 salía después de la de 19:30). */
     newSlots.sort((a,b) => a.hora.localeCompare(b.hora));
+    newSlots.forEach(sl => {
+      const k = `${dia}|${sl.clase}|${sl.hora}`;
+      const previa = antes[k];
+      /* undefined = clase recién añadida, no un cambio de coach: no hay
+         reservas viejas que reasignar. */
+      if (previa !== undefined && previa !== (sl.instructor || ''))
+        cambios.push({ clase:sl.clase, hora:sl.hora, de:previa, a:sl.instructor || '' });
+    });
     HORARIO[dia] = newSlots;
   });
   localStorage.setItem('presenza_horario_custom', JSON.stringify(HORARIO));
   const btn = document.querySelector('.btn-hor-save');
   if (btn) btn.textContent = '⏳ Guardando…';
   guardarHorariosDB()
-    .then(() => { if (btn) { btn.textContent = '✅ Guardado'; setTimeout(() => btn.textContent = '💾 Guardar', 1800); } })
+    .then(() => reasignarCoachEnReservas(cambios))
+    .then(n => {
+      if (btn) { btn.textContent = '✅ Guardado'; setTimeout(() => btn.textContent = '💾 Guardar', 1800); }
+      if (n) alert(`Se cambió la coach de ${cambios.length} ${cambios.length===1?'clase':'clases'}.\n\n` +
+                   `${n} ${n===1?'reserva ya hecha se pasó':'reservas ya hechas se pasaron'} a la nueva instructora. ` +
+                   `Las clases que ya se dieron se quedan con quien las dio.`);
+    })
     .catch(e => { if (btn) btn.textContent = '💾 Guardar'; alert('Se guardó en este dispositivo, pero no en la nube:\n' + e.message); });
   renderSched();
+}
+
+/* ── Cambiar de coach también cambia quién dio la clase ────────────────
+   Cada reserva se guarda con el nombre de la instructora copiado del
+   horario en el momento de reservar. Sin esto, reasignar una clase movía
+   el horario público pero no las reservas: la alumna seguía viendo en "Mis
+   clases" a la coach anterior, y el reporte de clases impartidas se las
+   seguía acreditando a ella.
+
+   Solo se tocan las de HOY EN ADELANTE. Una clase que ya se dio la dio
+   quien la dio, y el reporte del mes pasado no se reescribe por un cambio
+   de horario de hoy. */
+async function reasignarCoachEnReservas(cambios) {
+  if (!cambios || !cambios.length) return 0;
+  const hoy = hoyISO();
+  let tocadas = 0;
+
+  for (const c of cambios) {
+    /* En memoria, para que el panel se vea al día sin recargar */
+    for (const k in SLOTS) {
+      const p = parseSlotKey(k);
+      if (!p || p.clase !== c.clase || p.hora !== c.hora || p.dateStr < hoy) continue;
+      (SLOTS[k] || []).forEach(r => { r.instructor = c.a; tocadas++; });
+      guardarRespaldoLocal(k);
+    }
+    /* Y en la nube, de un solo golpe por clase. Por clase+hora+fecha y no
+       por un patrón de slot_key: en LIKE los guiones bajos son comodines,
+       así que `presenza_burn_%_0630` casa de más. Estas tres columnas son
+       exactas y además están indexadas. */
+    if (SB_ON) {
+      try {
+        await sbFetch(`reservas?fecha=gte.${hoy}`
+          + `&clase=eq.${encodeURIComponent(c.clase)}`
+          + `&hora=eq.${encodeURIComponent(c.hora)}`,
+          { method:'PATCH', body: JSON.stringify({ instructor: c.a || null }) });
+      } catch (e) {
+        alert(`Se cambió la coach en el horario, pero no se pudieron actualizar ` +
+              `las reservas ya hechas de ${INFO[c.clase]?.nombre || c.clase} ${hora12(c.hora)}:\n` +
+              e.message + `\n\nVuelve a guardar el horario para reintentarlo.`);
+      }
+    }
+  }
+  return tocadas;
 }
 
 /* El horario es uno solo para todo el estudio: se reemplaza completo en la nube.
