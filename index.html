@@ -2148,19 +2148,23 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .sa-clases-track  { width:60px; height:6px; border-radius:3px; background:rgba(107,23,40,.1); overflow:hidden; }
 .sa-clases-fill   { height:100%; background:var(--wine); border-radius:3px; transition:width .3s; }
 .sa-vence         { font-size:.67rem; color:var(--gray); margin-top:3px; }
-.sa-sub-actions   { display:flex; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid rgba(107,23,40,.07); }
-.btn-sa-renovar {
-  flex:1; padding:7px; border:1.5px solid var(--wine);
+.sa-sub-actions   { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid rgba(107,23,40,.07); }
+/* Los cuatro botones de la fila —y los dos nuevos que se suman más abajo—
+   comparten el mismo peso visual: borde sólido (sin transparencia) y hover
+   que invierte a relleno. Antes cada uno tenía su propia opacidad de borde
+   (18%, 30%…) y "Renovar plan" era el único sólido, así que se veía como
+   el único botón "de verdad" y el resto como texto apagado. */
+.btn-sa-renovar,
+.btn-sa-historial,
+.btn-sa-agendar {
+  padding:7px 12px; border:1.5px solid var(--wine);
   background:transparent; color:var(--wine); border-radius:8px;
-  font-size:.74rem; font-weight:600; cursor:pointer;
+  font-size:.74rem; font-weight:600; cursor:pointer; transition:background .18s,color .18s;
+  white-space:nowrap;
 }
-.btn-sa-renovar:hover { background:var(--wine); color:white; }
-.btn-sa-historial {
-  padding:7px 12px; border:1.5px solid rgba(107,23,40,.18);
-  background:transparent; color:var(--gray); border-radius:8px;
-  font-size:.74rem; cursor:pointer;
-}
-.btn-sa-historial:hover { border-color:var(--wine); color:var(--wine); }
+.btn-sa-renovar:hover,
+.btn-sa-historial:hover,
+.btn-sa-agendar:hover { background:var(--wine); color:#fff; }
 .sa-sub-historial { margin-top:8px; display:none; }
 .sa-sub-historial.open { display:block; }
 .sa-hist-row {
@@ -2179,6 +2183,8 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   color:var(--wine); font-size:.68rem; font-weight:700; text-decoration:underline;
   text-underline-offset:2px; margin-left:auto;
 }
+.sa-hist-ajuste { flex-wrap:wrap; }
+.sa-ajuste-motivo { flex:1 1 100%; font-style:italic; color:var(--gray); }
 
 /* Form nueva suscriptora */
 .nueva-sub-modal {
@@ -2359,21 +2365,16 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .coach-mode .hor-sel,
 .coach-mode .hor-inp { pointer-events:none; opacity:.85; }
 
-/* Botón eliminar suscriptora */
+/* Botón eliminar suscriptora: mismo peso que los demás, en rojo por ser
+   destructivo — es la única diferencia de color que vale la pena conservar. */
 .btn-sa-del {
-  padding:7px 12px; border:1.5px solid rgba(220,53,69,.3);
+  padding:7px 12px; border:1.5px solid #c0392b;
   background:transparent; color:#c0392b; border-radius:8px;
-  font-size:.74rem; cursor:pointer; transition:all .2s;
+  font-size:.74rem; font-weight:600; cursor:pointer; transition:background .18s,color .18s;
+  white-space:nowrap;
 }
-.btn-sa-del:hover { background:rgba(220,53,69,.08); }
-
-/* Agendar suscriptora a clase */
-.btn-sa-agendar {
-  padding:7px 12px; border:1.5px solid rgba(107,23,40,.3);
-  background:rgba(107,23,40,.05); color:var(--wine); border-radius:8px;
-  font-size:.74rem; font-weight:600; cursor:pointer; transition:all .2s;
-}
-.btn-sa-agendar:hover { background:rgba(107,23,40,.12); }
+.btn-sa-del:hover { background:#c0392b; color:#fff; }
+/* .btn-sa-agendar ya quedó definido junto con .btn-sa-renovar/.btn-sa-historial */
 .sa-agendar-panel {
   display:none; margin-top:10px; padding:12px 14px;
   background:rgba(107,23,40,.04); border:1px solid rgba(107,23,40,.12);
@@ -3047,6 +3048,36 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   color:var(--wine); background:rgba(107,23,40,.08); transition:background .2s;
 }
 .btn-rnv-no:hover { background:rgba(107,23,40,.16); }
+/* Botón de confirmar en rojo, para el modal de Eliminar: reutiliza toda la
+   estructura de .btn-rnv-ok, solo cambia el degradado. */
+.btn-rnv-ok.danger { background:linear-gradient(135deg,#c0392b,#8e2a1f); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODAL GENÉRICO DE SUSCRIPTORA · comparte el mismo shell (.rnv-backdrop,
+   .rnv-modal, .rnv-hd, .rnv-body, .rnv-ft, .btn-rnv-ok/.btn-rnv-no) que
+   Renovar. Estos son los elementos nuevos que ninguna otra pantalla tenía
+   todavía: chips de días, inputs de texto/fecha y el textarea de motivo.
+   ═══════════════════════════════════════════════════════════════════ */
+.sam-lbl {
+  font-size:.63rem; letter-spacing:1.6px; text-transform:uppercase;
+  color:var(--gray); margin:16px 0 8px;
+}
+.sam-lbl:first-child { margin-top:0; }
+.sam-inp, .sam-txt {
+  width:100%; padding:10px 13px; border:1.5px solid rgba(107,23,40,.16);
+  border-radius:12px; background:var(--white); color:var(--text);
+  font-size:.8rem; font-family:inherit;
+}
+.sam-inp:focus, .sam-txt:focus { outline:none; border-color:var(--wine); }
+.sam-txt { resize:vertical; min-height:56px; }
+.sam-pills { display:flex; flex-wrap:wrap; gap:8px; }
+.sam-pill {
+  padding:9px 16px; border-radius:50px; border:1.5px solid rgba(107,23,40,.16);
+  background:var(--white); color:var(--text); font-size:.78rem; font-weight:600;
+  cursor:pointer; transition:all .16s;
+}
+.sam-pill:hover { border-color:var(--wine); }
+.sam-pill.sel { background:var(--wine); border-color:var(--wine); color:#fff; }
 @media(max-width:520px){
   .rnv-grid { grid-template-columns:1fr 1fr; gap:7px; }
   .rnv-plan { padding:9px 10px; }
@@ -5243,7 +5274,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-09-01.1';
+const BUILD = '2026-09-03.1';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5694,14 +5725,22 @@ function avisoSqlPendienteHtml() {
     <p>Abre Supabase → SQL Editor y corre el archivo
        <code>supabase-cancelar-y-reserva-doble.sql</code> del repositorio.</p>
   </div>`;
-  if (COL_DESCUENTO) return canceladas;
-  return canceladas + `<div class="sa-aviso-sql">
+  const descuento = COL_DESCUENTO ? '' : `<div class="sa-aviso-sql">
     <strong>⚠ Falta un paso en Supabase</strong>
     <p>Las clases se descuentan al reservar, pero todavía no se puede registrar
        <em>cuál</em> reserva cobró. Mientras no lo corras, al eliminar una reserva
        <strong>no se le devuelve la clase a la alumna</strong>.</p>
     <p>Abre Supabase → SQL Editor y corre el archivo
        <code>supabase-descuento-al-reservar.sql</code> del repositorio. Toma 10 segundos.</p>
+  </div>`;
+  if (COL_AJUSTES) return canceladas + descuento;
+  return canceladas + descuento + `<div class="sa-aviso-sql">
+    <strong>⚠ Falta un paso en Supabase</strong>
+    <p>🔓 Reactivar, 🗓 Vencimiento y las correcciones de ✏️ Editar datos / ✏️ Corregir clases
+       ya funcionan, pero todavía no queda registro de quién las hizo ni por qué:
+       "Ficha completa" no tiene dónde imprimirlo.</p>
+    <p>Abre Supabase → SQL Editor y corre el archivo
+       <code>supabase-ajustes-suscriptora.sql</code> del repositorio. Toma 10 segundos.</p>
   </div>`;
 }
 
@@ -5848,8 +5887,24 @@ function getSuscriptoras() { return SUBS.slice(); }
    la app); pendiente vive como pendiente_plan/pendiente_fecha en la base
    pero como objeto {plan,fecha} en memoria — así no hay que tocar toda la
    lógica de negocio que ya lee sub.pendiente.plan / sub.pendiente.fecha. */
+/* 'ajustes' y 'gracia_original_vence' guardan el rastro de las
+   correcciones manuales (reactivar, mover vencimiento, corregir clases,
+   editar datos). Se apagan solos si todavía no se corrió
+   supabase-ajustes-suscriptora.sql: sin las columnas esas acciones se
+   siguen pudiendo hacer, solo que no queda nada guardado para verlo
+   después en Ficha completa. */
+let COL_AJUSTES = true;
+function esColumnaAjusteFaltante(e) {
+  return e && /"?(ajustes|gracia_original_vence)"?/.test(e.body || '');
+}
+async function verificarColumnaAjustes() {
+  if (!SB_ON) return;
+  try { await sbFetch('suscriptoras?select=ajustes,gracia_original_vence&limit=1'); COL_AJUSTES = true; }
+  catch (e) { if (esColumnaAjusteFaltante(e)) COL_AJUSTES = false; }
+}
+
 function subToRow(s) {
-  return {
+  const row = {
     id: s.id,
     email: (s.email||'').trim().toLowerCase(),
     nombre: s.nombre || '',
@@ -5867,6 +5922,11 @@ function subToRow(s) {
     historial: s.historial || [],
     renovaciones: s.renovaciones || []
   };
+  if (COL_AJUSTES) {
+    row.ajustes = s.ajustes || [];
+    row.gracia_original_vence = s.graciaOriginalVence || null;
+  }
+  return row;
 }
 function rowToSub(f) {
   const s = {
@@ -5877,7 +5937,9 @@ function rowToSub(f) {
     clasesUsadas: f.clases_usadas || 0,
     activa: !!f.activa,
     fechaInicio: f.fecha_inicio || '', fechaVence: f.fecha_vence || '',
-    historial: f.historial || [], renovaciones: f.renovaciones || []
+    historial: f.historial || [], renovaciones: f.renovaciones || [],
+    ajustes: f.ajustes || [],
+    graciaOriginalVence: f.gracia_original_vence || ''
   };
   if (f.pendiente_plan) s.pendiente = {
     plan:  f.pendiente_plan,
@@ -6010,7 +6072,12 @@ async function saveSuscriptoras(arr) {
   /* El respaldo en el navegador queda SOLO para el modo sin nube: con
      Supabase encendido no se guardan datos de alumnas en el dispositivo. */
   if (!SB_ON) { localStorage.setItem('presenza_subs', JSON.stringify(arr)); return true; }
-  try {
+
+  /* POST + DELETE en una función aparte: si 'ajustes'/'gracia_original_vence'
+     todavía no existen en la base, se reintenta una vez sin esas columnas
+     (subToRow ya las omite apenas COL_AJUSTES pasa a false). Así una
+     corrección manual no se pierde solo porque no se corrió el SQL nuevo. */
+  const escribir = () => (async () => {
     if (cambiadas.length) {
       await sbFetch('suscriptoras?on_conflict=id', {
         method: 'POST',
@@ -6021,10 +6088,24 @@ async function saveSuscriptoras(arr) {
     for (const id of borradas) {
       await sbFetch(`suscriptoras?id=eq.${encodeURIComponent(id)}`, { method:'DELETE' });
     }
+  })();
+
+  try {
+    await escribir();
     SUBS_IDS  = idsAhora;
     SUBS_SNAP = snapSubs(arr);   /* lo recién guardado es el nuevo estado de la nube */
     return true;
   } catch (e) {
+    if (COL_AJUSTES && esColumnaAjusteFaltante(e)) {
+      COL_AJUSTES = false;
+      console.warn('Falta correr supabase-ajustes-suscriptora.sql en Supabase.');
+      try {
+        await escribir();
+        SUBS_IDS  = idsAhora;
+        SUBS_SNAP = snapSubs(arr);
+        return true;
+      } catch (e2) { e = e2; }
+    }
     /* 404 = la tabla `suscriptoras` todavía no se creó en Supabase: el sitio
        sigue funcionando con el respaldo local, sin molestar a la alumna.
        409 = el correo o teléfono ya existe en otra fila (choque entre dos
@@ -6182,37 +6263,46 @@ async function devolverClase(subId, email, tel) {
 /* Corrección manual del saldo (Super Admin). Es la red de seguridad: si por
    lo que sea el contador de una alumna quedó mal, se arregla en el momento
    sin tener que renovarle el plan ni tocar la base a mano. */
-async function ajustarClases(email) {
+function ajustarClases(email) {
   if (!exigirStaff('corregir las clases de una alumna')) return;
-
   const sub = getSuscriptoraByEmail(email);
   if (!sub) return;
   if (esIlimitada(sub)) { alert(`${sub.nombre} tiene plan ilimitado: no se le descuentan clases.`); return; }
 
   const apartadas = reservasConsumidas(sub.email);
-  const val = prompt(
-    `Corregir clases de ${sub.nombre}\n\n` +
-    `Ahora tiene: ${sub.clasesRestantes} clases disponibles\n` +
-    `Ya apartadas en reservas: ${apartadas}\n\n` +
-    `Escribe el número correcto de clases disponibles:`,
-    String(sub.clasesRestantes));
-  if (val === null) return;
+  const body = `
+    <div class="rnv-estado">Ahora tiene <strong>${sub.clasesRestantes}</strong> clase${sub.clasesRestantes===1?'':'s'} disponible${sub.clasesRestantes===1?'':'s'} ·
+      ${apartadas} ya apartada${apartadas===1?'':'s'} en reservas futuras.</div>
+    <p class="sam-lbl">Número correcto de clases disponibles</p>
+    <input class="sam-inp" id="samClases" type="number" min="0" step="1" value="${sub.clasesRestantes}"/>
+    <p class="sam-lbl">Motivo <span style="font-weight:400;text-transform:none;letter-spacing:0;color:rgba(107,23,40,.35)">(opcional, queda en su ficha)</span></p>
+    <textarea class="sam-txt" id="samMotivo" placeholder="Ej. le regalamos 2 clases por su cumpleaños"></textarea>`;
+  abrirSam(email, `✏️ Corregir clases de ${sub.nombre.split(' ')[0]}`, body, 'Guardar →', () => guardarAjusteClases(email));
+}
 
-  const n = parseInt(val, 10);
-  if (!Number.isFinite(n) || n < 0) { alert('Escribe un número igual o mayor que 0.'); return; }
-  if (n > 999) { alert('Para un plan ilimitado usa ⟳ Renovar plan.'); return; }
+async function guardarAjusteClases(email) {
+  const n = parseInt(document.getElementById('samClases').value, 10);
+  if (!Number.isFinite(n) || n < 0) { alert('Escribe un número igual o mayor que 0.'); return false; }
+  if (n > 999) { alert('Para un plan ilimitado usa ⟳ Renovar plan.'); return false; }
+  const motivo = document.getElementById('samMotivo').value.trim();
 
+  const sub = getSuscriptoraByEmail(email);
+  if (!sub) { cerrarSam(); return; }
   const arr = getSuscriptoras();
   const idx = arr.findIndex(s => s.id === sub.id);
-  if (idx < 0) return;
+  if (idx < 0) { cerrarSam(); return; }
+
   const antes = arr[idx].clasesRestantes;
   arr[idx].clasesRestantes = n;
   /* Las usadas se mueven en sentido contrario para que el total siga cuadrando */
   arr[idx].clasesUsadas = Math.max(0, (arr[idx].clasesUsadas || 0) + (antes - n));
   if (n > 0) arr[idx].activa = true;
-  await saveSuscriptoras(arr);
+  if (antes !== n) registrarAjuste(arr[idx], 'clases', `Clases disponibles: ${antes} → ${n}`, motivo);
+
+  if (!await saveSuscriptoras(arr)) return false;
+  cerrarSam();
   buildSAdminSubs();
-  alert(`${sub.nombre}: ${antes} → ${n} clases disponibles ✓`);
+  return true;
 }
 
 /* Editar nombre, celular y correo de una suscriptora.
@@ -6221,50 +6311,54 @@ async function ajustarClases(email) {
    usuario con el que la alumna entra. Las fichas que el estudio carga a mano
    suelen quedar sin número, y hasta ahora completarlo obligaba a entrar a la
    base de datos. */
-async function editarDatosSub(email) {
+function editarDatosSub(email) {
   const sub = getSuscriptoraByEmail(email);
   if (!sub) return;
+  const body = `
+    <p class="sam-lbl">Nombre completo</p>
+    <input class="sam-inp" id="samNombre" value="${escHtml(sub.nombre||'')}" placeholder="Nombre y apellido"/>
+    <p class="sam-lbl">Celular</p>
+    <input class="sam-inp" id="samTel" value="${escHtml(sub.tel||'')}" placeholder="8888 8888"/>
+    <p class="rnv-resumen vacio" style="margin-top:10px">Es el usuario con el que entra a "Mis clases". 8 dígitos, con o sin +505.</p>`;
+  abrirSam(email, `✏️ Editar datos de ${sub.nombre.split(' ')[0]}`, body, 'Guardar →', () => guardarDatosSub(email));
+}
 
-  const nombre = prompt(`Nombre completo de la alumna:`, sub.nombre || '');
-  if (nombre === null) return;
-  if (!nombre.trim()) { alert('El nombre no puede quedar vacío.'); return; }
-
-  const tel = prompt(
-    `Celular de ${nombre.trim()}\n\n` +
-    `Es el usuario con el que entra a "Mis clases".\n` +
-    `8 dígitos. Se puede escribir con espacios o +505.`,
-    sub.tel || '');
-  if (tel === null) return;
-
+async function guardarDatosSub(email) {
+  const nombre = document.getElementById('samNombre').value.trim();
+  const tel    = document.getElementById('samTel').value.trim();
+  if (!nombre) { alert('El nombre no puede quedar vacío.'); return false; }
   const telLimpio = normTel(tel);
-  if (telLimpio && telLimpio.length !== 8) {
-    alert('El celular debe tener 8 dígitos.');
-    return;
-  }
+  if (telLimpio && telLimpio.length !== 8) { alert('El celular debe tener 8 dígitos.'); return false; }
+
+  const sub = getSuscriptoraByEmail(email);
+  if (!sub) { cerrarSam(); return; }
   /* Choque con otra ficha: se avisa acá con nombre y todo, en vez de dejar
      que la base lo rechace después con un 409 sin explicar de quién es. */
   if (telLimpio) {
     const otra = getSuscriptoras().find(s => s.id !== sub.id && normTel(s.tel) === telLimpio);
-    if (otra) { alert(`Ese celular ya es de ${otra.nombre}. Cada alumna necesita el suyo.`); return; }
+    if (otra) { alert(`Ese celular ya es de ${otra.nombre}. Cada alumna necesita el suyo.`); return false; }
   }
 
   const arr = getSuscriptoras();
   const idx = arr.findIndex(s => s.id === sub.id);
-  if (idx < 0) return;
+  if (idx < 0) { cerrarSam(); return; }
 
+  const antes    = { nombre: arr[idx].nombre, tel: arr[idx].tel || '' };
   const telAntes = normTel(arr[idx].tel);
-  arr[idx].nombre = nombre.trim();
-  arr[idx].tel    = tel.trim();
+  arr[idx].nombre = nombre;
+  arr[idx].tel    = tel;
+  if (antes.nombre !== nombre || antes.tel !== tel)
+    registrarAjuste(arr[idx], 'datos', `Datos: "${antes.nombre}" · ${antes.tel||'sin celular'} → "${nombre}" · ${tel||'sin celular'}`, '');
 
-  if (!await saveSuscriptoras(arr)) return;   /* saveSuscriptoras ya avisa si falla */
+  if (!await saveSuscriptoras(arr)) return false;   /* saveSuscriptoras ya avisa si falla */
+  cerrarSam();
   buildSAdminSubs();
 
   /* Si ya había creado su acceso con otro número, su login sigue con el viejo:
      la tabla `alumnas` no se puede tocar con la llave pública, a propósito. */
-  const aviso = (telAntes && telLimpio && telAntes !== telLimpio)
-    ? '\n\n⚠️ Si ella ya había creado su acceso a "Mis clases", va a seguir entrando con el número anterior. Avísame para cambiárselo.'
-    : '';
-  alert(`Datos actualizados ✓${aviso}`);
+  if (telAntes && telLimpio && telAntes !== telLimpio)
+    alert('Datos actualizados ✓\n\n⚠️ Si ella ya había creado su acceso a "Mis clases", va a seguir entrando con el número anterior. Avísame para cambiárselo.');
+  return true;
 }
 
 /* Cuántas clases tiene ya apartadas en fechas futuras (para mostrárselo) */
@@ -7133,6 +7227,10 @@ async function confirmarPagoSub(email) {
   (arr[idx].renovaciones = arr[idx].renovaciones||[]).push(
     registroCompra(planKey, pd.clases, metodoCompra, pagoPendiente.ref || '', hoy));
   delete arr[idx].pendiente;
+  /* Pagó de verdad: cualquier gracia manual que tuviera encima queda
+     obsoleta —"volver a la fecha de antes de la gracia" ya no significa
+     nada una vez que hay un vencimiento real y pagado. */
+  delete arr[idx].graciaOriginalVence;
 
   /* Las clases que ya había apartado esperando este pago se cobran ahora:
      el paquete acaba de existir, así que ya hay de dónde descontarlas. Sin
@@ -8220,7 +8318,7 @@ async function checkSuperPin() {
   sadminTab((sadminRol === 'coach' && !coachActual) ? 'calendario' : 'hoy');
   /* Traer lo hecho desde otros celulares antes de mostrar el panel */
   if (SB_ON) {
-    Promise.all([sincronizarReservas(), sincronizarSubs(), sincronizarAsistencias(), sincronizarHorarios(), sincronizarEspeciales(), sincronizarCanceladas(), verificarColumnaDescuento()])
+    Promise.all([sincronizarReservas(), sincronizarSubs(), sincronizarAsistencias(), sincronizarHorarios(), sincronizarEspeciales(), sincronizarCanceladas(), verificarColumnaDescuento(), verificarColumnaAjustes()])
       .then(() => { sadminTab(sadminTabActual); updateSubsBadge(); })
       .catch(err => {
         /* "permission denied" con sesión iniciada = a la base le falta correr
@@ -9033,7 +9131,19 @@ function buildSAdminSubs() {
         ${linkCompraHtml(rr)}
       </div>`;
     }).join('') || '<div style="color:var(--gray);font-size:.74rem;padding:6px 0">Sin compras registradas</div>';
+
+    /* Solo aparece si hay algo que mostrar: la mayoría de las suscriptoras
+       nunca pasan por 🔓 Reactivar o 🗓 Vencimiento, y este panel ya tiene
+       dos secciones — una tercera vacía sería puro ruido. */
+    const ajustesRows = (sub.ajustes||[]).length ? `<div class="sa-hist-titulo">Ajustes del estudio</div>` +
+      (sub.ajustes||[]).slice(-5).reverse().map(a => `<div class="sa-hist-row sa-hist-ajuste">
+        <span>${etiquetaAjuste(a.tipo)} ${escHtml(a.detalle)}</span>
+        <span>${a.fecha ? fmtDiaLargo(a.fecha) : 'sin fecha'}${a.staff && a.staff !== '—' ? ` · ${escHtml(a.staff)}` : ''}</span>
+        ${a.motivo ? `<span class="sa-ajuste-motivo">"${escHtml(a.motivo)}"</span>` : ''}
+      </div>`).join('') : '';
+
     const histRows = `<div class="sa-hist-titulo">Compras y pagos</div>${comprasRows}` +
+                     ajustesRows +
                      `<div class="sa-hist-titulo">Clases recientes</div>${clasesRows}`;
 
     const esUnica = esPrimeraVez(sub.plan);
@@ -9078,6 +9188,8 @@ function buildSAdminSubs() {
         <button class="btn-sa-renovar" onclick="renovarSub('${escArg(sub.email)}')">⟳ Renovar plan</button>
         <button class="btn-sa-historial" onclick="editarDatosSub('${escArg(sub.email)}')">✏️ Editar datos</button>
         ${ilim ? '' : `<button class="btn-sa-historial" onclick="ajustarClases('${escArg(sub.email)}')">✏️ Corregir clases</button>`}
+        ${(vencida || sub.graciaOriginalVence) ? `<button class="btn-sa-historial" onclick="abrirGracia('${escArg(sub.email)}')">${sub.graciaOriginalVence ? '🔒 Quitar reactivación' : '🔓 Reactivar'}</button>` : ''}
+        <button class="btn-sa-historial" onclick="abrirVencimiento('${escArg(sub.email)}')">🗓 Vencimiento</button>
         <button class="btn-sa-historial" onclick="comprobanteSub('${escArg(sub.email)}')">📄 Comprobante</button>
         <button class="btn-sa-historial" onclick="fichaSuscriptora('${escArg(sub.email)}')">📋 Ficha completa</button>
         <button class="btn-sa-historial" onclick="toggleHistSub(this)">Historial ▾</button>
@@ -9300,6 +9412,25 @@ function exigirStaff(accion) {
   return false;
 }
 
+/* Deja huella de una corrección manual: reactivar un plan vencido, mover
+   un vencimiento, corregir el número de clases. Un solo lugar para que
+   las tres dejen la misma forma de registro, y Ficha completa las pueda
+   imprimir sin un caso especial por cada tipo.
+   Muta `sub` en el sitio —igual que el resto de estas funciones hace con
+   `arr[idx]`— y no guarda: quien llama sigue con su propio saveSuscriptoras(). */
+function registrarAjuste(sub, tipo, detalle, motivo) {
+  (sub.ajustes = sub.ajustes || []).push({
+    fecha: hoyISO(), tipo, detalle,
+    motivo: (motivo || '').trim(),
+    staff: staffActual?.nombre || '—'
+  });
+}
+
+const ETIQUETA_AJUSTE = {
+  gracia: '🔓', gracia_fin: '🔒', vencimiento: '🗓', clases: '🎫', datos: '✏️'
+};
+function etiquetaAjuste(tipo) { return ETIQUETA_AJUSTE[tipo] || '🛠'; }
+
 /* Cómo queda la alumna al aplicarle un plan. Lo usan el resumen del modal
    y el guardado, para que lo que se lee antes de confirmar sea exactamente
    lo que se guarda. */
@@ -9432,6 +9563,7 @@ async function confirmarRenovar() {
   arr[idx].plan            = rnvPlan;
   arr[idx].fechaVence      = r.vence;
   arr[idx].activa          = true;
+  delete arr[idx].graciaOriginalVence;   /* misma razón que en confirmarPagoSub */
   (arr[idx].renovaciones = arr[idx].renovaciones || []).push(
     registroCompra(rnvPlan, r.pd.clases, metodo));
 
@@ -9445,15 +9577,265 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   const bd = document.getElementById('rnvBackdrop');
   if (bd && bd.classList.contains('open')) cerrarRenovar();
+  const sbd = document.getElementById('samBackdrop');
+  if (sbd && sbd.classList.contains('open')) cerrarSam();
 });
 
-async function eliminarSub(email) {
-  if (!exigirStaff('eliminar una suscriptora')) return;
+/* ════════════════════════════════════════
+   MODAL GENÉRICO DE SUSCRIPTORA
 
-  if (!confirm(`¿Eliminar la suscriptora ${email}? Esta acción no se puede deshacer.`)) return;
+   Editar datos, Corregir clases, Eliminar, Reactivar y Corregir
+   vencimiento usaban antes cada uno su propio prompt()/confirm() del
+   navegador: texto plano, sin poder ver el dato mientras se escribe, y
+   sin la posibilidad de mostrar un resumen de "cómo le queda". Un solo
+   backdrop —mismo look que Renovar— sirve para los cinco: cada acción
+   arma su propio contenido y su propio guardado, esto solo abre, cierra
+   y decide a quién le manda el clic de "Guardar". */
+let samOnOk = null;   /* qué hacer al confirmar; lo fija quien abre el modal */
+
+function abrirSam(email, titulo, bodyHtml, okTexto, onOk, danger) {
+  const sub = getSuscriptoraByEmail(email);
+  if (!sub) { alert('No se encontró esa suscriptora.'); return; }
+  samOnOk = onOk;
+  document.getElementById('samTitulo').textContent = titulo;
+  document.getElementById('samSub').textContent    = sub.email;
+  document.getElementById('samBody').innerHTML     = bodyHtml;
+  const ok = document.getElementById('samOk');
+  ok.textContent = okTexto;
+  ok.disabled    = false;
+  ok.classList.toggle('danger', !!danger);
+  document.getElementById('samBackdrop').classList.add('open');
+}
+function cerrarSam() {
+  document.getElementById('samBackdrop').classList.remove('open');
+  samOnOk = null;
+}
+/* onOk devuelve false si la validación falló (el modal se queda abierto y
+   el botón vuelve a como estaba); cualquier otra cosa se toma como éxito
+   —ya cerró el modal por su cuenta con cerrarSam(). */
+async function confirmarSam() {
+  if (!samOnOk) return;
+  const ok = document.getElementById('samOk');
+  const txtOriginal = ok.textContent;
+  ok.disabled = true;
+  ok.textContent = 'Guardando…';
+  const exito = await samOnOk();
+  if (exito === false) { ok.disabled = false; ok.textContent = txtOriginal; }
+}
+
+function eliminarSub(email) {
+  if (!exigirStaff('eliminar una suscriptora')) return;
+  const sub = getSuscriptoraByEmail(email);
+  if (!sub) return;
+  const body = `<div class="rnv-aviso" style="display:block">
+    Se borra por completo a <strong>${escHtml(sub.nombre)}</strong>: su plan, sus clases restantes
+    y su historial. Esta acción no se puede deshacer.
+  </div>`;
+  abrirSam(email, `🗑 Eliminar a ${sub.nombre.split(' ')[0]}`, body,
+    '🗑 Eliminar definitivamente', () => confirmarEliminarSub(email), true);
+}
+
+async function confirmarEliminarSub(email) {
   const arr = getSuscriptoras().filter(s => s.email.toLowerCase() !== email.toLowerCase());
   await saveSuscriptoras(arr);
+  cerrarSam();
   buildSAdminSubs();
+  return true;
+}
+
+/* ════════════════════════════════════════
+   REACTIVAR UN PLAN VENCIDO · sin cobrar, con vuelta atrás
+
+   Caso real: el plan venció hace unos días, la alumna dice que va a pagar
+   esta semana y el estudio le quiere dar acceso mientras tanto, sin hacer
+   una renovación de verdad (eso es ⟳ Renovar plan, que sí cobra y sí suma
+   clases). Acá no se toca clasesRestantes ni se cobra nada: solo se corre
+   la fecha de vencimiento unos días hacia adelante.
+
+   Por eso "en el lapso de 30 días": pasado ese margen ya no es "se le
+   olvidó pagar esta semana", es un plan abandonado de verdad, y regalarle
+   acceso sin más se presta a abuso. Para esos casos existe 🗓 Vencimiento
+   (fecha libre, con motivo) o ⟳ Renovar (cobrando).
+
+   gracia_original_vence guarda la fecha real de antes, así que "Quitar
+   reactivación" no adivina: vuelve exactamente a donde estaba. Se limpia
+   sola en cuanto la alumna renueva de verdad (confirmarRenovar/
+   confirmarPagoSub) o alguien corrige el vencimiento a mano: en los tres
+   casos el marcador de gracia queda obsoleto.
+   ════════════════════════════════════════ */
+const GRACIA_DIAS_LIMITE = 30;
+const GRACIA_OPCIONES    = [3, 7, 15, 30];
+let samGraciaDias = 7;
+
+function diasDesdeVencio(sub) {
+  if (!subVencida(sub)) return null;
+  return Math.round((new Date(hoyISO()+'T12:00:00') - new Date(sub.fechaVence+'T12:00:00')) / 86400000);
+}
+function calcGraciaVence(dias) { return fmtISO(new Date(Date.now() + dias*86400000)); }
+
+function abrirGracia(email) {
+  if (!exigirStaff('reactivar un plan')) return;
+  const sub = getSuscriptoraByEmail(email);
+  if (!sub) return;
+
+  /* Ya está activa por una gracia manual: acá solo se puede deshacerla */
+  if (sub.graciaOriginalVence) {
+    const body = `
+      <div class="rnv-estado">Está activa por una reactivación manual, no por un pago.
+        Su vencimiento real era el <strong>${fmtDiaLargo(sub.graciaOriginalVence)}</strong>.</div>
+      <p class="sam-lbl">Motivo <span style="font-weight:400;text-transform:none;letter-spacing:0;color:rgba(107,23,40,.35)">(opcional, queda en su ficha)</span></p>
+      <textarea class="sam-txt" id="samMotivo" placeholder="Ej. nunca llegó a pagar, se le quita el acceso"></textarea>`;
+    abrirSam(email, `🔒 Quitar reactivación de ${sub.nombre.split(' ')[0]}`, body,
+      'Quitar y volver a vencida →', () => guardarQuitarGracia(email), true);
+    return;
+  }
+
+  if (!subVencida(sub)) { alert(`${sub.nombre} no tiene un plan vencido: no hay nada que reactivar.`); return; }
+
+  const dias = diasDesdeVencio(sub);
+  const fueraDePlazo = dias > GRACIA_DIAS_LIMITE;
+  samGraciaDias = 7;
+  const body = `
+    <div class="rnv-estado">Su plan venció el <strong>${fmtDiaLargo(sub.fechaVence)}</strong> · hace ${dias} día${dias===1?'':'s'}.</div>
+    ${fueraDePlazo ? `<div class="rnv-aviso" style="display:block">
+        Venció hace más de ${GRACIA_DIAS_LIMITE} días: la reactivación rápida ya no aplica.
+        Usa <strong>⟳ Renovar plan</strong> para cobrarle de nuevo, o <strong>🗓 Vencimiento</strong>
+        si necesitas correr la fecha a mano.
+      </div>` : `
+      <p class="sam-lbl">Dale acceso por</p>
+      <div class="sam-pills" id="samPills">
+        ${GRACIA_OPCIONES.map(d => `<button type="button" class="sam-pill${d===7?' sel':''}" data-d="${d}" onclick="samElegirGraciaDias(${d})">${d} días</button>`).join('')}
+      </div>
+      <p class="rnv-resumen" id="samResumen">Queda activa hasta <strong>${fmtDiaLargo(calcGraciaVence(7))}</strong>. No se le cobra ni se le tocan las clases: es un permiso temporal.</p>
+      <p class="sam-lbl">Motivo <span style="font-weight:400;text-transform:none;letter-spacing:0;color:rgba(107,23,40,.35)">(opcional, queda en su ficha)</span></p>
+      <textarea class="sam-txt" id="samMotivo" placeholder="Ej. dijo que paga esta semana"></textarea>`}`;
+
+  abrirSam(email, `🔓 Reactivar a ${sub.nombre.split(' ')[0]}`, body, 'Reactivar →', () => guardarGracia(email));
+  if (fueraDePlazo) document.getElementById('samOk').disabled = true;
+}
+
+function samElegirGraciaDias(d) {
+  samGraciaDias = d;
+  document.querySelectorAll('#samPills .sam-pill').forEach(b => b.classList.toggle('sel', Number(b.dataset.d) === d));
+  const res = document.getElementById('samResumen');
+  if (res) res.innerHTML = `Queda activa hasta <strong>${fmtDiaLargo(calcGraciaVence(d))}</strong>. No se le cobra ni se le tocan las clases: es un permiso temporal.`;
+}
+
+async function guardarGracia(email) {
+  const motivo = document.getElementById('samMotivo')?.value.trim() || '';
+  const sub = getSuscriptoraByEmail(email);
+  if (!sub) { cerrarSam(); return; }
+  const arr = getSuscriptoras();
+  const idx = arr.findIndex(s => s.id === sub.id);
+  if (idx < 0) { cerrarSam(); return; }
+
+  const antes = arr[idx].fechaVence;
+  const nueva = calcGraciaVence(samGraciaDias);
+  arr[idx].graciaOriginalVence = antes;
+  arr[idx].fechaVence = nueva;
+  arr[idx].activa = true;
+  registrarAjuste(arr[idx], 'gracia',
+    `Reactivada por gracia (${samGraciaDias} días): vencía ${fmtDiaLargo(antes)} → activa hasta ${fmtDiaLargo(nueva)}`, motivo);
+
+  if (!await saveSuscriptoras(arr)) return false;
+  cerrarSam();
+  buildSAdminSubs();
+  return true;
+}
+
+async function guardarQuitarGracia(email) {
+  const motivo = document.getElementById('samMotivo')?.value.trim() || '';
+  const sub = getSuscriptoraByEmail(email);
+  if (!sub || !sub.graciaOriginalVence) { cerrarSam(); return; }
+  const arr = getSuscriptoras();
+  const idx = arr.findIndex(s => s.id === sub.id);
+  if (idx < 0) { cerrarSam(); return; }
+
+  const vuelveA = arr[idx].graciaOriginalVence;
+  arr[idx].fechaVence = vuelveA;
+  delete arr[idx].graciaOriginalVence;
+  registrarAjuste(arr[idx], 'gracia_fin', `Se quitó la reactivación manual: vuelve a vencer el ${fmtDiaLargo(vuelveA)}`, motivo);
+
+  if (!await saveSuscriptoras(arr)) return false;
+  cerrarSam();
+  buildSAdminSubs();
+  return true;
+}
+
+/* ════════════════════════════════════════
+   CORREGIR VENCIMIENTO · fecha libre, con motivo
+
+   Caso real de Jimena: una clienta estuvo fuera por enfermedad y el
+   estudio le perdona las clases que le quedaban — no se le quita nada,
+   simplemente se le corre el plazo para que no las pierda por la fecha.
+   A diferencia de 🔓 Reactivar (que da un margen corto y preestablecido a
+   un plan YA vencido), acá se elige cualquier fecha a mano, sirve tanto
+   para un plan vencido como uno que todavía no vence, y no tiene límite
+   de 30 días: es la herramienta de corrección de verdad, no el atajo
+   rápido. clasesRestantes no se toca — es solo el plazo. */
+function abrirVencimiento(email) {
+  if (!exigirStaff('cambiar la fecha de vencimiento')) return;
+  const sub = getSuscriptoraByEmail(email);
+  if (!sub) return;
+
+  const body = `
+    <div class="rnv-estado">
+      ${escHtml(PLANES_SUB[sub.plan]?.nombre || sub.plan || 'Sin plan')} ·
+      ${esIlimitada(sub) ? '∞ ilimitado' : `${sub.clasesRestantes} clase${sub.clasesRestantes===1?'':'s'}`} ·
+      vence <strong>${sub.fechaVence ? fmtDiaLargo(sub.fechaVence) : 'sin fecha'}</strong>
+    </div>
+    <p class="sam-lbl">Nueva fecha de vencimiento</p>
+    <input class="sam-inp" id="samFecha" type="date" value="${sub.fechaVence || hoyISO()}" oninput="samPintarVencimiento('${escArg(email)}')"/>
+    <p class="rnv-resumen vacio" id="samResumen">Cambia la fecha para ver cómo le queda.</p>
+    <p class="sam-lbl">Motivo <span style="font-weight:400;text-transform:none;letter-spacing:0;color:rgba(107,23,40,.35)">(recomendado, queda en su ficha)</span></p>
+    <textarea class="sam-txt" id="samMotivo" placeholder="Ej. estuvo fuera por enfermedad, le extendemos el plazo"></textarea>`;
+
+  abrirSam(email, `🗓 Corregir vencimiento de ${sub.nombre.split(' ')[0]}`, body, 'Guardar nueva fecha →', () => guardarVencimiento(email));
+}
+
+function samPintarVencimiento(email) {
+  const sub = getSuscriptoraByEmail(email);
+  const inp = document.getElementById('samFecha');
+  const res = document.getElementById('samResumen');
+  if (!sub || !inp || !res) return;
+  const nueva = inp.value;
+  const antes = sub.fechaVence || '';
+  if (!nueva || nueva === antes) {
+    res.className = 'rnv-resumen vacio';
+    res.textContent = 'Cambia la fecha para ver cómo le queda.';
+    return;
+  }
+  res.className = 'rnv-resumen';
+  res.innerHTML = antes
+    ? `Pasa de vencer el <strong>${fmtDiaLargo(antes)}</strong> a vencer el <strong>${fmtDiaLargo(nueva)}</strong>.`
+    : `Queda con vencimiento el <strong>${fmtDiaLargo(nueva)}</strong>.`;
+  if (nueva < hoyISO()) res.innerHTML += `<br>⚠ Es una fecha pasada: la deja vencida de inmediato.`;
+}
+
+async function guardarVencimiento(email) {
+  const nueva = document.getElementById('samFecha').value;
+  if (!nueva) { alert('Elige una fecha.'); return false; }
+  const motivo = document.getElementById('samMotivo').value.trim();
+
+  const sub = getSuscriptoraByEmail(email);
+  if (!sub) { cerrarSam(); return; }
+  const arr = getSuscriptoras();
+  const idx = arr.findIndex(s => s.id === sub.id);
+  if (idx < 0) { cerrarSam(); return; }
+
+  const antes = arr[idx].fechaVence || '';
+  if (antes === nueva) { cerrarSam(); return true; }
+  arr[idx].fechaVence = nueva;
+  if (nueva >= hoyISO()) arr[idx].activa = true;
+  /* La corrección manual reemplaza cualquier gracia pendiente: después de
+     esto, "volver a la fecha de antes de la gracia" ya no significa nada. */
+  delete arr[idx].graciaOriginalVence;
+  registrarAjuste(arr[idx], 'vencimiento', `Vencimiento: ${antes ? fmtDiaLargo(antes) : '(sin fecha)'} → ${fmtDiaLargo(nueva)}`, motivo);
+
+  if (!await saveSuscriptoras(arr)) return false;
+  cerrarSam();
+  buildSAdminSubs();
+  return true;
 }
 
 /* ── Agendar suscriptora a una clase futura ── */
@@ -11009,6 +11391,27 @@ function fichaSuscriptora(email) {
     </table>`
   : '<p class="nota">Sin renovaciones registradas.</p>';
 
+  /* Reactivar, corregir vencimiento, corregir clases, editar datos: todo lo
+     que el estudio cambió a mano, con quién y por qué. Es lo que pidió
+     Jimena — "que siempre quede el historial desde la ficha completa". */
+  const ajustes = (s.ajustes || []).slice().reverse();
+  const TIPO_AJUSTE_TXT = {
+    gracia: 'Reactivación', gracia_fin: 'Fin de reactivación',
+    vencimiento: 'Vencimiento', clases: 'Clases', datos: 'Datos'
+  };
+  const ajustesHtml = ajustes.length ? `
+    <table>
+      <tr><th>Fecha</th><th>Tipo</th><th>Cambio</th><th>Motivo</th><th>Quién</th></tr>
+      ${ajustes.map(a => `<tr>
+        <td>${a.fecha ? fmtDiaLargo(a.fecha) : '—'}</td>
+        <td>${etiquetaAjuste(a.tipo)} ${TIPO_AJUSTE_TXT[a.tipo] || a.tipo}</td>
+        <td>${escHtml(a.detalle || '')}</td>
+        <td>${a.motivo ? escHtml(a.motivo) : '—'}</td>
+        <td>${escHtml(a.staff || '—')}</td>
+      </tr>`).join('')}
+    </table>`
+  : '<p class="nota">Sin ajustes manuales registrados.</p>';
+
   printHoja(`Ficha · ${s.nombre}`,
     `Ficha de suscriptora · al ${fmtDiaLargo(hoyISO())}`,
     `<h2>👤 ${escHtml(s.nombre)}</h2>
@@ -11038,6 +11441,9 @@ function fichaSuscriptora(email) {
 
      <h2>💳 Renovaciones</h2>
      ${renovHtml}
+
+     <h2>🛠 Ajustes del estudio</h2>
+     ${ajustesHtml}
 
      <h2>🗓 Historial de clases (${hist.length})</h2>
      ${histHtml}`);
@@ -12206,6 +12612,23 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="rnv-ft">
       <button class="btn-rnv-no" onclick="cerrarRenovar()">Cancelar</button>
       <button class="btn-rnv-ok" id="rnvOk" disabled onclick="confirmarRenovar()">Activar plan →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SUSCRIPTORA · modal genérico (Editar datos, Corregir clases,
+     Eliminar, Reactivar, Corregir vencimiento) · mismo look que Renovar ═══ -->
+<div class="rnv-backdrop" id="samBackdrop" onclick="if(event.target===this)cerrarSam()">
+  <div class="rnv-modal" role="dialog" aria-modal="true" aria-labelledby="samTitulo">
+    <div class="rnv-hd">
+      <h3 id="samTitulo">—</h3>
+      <p class="rnv-hd-sub" id="samSub"></p>
+      <button class="rnv-x" onclick="cerrarSam()" title="Cerrar">✕</button>
+    </div>
+    <div class="rnv-body" id="samBody"></div>
+    <div class="rnv-ft">
+      <button class="btn-rnv-no" onclick="cerrarSam()">Cancelar</button>
+      <button class="btn-rnv-ok" id="samOk" onclick="confirmarSam()">Guardar →</button>
     </div>
   </div>
 </div>
