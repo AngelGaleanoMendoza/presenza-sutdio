@@ -129,14 +129,38 @@ nav.scrolled .hamburger span { background:var(--wine); }
 .mobile-menu {
   display:none; position:fixed; inset:0; z-index:800;
   background:rgba(255,251,248,.98); backdrop-filter:blur(20px);
-  flex-direction:column; align-items:center; justify-content:center; gap:36px;
+  flex-direction:column; align-items:center; justify-content:center; gap:26px;
+  padding:88px 24px 40px; overflow-y:auto;
 }
 .mobile-menu.open { display:flex; }
-.mobile-menu a {
-  font-family:'Playfair Display',serif; font-size:2rem; font-weight:900;
-  color:var(--wine-d); transition:color .3s;
+
+/* Lo que la gente viene a hacer: dos botones grandes, cómodos de tocar */
+.mm-principal { display:flex; flex-direction:column; gap:12px; width:100%; max-width:300px; }
+.mm-cta, .mm-mis {
+  display:block; text-align:center; padding:17px 20px; border-radius:14px;
+  font-family:'Playfair Display',serif; font-size:1.3rem; font-weight:700;
+  transition:background .25s, color .25s, transform .2s;
 }
-.mobile-menu a:hover { color:var(--blush); }
+.mm-cta {
+  background:var(--wine); color:var(--cream);
+  box-shadow:0 10px 28px rgba(107,23,40,.3);
+}
+.mm-cta:hover, .mm-cta:active { background:var(--wine-d); transform:translateY(-2px); }
+.mm-mis { border:1.6px solid var(--wine); color:var(--wine); }
+.mm-mis:hover, .mm-mis:active { background:rgba(107,23,40,.07); }
+
+/* El resto de la página: sigue completo, solo que ya no compite con lo de
+   arriba. En dos columnas ocupa menos de lo que ocupaba una sola entrada. */
+.mm-resto {
+  display:flex; flex-wrap:wrap; justify-content:center; gap:14px 22px;
+  width:100%; max-width:320px;
+  padding-top:24px; border-top:1px solid rgba(107,23,40,.14);
+}
+.mm-resto a {
+  font-family:'Poppins',sans-serif; font-size:.95rem; font-weight:500;
+  color:var(--gray); transition:color .25s;
+}
+.mm-resto a:hover { color:var(--wine); }
 
 /* ── HERO ── */
 .hero {
@@ -247,15 +271,27 @@ nav.scrolled .hamburger span { background:var(--wine); }
   background:linear-gradient(145deg, rgba(255,255,255,.08), rgba(201,149,106,.22));
   display:flex; align-items:center; justify-content:center; font-size:7rem;
 }
+/* Dejó de ser una etiqueta con la dirección para ser el botón de reservar:
+   se le nota que se toca (levanta, cambia de color) y crece el área de clic. */
 .hero-badge {
   position:absolute; bottom:-14px; left:-12px;
   background:var(--cream); color:var(--wine);
-  padding:14px 20px; border-radius:16px;
+  padding:14px 22px; border-radius:16px;
   font-weight:700; text-align:center; line-height:1.3;
   box-shadow:0 10px 32px rgba(0,0,0,.22);
+  cursor:pointer; transition:transform .25s, box-shadow .25s, background .25s;
+}
+.hero-badge:hover {
+  background:var(--wine); transform:translateY(-3px);
+  box-shadow:0 16px 38px rgba(107,23,40,.34);
 }
 .hero-badge .big { font-family:'Playfair Display',serif; font-size:1.25rem; display:block; }
-.hero-badge .small { font-size:.58rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--gray); }
+.hero-badge .small {
+  font-size:.6rem; text-transform:uppercase; letter-spacing:1.5px;
+  color:var(--wine); font-weight:700; display:block; margin-top:2px;
+}
+.hero-badge:hover .big,
+.hero-badge:hover .small { color:var(--cream); }
 .hero-float {
   position:absolute; top:22px; right:-12px;
   background:rgba(255,251,248,.1); backdrop-filter:blur(18px);
@@ -1000,6 +1036,9 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
     left:50%; bottom:-18px; transform:translateX(-50%);
     white-space:nowrap; padding:10px 18px;
   }
+  /* Sin esto el hover del botón se comía el translateX y el badge se
+     brincaba a la izquierda al tocarlo. */
+  .hero-badge:hover { transform:translateX(-50%) translateY(-3px); }
   .hero-float { right:8px; top:6px; }
   .filo-inner, .ubi-inner { grid-template-columns:1fr; gap:44px; }
   .clases-grid { grid-template-columns:1fr 1fr; }
@@ -3188,16 +3227,25 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
     <span></span><span></span><span></span>
   </div>
 </nav>
+<!-- En el celular las nueve entradas pesaban lo mismo y no cabían de una:
+     había que decidir entre "Galería" y "Reservar" leyendo la misma letra
+     enorme. Ahora arriba va lo que la gente viene a hacer —reservar y ver
+     sus clases— y el resto de la página sigue completo abajo, en chiquito.
+     Nosotros va de último, como lo pidió Jimena. -->
 <div class="mobile-menu" id="mobileMenu">
-  <a href="#nosotros"  onclick="toggleMenu()">Nosotros</a>
-  <a href="#clases"    onclick="toggleMenu()">Clases</a>
-  <a href="#equipo"    onclick="toggleMenu()">Coaches</a>
-  <a href="#galeria"   onclick="toggleMenu()">Galería</a>
-  <a href="#opiniones" onclick="toggleMenu()">Opiniones</a>
-  <a href="#pagos"     onclick="toggleMenu()">Planes</a>
-  <a href="#ubicacion" onclick="toggleMenu()">Ubicación</a>
-  <a href="#" onclick="event.preventDefault();toggleMenu();abrirMisClases()">🧘‍♀️ Mis clases</a>
-  <a href="#reserva"   onclick="toggleMenu()">Reservar</a>
+  <div class="mm-principal">
+    <a href="#reserva" class="mm-cta" onclick="toggleMenu()">✧ Reservar clase</a>
+    <a href="#" class="mm-mis" onclick="event.preventDefault();toggleMenu();abrirMisClases()">🧘‍♀️ Mis clases</a>
+  </div>
+  <div class="mm-resto">
+    <a href="#clases"    onclick="toggleMenu()">Clases</a>
+    <a href="#equipo"    onclick="toggleMenu()">Coaches</a>
+    <a href="#galeria"   onclick="toggleMenu()">Galería</a>
+    <a href="#opiniones" onclick="toggleMenu()">Opiniones</a>
+    <a href="#pagos"     onclick="toggleMenu()">Planes</a>
+    <a href="#ubicacion" onclick="toggleMenu()">Ubicación</a>
+    <a href="#nosotros"  onclick="toggleMenu()">Nosotros</a>
+  </div>
 </div>
 
 <!-- ═══ HERO ═══ -->
@@ -3238,10 +3286,13 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
           onerror="this.outerHTML='<div class=hero-photo-ph>🧘</div>'"
         >
       </div>
-      <div class="hero-badge">
+      <!-- Antes decía "TerraPlaza · Managua". La dirección ya vive en la
+           sección Ubicación —repetirla acá no le servía a nadie— y este es
+           el punto donde más se mira la página: ahora lleva a reservar. -->
+      <a href="#reserva" class="hero-badge">
         <span class="big">Presenza Studio</span>
-        <span class="small">TerraPlaza · Managua</span>
-      </div>
+        <span class="small">✧ Reservar clase →</span>
+      </a>
     </div>
   </div>
 
@@ -5279,7 +5330,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-09-05.1';
+const BUILD = '2026-09-05.2';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
