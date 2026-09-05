@@ -4353,11 +4353,16 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
         <div id="subAlertContainer" style="display:none;padding:0 0 4px"></div>
         <div class="confirm-scr">
           <span class="confirm-ani">🎉</span>
-          <h3>¡Solicitud enviada!</h3>
-          <p>Te abrimos WhatsApp para que completes tu pago con nosotras.<br/>
+          <h3 id="confirmTitulo">¡Solicitud enviada!</h3>
+          <p id="confirmSub">Te abrimos WhatsApp para que completes tu pago con nosotras.<br/>
           Tu cupo queda asegurado en cuanto confirmemos tu reserva.</p>
           <div class="confirm-card" id="confirmCard"></div>
           <div id="pagoLinkBox" style="display:none"></div>
+          <!-- Con paquete activo o clase gratis no hay nada que coordinar: no se
+               le pide mandar comprobante ni volver a WhatsApp, solo cerrar. -->
+          <button class="btn-confirmar rb-press" id="btnListoDirecta" style="display:none" onclick="closeModal()">
+            Listo, gracias ✧
+          </button>
           <button class="btn-compartir rb-press" id="btnCompartir" onclick="compartirComprobante()">
             📤 Enviar comprobante
           </button>
@@ -4370,7 +4375,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
             </svg>
             Abrir WhatsApp de nuevo (8431 7983)
           </a>
-          <span class="btn-close-m" onclick="closeModal()">Cerrar</span>
+          <span class="btn-close-m" id="btnCerrarM" onclick="closeModal()">Cerrar</span>
         </div>
       </div>
 
@@ -5274,7 +5279,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-09-03.1';
+const BUILD = '2026-09-05.1';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -7327,6 +7332,15 @@ async function proceedToConfirm() {
   const planUsado  = usaSubActiva ? subActiva.plan : selectedSubPlan;
   const esPlanPendiente = pagoMetodo==='sub' && !usaSubActiva && !!selectedSubPlan;
 
+  /* Con paquete activo o clase gratis no queda NADA pendiente: la clase ya
+     se cobró (o no costaba nada) y el cupo ya es suyo. Pedirle igual que
+     "complete su pago por WhatsApp" —como hacía esta pantalla para todo el
+     mundo por igual— era pura confusión para quien no tiene nada que pagar.
+     Esta bandera es la que separa esa confirmación directa del resto de
+     casos (transferencia, efectivo, link BAC pendiente), donde sí hace
+     falta coordinar algo y la pantalla completa sigue haciendo falta. */
+  const confirmacionDirecta = usaSubActiva || booking.gratis;
+
   /* Red de seguridad: pagando con suscripción, tiene que haber O un plan
      vigente con saldo, O un paquete nuevo elegido. Sin ninguno de los dos la
      reserva quedaría guardada sin cobrarse nada.
@@ -7377,39 +7391,22 @@ async function proceedToConfirm() {
     : fmtC(precioDe(clase, dateStr, hora) * n);
   let montoTxt = textoMonto(nClases);
 
-  /* ── Alerta de membresía ilimitada activada ── */
+  /* ── Alerta de membresía ilimitada activada ──
+     Solo cuando la reserva es lo que la activa (esPlanPendiente): una socia
+     que YA tiene su ilimitada y solo está reservando su clase de rutina no
+     "activó" nada hoy. Antes esta alerta salía igual en los dos casos —
+     "Mensual ilimitado activada · Del [x] al [y]" en CADA reserva que hacía,
+     así llevara meses con el plan— y era ruido puro para ella. */
   const subAlertEl = document.getElementById('subAlertContainer');
-  const esIlimit   = pagoMetodo === 'sub' && (PLANES_SUB[planUsado]?.clases || 0) >= 1000;
+  const esIlimit   = esPlanPendiente && (PLANES_SUB[planUsado]?.clases || 0) >= 1000;
   if (esIlimit) {
-    const pd      = PLANES_SUB[planUsado];
-    /* subActiva, no getSuscriptoraByEmail: la que reserva no tiene sesión y su
-       ficha vino de mi_suscripcion_activa (solo la suya), no de la tabla. */
-    const subReg  = subActiva;
-    const fmtD    = s => { const dd = new Date(s+'T12:00:00'); return `${dd.getDate()} ${MESES_ES[dd.getMonth()]} ${dd.getFullYear()}`; };
-    const inicioS = subReg?.fechaInicio || hoyISO();
-    const finS    = subReg?.fechaVence  || '';
-    booking.subAlerta = {
-      planNombre: pd.nombre,
-      inicio: esPlanPendiente ? '—' : fmtD(inicioS),
-      fin: esPlanPendiente || !finS ? '—' : fmtD(finS),
-      precio: pd.precio,
-      meses: pd.meses,
-      pendiente: esPlanPendiente
-    };
-    subAlertEl.innerHTML = esPlanPendiente
-      ? `<div class="sub-start-alert">
+    const pd = PLANES_SUB[planUsado];
+    booking.subAlerta = { planNombre: pd.nombre, inicio: '—', fin: '—', precio: pd.precio, meses: pd.meses, pendiente: true };
+    subAlertEl.innerHTML = `<div class="sub-start-alert">
           <span class="ssa-icon">⏳</span>
           <div class="ssa-info">
             <strong>${pd.nombre} — pendiente de pago</strong>
             <span>Tu membresía se activará cuando el estudio confirme tu pago.</span>
-            <span class="ssa-price">${fmtC(pd.precio)}${pd.meses > 1 ? '/mes · ' + pd.meses + ' meses' : '/mes'}</span>
-          </div>
-        </div>`
-      : `<div class="sub-start-alert">
-          <span class="ssa-icon">💎</span>
-          <div class="ssa-info">
-            <strong>${pd.nombre} activada</strong>
-            <span>📅 Del ${booking.subAlerta.inicio} al ${booking.subAlerta.fin}</span>
             <span class="ssa-price">${fmtC(pd.precio)}${pd.meses > 1 ? '/mes · ' + pd.meses + ' meses' : '/mes'}</span>
           </div>
         </div>`;
@@ -7593,6 +7590,22 @@ async function proceedToConfirm() {
   const repTxtLista = repHechas
     .map(r => `${fmtDiaLargo(r.ds)}${r.lugar ? ` · Lugar ${r.lugar}` : ''}`).join('<br/>');
 
+  /* La pantalla completa (título + WhatsApp + comprobante) sirve para
+     coordinar un pago que falta. Con paquete activo o clase gratis no hay
+     nada que coordinar: el título dice directo que ya quedó reservada, y
+     los botones se reducen a uno solo — cerrar. Nada de esto toca la
+     lógica de arriba (cobro, guardado, cupos): solo lo que se le muestra. */
+  document.getElementById('confirmTitulo').textContent = confirmacionDirecta
+    ? '¡Reservada! ✓' : '¡Solicitud enviada!';
+  document.getElementById('confirmSub').innerHTML = confirmacionDirecta
+    ? `Ya quedó tu lugar. Te esperamos el <strong>${diaStr}</strong> a las <strong>${hora12(hora)}</strong> ✧`
+    : 'Te abrimos WhatsApp para que completes tu pago con nosotras.<br/>Tu cupo queda asegurado en cuanto confirmemos tu reserva.';
+  document.getElementById('btnListoDirecta').style.display = confirmacionDirecta ? '' : 'none';
+  document.getElementById('btnCompartir').style.display    = confirmacionDirecta ? 'none' : '';
+  document.getElementById('btnDownload').style.display     = confirmacionDirecta ? 'none' : '';
+  document.getElementById('waLink').style.display           = confirmacionDirecta ? 'none' : '';
+  document.getElementById('btnCerrarM').style.display       = confirmacionDirecta ? 'none' : '';
+
   document.getElementById('confirmCard').innerHTML = `
     <div class="cr-row"><span class="cr-icon">${info.emoji}</span><span class="cr-text"><strong>${info.nombre}</strong></span></div>
     <div class="cr-row"><span class="cr-icon">📅</span><span class="cr-text">${diaStr}</span></div>
@@ -7671,8 +7684,10 @@ async function proceedToConfirm() {
   const waHref = `https://wa.me/${WA}?text=${msg}`;
   document.getElementById('waLink').href = waHref;
 
-  /* La confirmación real la hace el estudio por WhatsApp, no esta pantalla */
-  window.open(waHref, '_blank');
+  /* La confirmación real la hace el estudio por WhatsApp, no esta pantalla —
+     salvo con paquete activo o clase gratis, donde no hay nada que el
+     estudio tenga que confirmar y abrir WhatsApp sería puro estorbo. */
+  if (!confirmacionDirecta) window.open(waHref, '_blank');
 
   /* ── Llenar voucher ── */
   const confirmNum = 'PS-' + Date.now().toString(36).toUpperCase().slice(-6);
