@@ -4626,6 +4626,23 @@ async function correoAAlumna(para, asunto, datos) {
 /* Si el envío automático no salió, esto abre el correo ya escrito en el
    programa de correo de quien está en el panel. El aviso igual llega; lo
    único que cambia es que lo manda una persona. */
+/* Resend: estas implementaciones reemplazan las versiones antiguas. */
+function notificarSolicitudCorreo(datos) {
+  if (!EMAIL_NOTIF) return;
+  sbFunction('notificar-solicitud', {
+    asunto: 'Nueva solicitud de suscripcion - ' + (datos.Plan || ''),
+    datos
+  }).catch(() => {});
+}
+
+async function correoAAlumna(para, asunto, datos) {
+  if (!emailValido(para)) return false;
+  try {
+    const respuesta = await sbFunction('confirmar-correo', { para, asunto, datos });
+    return respuesta?.ok === true;
+  } catch (e) { return false; }
+}
+
 function borradorCorreo(para, asunto, datos) {
   const cuerpo = Object.entries(datos).map(([k, v]) => `${k}: ${v}`).join('\n');
   window.open(`mailto:${encodeURIComponent(para)}`
@@ -5356,6 +5373,13 @@ const SB_ON = !!(SUPABASE_URL && SUPABASE_KEY);
 const sbClient = (window.supabase && SB_ON)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
   : null;
+
+async function sbFunction(nombre, body) {
+  if (!sbClient) throw new Error('Supabase no esta disponible.');
+  const { data, error } = await sbClient.functions.invoke(nombre, { body });
+  if (error) throw error;
+  return data;
+}
 
 async function sbFetch(path, opts = {}) {
   /* Si el estudio o una coach iniciaron sesión, sus llamadas van con SU
