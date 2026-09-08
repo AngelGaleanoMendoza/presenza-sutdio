@@ -42,7 +42,7 @@ const EMAIL_ESTUDIO  = 'presenza.studio@outlook.com';
 // un correo a sí mismos con datos inventados.
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': 'https://presenzastudioni.com',
-  'Access-Control-Allow-Headers': 'authorization, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
