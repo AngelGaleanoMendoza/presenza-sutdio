@@ -763,7 +763,9 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
 .equipo-header { text-align:center; margin-bottom:60px; }
 .equipo-header .section-tag { justify-content:center; }
 .equipo-header .section-body { max-width:480px; margin:0 auto; }
-.equipo-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:20px; }
+.equipo-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:16px; }
+/* Entre 960 y 1100 las seis no caben sin quedar como fósforos: 3 y 3. */
+@media(max-width:1100px){ .equipo-grid { grid-template-columns:repeat(3,1fr); gap:20px; } }
 .equipo-card {
   background:var(--white); border-radius:22px; overflow:hidden;
   box-shadow:var(--sh); transition:all .4s; text-align:center;
@@ -3593,6 +3595,25 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
         </div>
       </div>
 
+      <div class="equipo-card r d5 has-bio" onclick="this.classList.toggle('bio-open')">
+        <div class="equipo-avatar">
+          <img src="assets/meetyourcoachs/Coach Milena.jpg" alt="Coach Milena">
+          <div class="eq-bio-hint">+</div>
+        </div>
+        <div class="equipo-info">
+          <h3>Coach Milena</h3>
+          <span class="eq-rol">Coach de Barre</span>
+          <div class="eq-tags">
+            <span class="eq-tag">Barre</span>
+          </div>
+        </div>
+        <div class="eq-bio">
+          <p>Mi nombre es Milena, soy coach de Barre apasionada por el movimiento y el bienestar. Me encanta crear espacios donde entrenar se sienta bien.</p>
+          <p>En mis clases combino control, fuerza, ritmo y movimientos coordinados inspirados en pilates, ballet y yoga, siempre acompañados de buena música y mucha energía.</p>
+          <p>Mi objetivo es que cada clase sea ese momento del día para desconectarte, conectar con tu cuerpo, retarte un poquito y sobre todo, salir sintiéndote más fuerte y segura que cuando entraste.</p>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
@@ -4876,9 +4897,10 @@ const COACHES = [
   { usuario:'alejandra', nombre:'Alejandra Mondragón'        },
   { usuario:'gladys',    nombre:'Gladys Pastora'             },
   { usuario:'yeni',      nombre:'Yeni Noreña'                },
+  { usuario:'milena',    nombre:'Milena Zapata'              },
 ];
 
-/* Las cinco que dan clase, para el selector del horario. Jimena entra con
+/* Las que dan clase, para el selector del horario. Jimena entra con
    acceso total (es la dueña) pero imparte, así que va acá también.
 
    `corto` es lo que se guarda en el horario y se copia a cada reserva; es
@@ -4894,6 +4916,7 @@ const COACHES_CLASE = [
   { corto:'Alejandra', nombre:'Alejandra Mondragón'        },
   { corto:'Gladys',    nombre:'Gladys Pastora'             },
   { corto:'Yeni',      nombre:'Yeni Noreña'                },
+  { corto:'Milena',    nombre:'Milena Zapata'              },
 ];
 
 /* El nombre largo para mostrar. Un horario viejo puede traer un nombre que
@@ -4906,7 +4929,7 @@ function nombreCoach(corto) {
       || c;
 }
 
-/* Las opciones del selector. Si lo guardado no es ninguna de las cinco
+/* Las opciones del selector. Si lo guardado no es ninguna de la lista
    —un horario de antes de esta versión— se le agrega su propia opción para
    que abrir el editor no se lo cambie solo sin que nadie lo pida. */
 function opcionesCoach(sel) {
@@ -5270,48 +5293,48 @@ function slotsDelDia(dateStr, dow) {
          .filter(s => !estaCancelada(s.clase, dateStr, s.hora));
 };
 
-/* ── Horario semanal (jsDay: 1=Lun … 5=Vie) ── */
+/* ── Horario semanal (jsDay: 1=Lun … 6=Sáb) ── */
 const HORARIO = {
   1: [ // Lunes
-    { clase:'burn',    hora:'06:30', instructor:'Alejandra' },
-    { clase:'burn',    hora:'07:30', instructor:'Alejandra' },
-    { clase:'essenza', hora:'08:30', instructor:'M. Carmen' },
-    { clase:'essenza', hora:'17:30', instructor:'Jimena'    },
-    { clase:'burn',    hora:'18:30', instructor:'Jimena'    },
-    { clase:'burn',    hora:'19:30', instructor:'Jimena'    },
+    { clase:'burn',    hora:'07:30', instructor:'Gladys'    },
+    { clase:'burn',    hora:'08:30', instructor:'Gladys'    },
+    { clase:'pilates', hora:'18:30', instructor:'Jimena'    },
+    { clase:'essenza', hora:'19:30', instructor:'Alejandra' },
   ],
   2: [ // Martes
-    { clase:'essenza', hora:'06:30', instructor:'Jimena'    },
-    { clase:'burn',    hora:'07:30', instructor:'Jimena'    },
-    { clase:'essenza', hora:'08:30', instructor:'M. Carmen' },
+    { clase:'essenza', hora:'06:30', instructor:'M. Carmen' },
+    { clase:'essenza', hora:'07:30', instructor:'M. Carmen' },
+    { clase:'pilates', hora:'08:30', instructor:'Jimena'    },
     { clase:'essenza', hora:'17:30', instructor:'M. Carmen' },
     { clase:'pilates', hora:'18:30', instructor:'Jimena'    },
-    { clase:'burn',    hora:'19:30', instructor:'Alejandra' },
+    { clase:'burn',    hora:'19:30', instructor:'Milena'    },
   ],
   3: [ // Miércoles
-    { clase:'burn',    hora:'06:30', instructor:'Jimena'    },
-    { clase:'essenza', hora:'07:30', instructor:'M. Carmen' },
+    { clase:'burn',    hora:'06:30', instructor:'Gladys'    },
+    { clase:'burn',    hora:'07:30', instructor:'Gladys'    },
     { clase:'essenza', hora:'08:30', instructor:'M. Carmen' },
-    { clase:'burn',    hora:'09:30', instructor:'Jimena'    },
-    { clase:'burn',    hora:'17:30', instructor:'Jimena'    },
     { clase:'yoga',    hora:'18:30', instructor:'Yeni'      },
-    { clase:'burn',    hora:'19:30', instructor:'Alejandra' },
+    { clase:'essenza', hora:'19:30', instructor:'Alejandra' },
   ],
   4: [ // Jueves
-    { clase:'burn',    hora:'06:30', instructor:'Jimena'    },
+    { clase:'essenza', hora:'06:30', instructor:'M. Carmen' },
     { clase:'essenza', hora:'07:30', instructor:'M. Carmen' },
-    { clase:'essenza', hora:'08:30', instructor:'M. Carmen' },
-    { clase:'yoga',    hora:'17:00', instructor:'Yeni'      },
+    { clase:'pilates', hora:'08:30', instructor:'Jimena'    },
+    { clase:'essenza', hora:'17:30', instructor:'M. Carmen' },
     { clase:'pilates', hora:'18:30', instructor:'Jimena'    },
-    { clase:'burn',    hora:'19:30', instructor:'Jimena'    },
   ],
   5: [ // Viernes
     { clase:'burn',    hora:'06:30', instructor:'Alejandra' },
     { clase:'burn',    hora:'07:30', instructor:'Alejandra' },
-    { clase:'essenza', hora:'08:30', instructor:'M. Carmen' },
-    { clase:'burn',    hora:'09:30', instructor:'Jimena'    },
+    { clase:'burn',    hora:'08:30', instructor:'Gladys'    },
+    { clase:'burn',    hora:'09:30', instructor:'Gladys'    },
+    { clase:'burn',    hora:'18:30', instructor:'Milena'    },
   ],
-  6: [ /* Sábado — se llena desde el Super Admin → Horarios */ ],
+  6: [ // Sábado
+    { clase:'essenza', hora:'08:30', instructor:'M. Carmen' },
+    { clase:'pilates', hora:'09:30', instructor:'Jimena'    },
+    { clase:'yoga',    hora:'10:30', instructor:'Yeni'      },
+  ],
 };
 
 /* Días que se pueden editar en el panel (1=Lun … 6=Sáb). El domingo el
@@ -5347,7 +5370,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-09-05.2';
+const BUILD = '2026-09-16.1';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
