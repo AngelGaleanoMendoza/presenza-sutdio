@@ -4462,9 +4462,10 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 
 const WA = '50584317983';
 
-/* El correo del estudio. Es de donde salen las confirmaciones que le llegan
-   a la alumna y a donde entran las solicitudes de plan, así que es el que
-   ella va a ver y al que le va a responder. */
+/* La bandeja del estudio: acá entran las solicitudes de plan, y acá le
+   llega la respuesta si la alumna contesta una confirmación. Los correos
+   NO salen de esta dirección —salen de reservas@presenzastudioni.com, que
+   es el remitente verificado en Resend—, esta va como Reply-To. */
 const EMAIL_ESTUDIO = 'presenza.studio@outlook.com';
 const EMAIL_NOTIF   = EMAIL_ESTUDIO;   // ← correo donde llegan las solicitudes de suscripción
 
@@ -4593,61 +4594,19 @@ function hayLinksDePago() {
   return Object.keys(LINKS_PAGO).some(k => linkDePago(k));
 }
 
-/* Envía la solicitud de suscripción por correo (vía FormSubmit, gratis).
-   Si falla (sin internet, bloqueado) no interrumpe la reserva. */
-function notificarSolicitudCorreo(datos) {
-  if (!EMAIL_NOTIF) return;
-  fetch('https://formsubmit.co/ajax/' + EMAIL_NOTIF, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({
-      _subject: '💎 Nueva solicitud de suscripción — ' + (datos.Plan || ''),
-      _template: 'table',
-      _captcha: 'false',
-      ...datos
-    })
-  }).catch(() => {});
-}
+/* ── AVISOS POR CORREO ────────────────────────────────────────────────
+   Los dos salen por Resend, a través de Edge Functions de Supabase. La
+   llave de Resend no puede vivir en este archivo: es público, y cualquiera
+   que abra "ver código fuente" se la llevaría y podría mandar correos con
+   el nombre de Presenza. Las funciones la guardan del lado del servidor y
+   son las únicas que hablan con Resend.
 
-/* ── CONFIRMACIÓN POR CORREO A LA ALUMNA ──────────────────────────────
-   Reservar por transferencia o por link deja el pago "por confirmar": la
-   alumna se queda esperando sin saber si su cupo es suyo, y hasta hoy la
-   única forma de enterarse era que alguien le escribiera por WhatsApp.
-   Ahora, cuando el estudio marca el pago como verificado, le sale el
-   correo solo.
+   Antes esto iba por FormSubmit, que solo entregaba a una dirección
+   verificada de antemano: a la alumna había que ponerla "en copia" de un
+   correo que en realidad iba al estudio. Ahora se le escribe directo. */
 
-   Va por FormSubmit —lo mismo que ya usaba el aviso de solicitudes— con el
-   correo del estudio como destinatario y el de la alumna en copia. Es a
-   propósito: FormSubmit solo entrega a una dirección verificada de
-   antemano, así que no se le puede escribir directo a cada alumna nueva.
-   De paso, el estudio se queda con la copia de todo lo que salió.
-
-   OJO: `presenza.studio@outlook.com` tiene que activarse UNA vez. El primer
-   envío hace que FormSubmit le mande un link de confirmación a esa bandeja;
-   hasta que alguien lo abra, no se entrega nada. */
-async function correoAAlumna(para, asunto, datos) {
-  if (!EMAIL_ESTUDIO || !emailValido(para)) return false;
-  try {
-    const r = await fetch('https://formsubmit.co/ajax/' + EMAIL_ESTUDIO, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({
-        _subject: asunto,
-        _template: 'table',
-        _captcha: 'false',
-        _cc: para,               /* la alumna, en copia */
-        _replyto: EMAIL_ESTUDIO, /* si responde, le llega al estudio */
-        ...datos
-      })
-    });
-    return r.ok;
-  } catch (e) { return false; }
-}
-
-/* Si el envío automático no salió, esto abre el correo ya escrito en el
-   programa de correo de quien está en el panel. El aviso igual llega; lo
-   único que cambia es que lo manda una persona. */
-/* Resend: estas implementaciones reemplazan las versiones antiguas. */
+/* Aviso al estudio de que alguien pidió un plan. Si falla (sin internet,
+   bloqueado) no interrumpe la reserva: la clase ya quedó guardada. */
 function notificarSolicitudCorreo(datos) {
   if (!EMAIL_NOTIF) return;
   sbFunction('notificar-solicitud', {
@@ -4656,6 +4615,10 @@ function notificarSolicitudCorreo(datos) {
   }).catch(() => {});
 }
 
+/* Confirmación a la alumna cuando el estudio marca su pago como verificado.
+   Reservar por transferencia o por link deja el pago "por confirmar", y
+   hasta que existía esto la alumna se quedaba esperando sin saber si su
+   cupo era suyo, salvo que alguien le escribiera por WhatsApp. */
 async function correoAAlumna(para, asunto, datos) {
   if (!emailValido(para)) return false;
   try {
@@ -4664,6 +4627,9 @@ async function correoAAlumna(para, asunto, datos) {
   } catch (e) { return false; }
 }
 
+/* Si el envío automático no salió, esto abre el correo ya escrito en el
+   programa de correo de quien está en el panel. El aviso igual llega; lo
+   único que cambia es que lo manda una persona. */
 function borradorCorreo(para, asunto, datos) {
   const cuerpo = Object.entries(datos).map(([k, v]) => `${k}: ${v}`).join('\n');
   window.open(`mailto:${encodeURIComponent(para)}`
@@ -5370,7 +5336,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-09-16.1';
+const BUILD = '2026-09-16.2';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
