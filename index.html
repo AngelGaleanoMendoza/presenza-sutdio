@@ -5336,7 +5336,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-09-16.2';
+const BUILD = '2026-09-22.1';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
