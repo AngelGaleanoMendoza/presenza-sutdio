@@ -4366,13 +4366,13 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
         <div class="lugar-sel-info" id="lugarSelInfo">Toca un mat para reservarlo</div>
         <div class="rep-mes" id="repMesBox" style="display:none"></div>
         <button class="btn-confirmar" id="btnLugar" onclick="confirmLugar()" disabled>
-          Continuar al pago →
+          Verificar mi plan →
         </button>
       </div>
 
       <!-- PASO 3: método de pago -->
       <div class="mpanel" id="mp2">
-        <p class="pago-panel-title">¿Cómo deseas pagar?</p>
+        <p class="pago-panel-title">Tu plan para reservar</p>
         <div class="pago-summary">
           <span class="ps-icon" id="psIcon"></span>
           <div class="ps-info">
@@ -4384,31 +4384,13 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
         <div class="metodo-sel-wrap">
           <span class="metodo-sel-lbl">Selecciona un método</span>
           <div class="metodo-sel-btns">
-            <div class="msb" id="msbTransfer" onclick="selectMetodo('transfer')">
-              <span class="msb-icon">🏦</span>
-              Transferencia
-            </div>
-            <div class="msb" id="msbCash" onclick="selectMetodo('cash')">
-              <span class="msb-icon">💵</span>
-              Efectivo en estudio
-            </div>
             <div class="msb msb-sub rb-press" id="msbSub" onclick="selectMetodo('sub')">
               <span class="msb-icon" id="msbSubIcon">💳</span>
-              <span id="msbSubTxt">Membresía o link BAC</span>
+              <span id="msbSubTxt">Mi plan o comprar paquete</span>
             </div>
           </div>
         </div>
-        <div class="transfer-box" id="transferBox">
-          <p class="tb-label">Monto a pagar</p>
-          <p class="tb-num" id="linkMonto">C$440</p>
-          <p class="tb-bank">Transferencia bancaria · Presenza Studio</p>
-          <p class="tb-nota">Te enviamos los datos de la cuenta por WhatsApp. Envíanos tu comprobante para confirmar tu reserva.</p>
-        </div>
-        <div class="pago-note" id="cashNote" style="display:none">
-          <strong>💵 Pago en el estudio</strong>
-          <p class="cn-monto" id="cashMonto">C$440</p>
-          <p>Llevá ese monto y pagás al llegar a tu clase. Te esperamos 10 min antes ✧</p>
-        </div>
+        <p class="sub-descuento-nota">Para reservar necesitas un paquete o membresía activa con clases disponibles. Comprar un plan no aparta un cupo.</p>
         <div class="sub-check-box" id="subCheckBox">
           <div id="subCheckResult"></div>
         </div>
@@ -4521,17 +4503,9 @@ function linkDePago(planKey) {
    utilizó entonces. Todo vive dentro del JSON `renovaciones`, que ya existe. */
 const METODO_LINK_BAC = 'link_bac';
 const METODO_TRANSFER = 'transferencia';
-/* Tercer canal: la plata que entra en caja. No deja rastro en ningún banco,
-   así que si no queda anotada acá no queda anotada en ningún lado —y el
-   reporte por método daría un total menor al que de verdad entró. */
-const METODO_EFECTIVO = 'efectivo';
-
-/* Los tres, en el orden en que se ofrecen. Una sola lista para que el alta,
-   la renovación y la validación no se puedan desincronizar entre ellas. */
 const METODOS_COMPRA = [
   { id: METODO_LINK_BAC, ico: '🔗', txt: 'Link de pago BAC' },
-  { id: METODO_TRANSFER, ico: '🏦', txt: 'Transferencia bancaria' },
-  { id: METODO_EFECTIVO, ico: '💵', txt: 'Efectivo en el estudio' }
+  { id: METODO_TRANSFER, ico: '🏦', txt: 'Transferencia bancaria' }
 ];
 const IDS_METODO_COMPRA = METODOS_COMPRA.map(m => m.id);
 
@@ -4679,22 +4653,85 @@ function avisarCantidad(planKey) {
    dentro de payLink, como "lo que pasa si todavía no hay link". Ahora es
    una opción por derecho propio: el estudio cobra por los dos caminos y
    ninguno reemplaza al otro, así que cada tarjeta ofrece ambos. */
-function transferWA(planKey) {
+function mensajeTransferencia(planKey, nombre = '') {
   const p = PLANES_SUB[planKey];
-  if (!p) return;
-  const txt = `Hola Presenza ✧ Quiero pagar ${p.nombre} — Monto: ${fmtC(p.precio)}. ¿Me envían los datos de la cuenta para hacer la transferencia?`;
-  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(txt)}`, '_blank');
+  return `Hola, Presenza ✧${nombre ? ' Soy ' + nombre + '.' : ''} Quisiera pagar por transferencia ${p.nombre} (${fmtC(p.precio)}). ¿Me comparten los datos de la cuenta? Gracias.`;
+}
+
+function transferWA(planKey) {
+  abrirCompra(planKey, METODO_TRANSFER);
 }
 
 function payLink(planKey) {
+  abrirCompra(planKey, METODO_LINK_BAC);
+}
+
+let compraActual = null;
+function abrirCompra(planKey, metodo, datos = {}) {
   const p = PLANES_SUB[planKey];
-  if (!p) return;
-  const link = linkDePago(planKey);
-  /* Sin link, el botón de tarjeta ni se dibuja; si igual se llega acá
-     (alguien lo llama a mano) queda el camino que sí existe. */
-  if (!link) { transferWA(planKey); return; }
-  if (!avisarCantidad(planKey)) return;
-  window.open(link, '_blank', 'noopener');
+  if (!p || p.retirado || !IDS_METODO_COMPRA.includes(metodo)) return;
+  if (metodo === METODO_LINK_BAC && !linkDePago(planKey)) {
+    alert('El link de este paquete no está disponible. Elige la opción de transferencia.');
+    return;
+  }
+  compraActual = { plan: planKey, metodo };
+  const dialog = document.getElementById('compraDialog');
+  document.getElementById('compraResumen').textContent =
+    `${p.nombre} · ${fmtC(p.precio)} · ${p.clases >= 1000 ? 'Clases ilimitadas' : p.clases + (p.clases === 1 ? ' clase' : ' clases')} · Vigencia: ${p.meses} ${p.meses === 1 ? 'mes' : 'meses'}`;
+  document.getElementById('compraMetodo').textContent = METODOS_COMPRA.find(m => m.id === metodo).txt;
+  document.getElementById('compraNombre').value = datos.nombre || '';
+  document.getElementById('compraEmail').value = datos.email || '';
+  document.getElementById('compraTel').value = datos.tel || '';
+  document.getElementById('compraForm').hidden = false;
+  document.getElementById('compraResultado').hidden = true;
+  document.getElementById('compraError').textContent = '';
+  const btn = document.getElementById('compraEnviar');
+  btn.disabled = false;
+  btn.textContent = metodo === METODO_LINK_BAC ? 'Confirmar paquete e ir a pagar →' : 'Solicitar transferencia por WhatsApp →';
+  if (!dialog.open) dialog.showModal();
+}
+
+async function enviarCompra(event) {
+  event.preventDefault();
+  const btn = document.getElementById('compraEnviar');
+  if (btn.disabled || !compraActual) return;
+  const { plan, metodo } = compraActual;
+  const nombre = document.getElementById('compraNombre').value.trim();
+  const email = document.getElementById('compraEmail').value.trim().toLowerCase();
+  const tel = document.getElementById('compraTel').value.trim();
+  if (!nombre || !emailValido(email) || tel.replace(/\D/g, '').length < 8) {
+    document.getElementById('compraError').textContent = 'Completa tu nombre, correo válido y teléfono (mínimo 8 dígitos).';
+    return;
+  }
+  const p = PLANES_SUB[plan];
+  if (metodo === METODO_LINK_BAC && !confirm(
+    `Confirmar compra: ${p.nombre}\n${fmtC(p.precio)} · Link de pago BAC\n\n` +
+    (LINK_CON_CANTIDAD.includes(plan) ? 'En BAC deja Cantidad en 1; este es el monto total.\n\n' : '') +
+    '¿Continuar al link de pago de este paquete?')) return;
+  const destino = window.open('about:blank', '_blank');
+  if (destino) destino.opener = null;
+  btn.disabled = true;
+  document.getElementById('compraError').textContent = '';
+  try {
+    await autoRegisterSub(nombre, email, tel, '', plan, metodo);
+    notificarSolicitudCorreo({ Nombre: nombre, Email: email, Telefono: tel,
+      Plan: p.nombre, Monto: fmtC(p.precio), 'Forma de pago': METODOS_COMPRA.find(m => m.id === metodo).txt,
+      Reserva: 'Sin cupo reservado; se reserva al activar el plan.' });
+    const url = metodo === METODO_LINK_BAC ? linkDePago(plan)
+      : `https://wa.me/${WA}?text=${encodeURIComponent(mensajeTransferencia(plan, nombre))}`;
+    if (metodo === METODO_LINK_BAC) guardarPagoEnCurso({ plan, email, tel });
+    document.getElementById('compraForm').hidden = true;
+    const resultado = document.getElementById('compraResultado');
+    resultado.hidden = false;
+    resultado.innerHTML = `<p>Solicitud de <strong>${escHtml(p.nombre)}</strong> registrada por ${escHtml(METODOS_COMPRA.find(m => m.id === metodo).txt)}.</p>
+      <p>Tu plan se activará cuando se verifique el pago. Después podrás reservar tus clases.</p>
+      <a class="btn-confirmar" href="${escHtml(url)}" target="_blank" rel="noopener">${metodo === METODO_LINK_BAC ? 'Abrir link de pago BAC' : 'Abrir WhatsApp para la transferencia'} ↗</a>
+      ${metodo === METODO_LINK_BAC ? `<button type="button" class="btn-ya-pague" id="btnYaPague" onclick="avisarQuePague('${escArg(email)}','${escArg(tel)}')">✓ Ya pagué · Avisar para verificación</button>` : ''}`;
+    if (destino) destino.location.replace(url);
+  } catch (e) {
+    if (destino) destino.close();
+    document.getElementById('compraError').textContent = 'No se pudo registrar la compra. Intenta de nuevo. ' + (e.message || '');
+  } finally { btn.disabled = false; }
 }
 
 /* Las tarjetas de precios dicen "Reservar por WhatsApp" mientras no haya
@@ -4760,17 +4797,18 @@ function irAPagar(planKey, email, tel) {
 async function avisarQuePague(email, tel) {
   const btn = document.getElementById('btnYaPague');
   if (btn) { btn.disabled = true; btn.textContent = 'Avisando…'; }
-  olvidarPagoEnCurso();   /* ya se avisó desde acá: la vuelta no repite */
   try {
-    if (SB_ON) await sbRpc('marcar_pago_dicho', { p_email: email, p_tel: tel, p_ref: '' });
+    if (SB_ON) {
+      const ok = await sbRpc('marcar_pago_dicho', { p_email: email, p_tel: tel, p_ref: '' });
+      if (!ok) throw new Error('No hay una solicitud pendiente de pago para verificar.');
+    }
+    olvidarPagoEnCurso();
     if (btn) { btn.textContent = '✓ Avisado — lo verificamos'; btn.classList.add('avisado'); }
     alert('¡Gracias! 🎉\n\nQuedó anotado que ya pagaste.\n' +
-          'Lo verificamos con el banco y te activamos el paquete.\n\n' +
-          'Si tenés el comprobante a mano, mandalo por WhatsApp y va más rápido ✧');
+          'Lo verificamos con el banco y te activamos el paquete. Podrás reservar cuando esté activo.');
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = '✓ Ya pagué'; }
-    alert('No pudimos avisarle al estudio desde acá.\n\n' +
-          'Mandá tu comprobante por WhatsApp y te activamos el paquete igual ✧');
+    alert('No pudimos registrar el aviso de pago. Intenta de nuevo o consulta con el estudio. Tu plan aún no está confirmado.');
   }
 }
 
@@ -4823,8 +4861,7 @@ async function procesarVueltaDePago() {
   const pd = d && PLANES_SUB[d.plan];
   alert('¡Gracias! 🎉\n\n' +
     (pd ? `Nos quedó anotado tu pago de ${pd.nombre} (${fmtC(pd.precio)}).\n\n` : '') +
-    'Lo verificamos con el banco y te activamos el paquete.\n' +
-    'Si tenés el comprobante a mano, mandalo por WhatsApp y va más rápido ✧');
+    'Lo verificamos con el banco y te activamos el paquete. Podrás reservar cuando esté activo.');
 }
 const DIAS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const MESES_ES  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -5336,7 +5373,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-09-22.1';
+const BUILD = '2026-10-15.1';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5827,14 +5864,20 @@ async function saveSlot(clase, dateStr, hora, datos) {
     /* El índice único (slot_key, lugar) rechaza el mat si otra alumna se
        adelantó desde otro celular: ahí devolvemos 409 y se elige otro. */
     try {
-      await sbFetch('reservas', { method:'POST', body: JSON.stringify(fila) });
+      if (staffActual) {
+        await sbFetch('reservas', { method:'POST', body: JSON.stringify(fila) });
+      } else {
+        await sbRpc('reservar_con_plan', { p_reserva: fila });
+      }
     } catch (e) {
+      if (!staffActual) throw e;
       if (!esColumnaFaltante(e)) throw e;
       COL_DESCUENTO = false;
       console.warn('Falta correr supabase-descuento-al-reservar.sql en Supabase.');
       delete fila.clase_descontada;
       await sbFetch('reservas', { method:'POST', body: JSON.stringify(fila) });
     }
+    if (staffActual) { try { await sincronizarSubs(); } catch (_) {} }
   }
   (SLOTS[key] = SLOTS[key] || []).push(c);
   guardarRespaldoLocal(key);
@@ -6018,6 +6061,7 @@ function rowToSub(f) {
        se haya corrido supabase-pagos-bac.sql la columna no existe, queda
        en 'espera' y el panel se ve exactamente como antes. */
     estado: f.pendiente_estado || 'espera',
+    metodo: f.pendiente_metodo || '',
     ref:    f.pendiente_ref    || ''
   };
   return s;
@@ -7006,20 +7050,16 @@ function setupPago() {
   document.getElementById('psDia').textContent    = `${diaStr} · ${hora12(hora)}${lugarTxt}${repTxt}`;
   const precioReal = precioDe(clase, dateStr, hora) * nClases;
   document.getElementById('psPrice').textContent  = `${fmtC(precioReal)}`;
-  document.getElementById('linkMonto').textContent = fmtC(precioReal);
-  document.getElementById('cashMonto').textContent = fmtC(precioReal);
 
   pagoMetodo      = null;
   selectedSubPlan = null;
   subPagoComo     = METODO_LINK_BAC;
   etiquetaMetodoSub(null);   /* otra alumna, otro caso: se vuelve a preguntar */
-  document.getElementById('msbTransfer').classList.remove('sel');
-  document.getElementById('msbCash').classList.remove('sel');
   document.getElementById('msbSub').classList.remove('sel');
-  document.getElementById('transferBox').classList.remove('show');
-  document.getElementById('cashNote').style.display = 'none';
   document.getElementById('subCheckBox').classList.remove('visible');
   document.getElementById('btnPagar').disabled = true;
+  document.getElementById('btnPagar').textContent = 'Confirmar reserva →';
+  selectMetodo('sub');
 }
 
 /* PASO Lugar → Pago (solo Pilates). Si la clase es gratis, va a confirmación */
@@ -7031,13 +7071,9 @@ function confirmLugar() {
 }
 
 function selectMetodo(tipo) {
-  if (!['transfer','cash','sub'].includes(tipo)) return;
+  if (tipo !== 'sub') return;
   pagoMetodo = tipo;
-  document.getElementById('msbTransfer').classList.toggle('sel', tipo==='transfer');
-  document.getElementById('msbCash').classList.toggle('sel', tipo==='cash');
   document.getElementById('msbSub').classList.toggle('sel', tipo==='sub');
-  document.getElementById('transferBox').classList.toggle('show', tipo==='transfer');
-  document.getElementById('cashNote').style.display = tipo==='cash' ? 'block' : 'none';
   const subBox = document.getElementById('subCheckBox');
   subBox.classList.toggle('visible', tipo==='sub');
   if (tipo==='sub') {
@@ -7062,9 +7098,9 @@ function etiquetaMetodoSub(tienePlan) {
   const txt = document.getElementById('msbSubTxt');
   if (!ico || !txt) return;
   ico.textContent = tienePlan === null ? '💳' : tienePlan ? '💎' : '💳';
-  txt.textContent = tienePlan === null ? 'Membresía o link BAC'
+  txt.textContent = tienePlan === null ? 'Mi plan o comprar paquete'
                   : tienePlan ? 'Usar mi membresía'
-                  : 'Comprar con link BAC';
+                  : 'Comprar paquete';
 }
 
 async function verifySub() {
@@ -7105,6 +7141,8 @@ async function verifySub() {
 
   /* Suscriptora activa, vigente y con clases suficientes */
   if (vigente && alcanza) {
+    document.getElementById('psPrice').textContent = 'Incluida';
+    document.getElementById('btnPagar').textContent = 'Confirmar reserva →';
     /* selectedSubPlan queda en null a propósito: significa "un plan que
        eligió COMPRAR", no "el plan que ya tiene". Ponerle acá su propio plan
        la dejaba a un paso de que le cobraran otro entero: si entre esta
@@ -7136,7 +7174,7 @@ async function verifySub() {
     result.innerHTML = `
       <div class="sub-err" style="background:rgba(224,169,59,.1);border-color:rgba(224,169,59,.35);color:#7a5200">
         ⏳ Tu plan <strong>${pd?.nombre||''}</strong> está pendiente de confirmación de pago.
-        Te avisaremos al activarlo. Mientras tanto puedes pagar esta clase con otro método.
+        Te avisaremos al activarlo. Podrás reservar cuando tu pago esté verificado.
       </div>`;
     document.getElementById('btnPagar').disabled = true;
     return;
@@ -7176,13 +7214,16 @@ async function verifySub() {
 }
 
 function selectSubPlan(planKey) {
+  if (!PLANES_BOOKING_VISIBLE.includes(planKey)) return;
   selectedSubPlan = planKey;
+  document.getElementById('psPrice').textContent = fmtC(PLANES_SUB[planKey].precio);
   document.querySelectorAll('.sub-plane').forEach(el =>
     el.classList.toggle('sel', el.dataset.plan === planKey));
   /* Sin argumento: si cambia de paquete se le respeta la forma de pago que
      ya había elegido, y solo se cae a la primera disponible cuando la suya
      dejó de existir —el caso real es el link BAC en un plan que no tiene. */
   pintarComoPago();
+  document.getElementById('btnPagar').textContent = 'Comprar paquete →';
   document.getElementById('btnPagar').disabled = false;
 }
 
@@ -7206,14 +7247,12 @@ function pintarComoPago(elegida) {
   btns.innerHTML = opciones.map(m => `
     <button type="button" class="scp-btn rb-press${m.id === subPagoComo ? ' sel' : ''}"
       onclick="pintarComoPago('${m.id}')">
-      <span class="scp-ico">${m.ico}</span>${m.id === METODO_LINK_BAC ? 'Link BAC'
-        : m.id === METODO_TRANSFER ? 'Transferencia' : 'Efectivo'}
+      <span class="scp-ico">${m.ico}</span>${m.id === METODO_LINK_BAC ? 'Link BAC' : 'Transferencia'}
     </button>`).join('');
 
   if (nota) nota.textContent =
       subPagoComo === METODO_LINK_BAC ? 'Al terminar te abrimos la página segura del banco.'
-    : subPagoComo === METODO_TRANSFER ? 'Te pasamos los datos de la cuenta por WhatsApp.'
-    : 'Pagás al llegar a tu clase. Tu paquete se activa cuando lo recibimos.';
+    : 'Te pasamos los datos de la cuenta por WhatsApp. Podrás reservar al verificar tu transferencia.';
 }
 
 /* La alumna elige plan → queda PENDIENTE hasta que el admin confirme el pago.
@@ -7224,13 +7263,13 @@ function pintarComoPago(elegida) {
    de suscriptoras está cerrada) — todo el trabajo, incluido el anti-
    duplicados por correo/teléfono/nombre, lo hace solicitar_plan_publico()
    del lado de la base. */
-async function autoRegisterSub(nombre, email, tel, nivel, planKey) {
+async function autoRegisterSub(nombre, email, tel, nivel, planKey, metodo = subPagoComo) {
   if (!SB_ON) {
     const arr = getSuscriptoras();
     const idx = findSubIndex(arr, email, tel, nombre);
     const hoy = hoyISO();
     if (idx >= 0) {
-      arr[idx].pendiente = { plan: planKey, fecha: hoy };
+      arr[idx].pendiente = { plan: planKey, fecha: hoy, metodo };
       arr[idx].nombre    = nombre || arr[idx].nombre;
       arr[idx].tel       = tel    || arr[idx].tel;
       if (esFichaSinReclamar(arr[idx]) && email) arr[idx].email = email.trim().toLowerCase();
@@ -7239,18 +7278,18 @@ async function autoRegisterSub(nombre, email, tel, nivel, planKey) {
         id: 'SUB-'+Date.now().toString(36).toUpperCase().slice(-6),
         nombre, email, tel: tel||'', notas: nivel||'', plan: planKey,
         clasesTotal:0, clasesRestantes:0, clasesUsadas:0, activa:false,
-        pendiente: { plan: planKey, fecha: hoy }, historial:[], renovaciones:[]
+        pendiente: { plan: planKey, fecha: hoy, metodo }, historial:[], renovaciones:[]
       });
     }
     await saveSuscriptoras(arr);
     return;
   }
   try {
-    await sbRpc('solicitar_plan_publico', {
-      p_nombre: nombre, p_email: email, p_tel: tel, p_nivel: nivel, p_plan: planKey
+    await sbRpc('solicitar_compra_publica', {
+      p_nombre: nombre, p_email: email, p_tel: tel, p_nivel: nivel, p_plan: planKey, p_metodo: metodo
     });
   } catch (e) {
-    alert('No se pudo registrar tu solicitud de plan. Escríbenos por WhatsApp para confirmarla ✧');
+    throw e;
   }
 }
 
@@ -7278,9 +7317,8 @@ async function confirmarPagoSub(email) {
      la compra quede auditable. */
   const pagoPendiente = arr[idx].pendiente;
   const colgadas = reservasDePlanPendiente(arr[idx].email, arr[idx].tel);
-  const metodoCompra = pagoPendiente.estado === 'dice_pago'
-    ? METODO_LINK_BAC
-    : (metodoDeclaradoEnReservas(colgadas) || METODO_TRANSFER);
+  const metodoCompra = pagoPendiente.metodo || (pagoPendiente.estado === 'dice_pago'
+    ? METODO_LINK_BAC : (metodoDeclaradoEnReservas(colgadas) || METODO_TRANSFER));
   const now  = new Date();
   const hoy  = fmtISO(now);
   const venc = calcVence(pd.meses);
@@ -7375,120 +7413,56 @@ async function proceedToConfirm() {
   const nivel  = document.getElementById('mNivel').value;
   const notas  = document.getElementById('mNotas').value.trim();
 
-  /* Ya no hace falta un "saldo fresco" aparte: quien reserva no tiene sesión
-     iniciada, así que findSuscriptora()/cobrarClase() de más abajo van a
-     mi_suscripcion_activa()/cobrar_clase_publica() directo a la base — cada
-     vez consultan el número real, nunca uno guardado en el navegador desde
-     hace rato. (Antes esto llamaba a sincronizarSubs(), que bajaba la tabla
-     completa; ahora esa lectura la bloquea la base para quien no inició
-     sesión, así que solo habría fallado sin lograr nada.) */
+
 
   const { clase, dateStr, hora, instructor } = booking;
   const info   = INFO[clase];
   const d      = new Date(dateStr+'T12:00:00');
   const diaStr = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
-  /* Total de clases que se están apartando (esta + las semanas repetidas):
-     manda sobre el monto a pagar y sobre cuántas clases descuenta el plan. */
+
   const nClases = clasesEnReserva();
-  const subActiva  = pagoMetodo==='sub' ? await findSuscriptora(email, tel, nombre) : null;
+  const subActiva  = await findSuscriptora(email, tel, nombre);
   const usaSubActiva = !!(subActiva && subActiva.activa && !subVencida(subActiva) &&
                           (esIlimitada(subActiva) || subActiva.clasesRestantes >= nClases));
   const planUsado  = usaSubActiva ? subActiva.plan : selectedSubPlan;
   const esPlanPendiente = pagoMetodo==='sub' && !usaSubActiva && !!selectedSubPlan;
 
-  /* Con paquete activo o clase gratis no queda NADA pendiente: la clase ya
-     se cobró (o no costaba nada) y el cupo ya es suyo. Pedirle igual que
-     "complete su pago por WhatsApp" —como hacía esta pantalla para todo el
-     mundo por igual— era pura confusión para quien no tiene nada que pagar.
-     Esta bandera es la que separa esa confirmación directa del resto de
-     casos (transferencia, efectivo, link BAC pendiente), donde sí hace
-     falta coordinar algo y la pantalla completa sigue haciendo falta. */
-  const confirmacionDirecta = usaSubActiva || booking.gratis;
-
-  /* Red de seguridad: pagando con suscripción, tiene que haber O un plan
-     vigente con saldo, O un paquete nuevo elegido. Sin ninguno de los dos la
-     reserva quedaría guardada sin cobrarse nada.
-     En la pantalla no se puede llegar acá (verifySub deja el botón apagado
-     hasta elegir paquete), pero ahora el saldo lo confirma el servidor al
-     momento de reservar: entre que se abre el modal y se aprieta el botón,
-     esa misma alumna pudo haber gastado su última clase desde otro celular. */
-  if (pagoMetodo === 'sub' && !usaSubActiva && !esPlanPendiente) {
-    const btnPagarEl = document.getElementById('btnPagar');
-    if (btnPagarEl) btnPagarEl.disabled = false;
-    alert(nClases > 1
-      ? `Tu plan no alcanza para las ${nClases} clases que estás apartando.\n\nQuita algunas semanas o elige un paquete ✧`
-      : 'Tu plan ya no tiene clases disponibles.\n\nElige un paquete o escríbenos por WhatsApp ✧');
-    await verifySub();
-    const pasoPago = mFlow.findIndex(p => p.panel === 'mp2');
-    if (pasoPago >= 0) mGoStep(pasoPago + 1);
+  if (!usaSubActiva) {
+    if (esPlanPendiente) {
+      abrirCompra(selectedSubPlan, subPagoComo, { nombre, email, tel });
+    } else {
+      alert('Necesitas un paquete o membresía activa con clases disponibles para reservar.');
+      if (booking.gratis) abrirCompra('singular', METODO_LINK_BAC, { nombre, email, tel });
+      else await verifySub();
+    }
     return;
   }
-  /* Un paquete pendiente ya no es siempre "por link BAC": la alumna dice en
-     qué forma lo va a pagar y eso queda escrito acá. Es lo único que lo
-     guarda —`pendiente` en la base no tiene columna de método—, y de acá lo
-     vuelve a leer confirmarPagoSub() para anotar bien la compra.
-     La coletilla "(pago pendiente)" no se toca: es la marca exacta con la
-     que esReservaDePlanPendiente() encuentra estas reservas. */
-  const comoPend = METODOS_COMPRA.find(m => m.id === subPagoComo) || METODOS_COMPRA[0];
+
+
+  const confirmacionDirecta = usaSubActiva || booking.gratis;
+
+
   const metodoDtxt = booking.gratis
     ? '🎁 Clase gratis'
-    : pagoMetodo==='transfer'
-    ? '🏦 Transferencia'
-    : pagoMetodo==='cash'
-    ? '💵 Efectivo en el estudio'
-    : pagoMetodo==='sub'
-    ? `${esPlanPendiente ? comoPend.ico + ' Compra por ' + comoPend.txt : '💎 Suscripción'} · ${PLANES_SUB[planUsado]?.nombre || 'Membresía'}${esPlanPendiente ? ' (pago pendiente)' : ''}`
-    : 'Método no seleccionado';
+    : `💎 Suscripción · ${PLANES_SUB[planUsado]?.nombre || 'Membresía'}`;
 
-  /* Monto real a pagar: gratis si es clase especial; el del plan elegido si pide
-     un paquete; "incluida" si usa suscripción activa; el de la clase en pago único */
-  const planPend = esPlanPendiente ? PLANES_SUB[selectedSubPlan] : null;
-  /* Se calcula a partir de un número de clases porque al final puede cambiar:
-     si una de las semanas repetidas no se pudo apartar, tampoco se le cobró,
-     y el comprobante tiene que decir lo que de verdad quedó. */
+
+
   const textoMonto = n => booking.gratis
     ? 'Gratis 🎁'
-    : usaSubActiva
-    ? (n > 1 ? `Incluidas en tu plan 💎 (${n} clases)` : 'Incluida en tu plan 💎')
-    : planPend
-    ? `${fmtC(planPend.precio)} (${planPend.nombre})`
-    : fmtC(precioDe(clase, dateStr, hora) * n);
+    : (n > 1 ? `Incluidas en tu plan 💎 (${n} clases)` : 'Incluida en tu plan 💎');
   let montoTxt = textoMonto(nClases);
 
-  /* ── Alerta de membresía ilimitada activada ──
-     Solo cuando la reserva es lo que la activa (esPlanPendiente): una socia
-     que YA tiene su ilimitada y solo está reservando su clase de rutina no
-     "activó" nada hoy. Antes esta alerta salía igual en los dos casos —
-     "Mensual ilimitado activada · Del [x] al [y]" en CADA reserva que hacía,
-     así llevara meses con el plan— y era ruido puro para ella. */
-  const subAlertEl = document.getElementById('subAlertContainer');
-  const esIlimit   = esPlanPendiente && (PLANES_SUB[planUsado]?.clases || 0) >= 1000;
-  if (esIlimit) {
-    const pd = PLANES_SUB[planUsado];
-    booking.subAlerta = { planNombre: pd.nombre, inicio: '—', fin: '—', precio: pd.precio, meses: pd.meses, pendiente: true };
-    subAlertEl.innerHTML = `<div class="sub-start-alert">
-          <span class="ssa-icon">⏳</span>
-          <div class="ssa-info">
-            <strong>${pd.nombre} — pendiente de pago</strong>
-            <span>Tu membresía se activará cuando el estudio confirme tu pago.</span>
-            <span class="ssa-price">${fmtC(pd.precio)}${pd.meses > 1 ? '/mes · ' + pd.meses + ' meses' : '/mes'}</span>
-          </div>
-        </div>`;
-    subAlertEl.style.display = 'block';
-  } else {
-    subAlertEl.style.display = 'none';
-    booking.subAlerta = null;
-  }
 
-  /* Seguridad: traer el estado real de la nube antes de tomar el lugar, por si
-     alguien reservó desde otro celular mientras esta alumna llenaba sus datos.
-     Quien reserva no tiene sesión iniciada: cupos, no la tabla completa. */
+  const subAlertEl = document.getElementById('subAlertContainer');
+  subAlertEl.style.display = 'none';
+  booking.subAlerta = null;
+
+
   if (SB_ON) { try { await sincronizarCuposPublico(); } catch(e) {} }
   const clientesAhora = getClientes(clase, dateStr, hora);
 
-  /* Tope de cupos: red de seguridad además del mat. Ahora que todas las clases
-     eligen mat, el índice único de la base ya bloquea el mat repetido; esto
-     atrapa además las reservas sin lugar (las que agenda el admin). */
+
   if (clientesAhora.length >= cuposDe(clase, dateStr, hora)) {
     alert('Los cupos de esta clase se acaban de llenar. Escríbenos por WhatsApp y te apartamos lugar en la siguiente ✧');
     closeModal();
@@ -7496,8 +7470,7 @@ async function proceedToConfirm() {
     return;
   }
 
-  /* El cierre de las clases de madrugada pudo caer mientras llenaba el
-     formulario. Se revisa acá también: es el último punto antes de guardar. */
+
   if (inscripcionCerrada(dateStr, hora)) {
     alert(`La inscripción de esta clase cerró a las ${CIERRE_TXT} del día anterior. ` +
           `Escríbenos por WhatsApp y vemos si todavía se puede ✧`);
@@ -7506,10 +7479,7 @@ async function proceedToConfirm() {
     return;
   }
 
-  /* Misma alumna, misma clase: evita la reserva doble por tocar el botón dos
-     veces, por volver atrás en el navegador, o por reservar de nuevo sin
-     acordarse. Lo contesta la base, que es la única que ve de quién es cada
-     reserva; el teléfono manda porque es con lo que la alumna inicia sesión. */
+
   if (await yaTieneReserva(clase, dateStr, hora, tel, email)) {
     alert('Ya tienes una reserva en esta clase ✧\n\nRevisala en "Mis clases". Si necesitas cambiarla, escríbenos por WhatsApp.');
     closeModal();
@@ -7524,27 +7494,20 @@ async function proceedToConfirm() {
     return;
   }
 
-  /* Las reservas por transferencia quedan "por confirmar" hasta que el admin
-     verifique el pago (pagoOk:false). El resto se considera resuelto aparte. */
-  const btnFinal = document.getElementById('btnPagar');
-  if (btnFinal) btnFinal.disabled = true;   /* candado contra el doble toque */
 
-  /* Se cobra la clase del paquete ANTES de guardar: si el saldo ya se agotó
-     desde otro celular, se detiene aquí y no queda una reserva sin pagar.
-     Las ilimitadas no descuentan (cobrarClase devuelve false). */
+  const btnFinal = document.getElementById('btnPagar');
+  if (btnFinal) btnFinal.disabled = true;
+
+
   let cobro = false;
   if (usaSubActiva) {
-    /* Si es una ficha que el estudio cargó a mano (sin correo real todavía),
-       cobrarClase() la enlaza con el correo/teléfono con los que se
-       identificó ahora, en la misma operación con la que cobra: ya no hace
-       falta un paso aparte para vincularla primero. */
-    if (!esIlimitada(subActiva)) {
+
+    if (!booking.gratis && !esIlimitada(subActiva) && !SB_ON) {
       cobro = await cobrarClase(subActiva.id, email, tel, nombre);
       if (!cobro) {
         if (btnFinal) btnFinal.disabled = false;
         alert(`Ya usaste todas las clases de tu plan ${PLANES_SUB[subActiva.plan]?.nombre || ''}.\n\nEscríbenos por WhatsApp para renovarlo ✧`);
-        /* verifySub() vuelve a consultar mi_suscripcion_activa: datos frescos
-           de la base directo, sin necesitar un sincronizarSubs() aparte. */
+
         await verifySub();
         const pasoPago = mFlow.findIndex(p => p.panel === 'mp2');
         if (pasoPago >= 0) mGoStep(pasoPago + 1);
@@ -7554,12 +7517,12 @@ async function proceedToConfirm() {
   }
 
   try {
-    await saveSlot(clase, dateStr, hora, { nombre, email, tel, nivel, notas, lugar: booking.lugar, metodo: metodoDtxt, instructor, pagoOk: pagoMetodo !== 'transfer', claseDescontada: cobro });
+    await saveSlot(clase, dateStr, hora, { nombre, email, tel, nivel, notas, lugar: booking.lugar, metodo: metodoDtxt, instructor, pagoOk: true, claseDescontada: !booking.gratis && !esIlimitada(subActiva) });
   } catch (err) {
-    /* La reserva no se guardó: hay que regresarle la clase que ya se le cobró */
+
     if (cobro) { try { await devolverClase(subActiva.id, email, tel); } catch(e) {} }
     if (btnFinal) btnFinal.disabled = false;
-    /* 409 = el índice único rechazó el mat: otra alumna se adelantó */
+
     if (err.status === 409 && booking.lugar) {
       alert(`El lugar ${booking.lugar} acaba de ser reservado por alguien más. Por favor elige otro.`);
       try { await sincronizarCuposPublico(); } catch(e) {}
@@ -7571,12 +7534,7 @@ async function proceedToConfirm() {
     return;
   }
 
-  /* ── Las demás semanas del mes ──
-     La fecha principal ya quedó guardada. Cada semana extra se trata por
-     separado a propósito: si una falla (se llenó desde otro celular, se cayó
-     la conexión) no se pierde lo ya reservado, y solo a esa se le devuelve la
-     clase que se le había cobrado. Al final se le dice exactamente cuáles
-     quedaron y cuáles no. */
+
   const repHechas = [], repFallidas = [];
   for (const ds of (booking.repetir || [])) {
     let cobroX = false;
@@ -7591,19 +7549,19 @@ async function proceedToConfirm() {
         repFallidas.push({ ds, motivo: 'sin cupo' }); continue;
       }
 
-      /* El mismo mat si está libre esa fecha; si no, el primero disponible */
+
       const ocupados = new Set(clientesDs.filter(c => c.lugar).map(c => Number(c.lugar)));
       let mat = (booking.lugar && !ocupados.has(Number(booking.lugar))) ? Number(booking.lugar) : null;
       if (!mat) { for (const i of matsDe(clase, ds, hora)) if (!ocupados.has(i)) { mat = i; break; } }
       if (!mat) { repFallidas.push({ ds, motivo: 'sin cupo' }); continue; }
 
-      if (usaSubActiva && !esIlimitada(subActiva)) {
+      if (!booking.gratis && !esIlimitada(subActiva) && !SB_ON) {
         cobroX = await cobrarClase(subActiva.id, email, tel, nombre);
         if (!cobroX) { repFallidas.push({ ds, motivo: 'sin clases en tu plan' }); continue; }
       }
 
       await saveSlot(clase, ds, hora, { nombre, email, tel, nivel, notas, lugar: mat,
-        metodo: metodoDtxt, instructor, pagoOk: pagoMetodo !== 'transfer', claseDescontada: cobroX });
+        metodo: metodoDtxt, instructor, pagoOk: true, claseDescontada: !booking.gratis && !esIlimitada(subActiva) });
       repHechas.push({ ds, lugar: mat });
     } catch (e) {
       if (cobroX) { try { await devolverClase(subActiva.id, email, tel); } catch(_) {} }
@@ -7614,30 +7572,13 @@ async function proceedToConfirm() {
     alert('Estas fechas no se pudieron apartar:\n\n' +
       repFallidas.map(f => `• ${fmtDiaLargo(f.ds)} — ${f.motivo}`).join('\n') +
       '\n\nEl resto de tu reserva sí quedó. Escríbenos por WhatsApp si necesitas ayuda ✧');
-    /* El comprobante debe cobrar solo lo apartado, no lo intentado */
+
     montoTxt = textoMonto(1 + repHechas.length);
   }
 
-  /* Plan nuevo o renovación → registrar como PENDIENTE (el admin confirma el pago)
-     y avisar por correo al estudio.
-     Va DESPUÉS de guardar la reserva: si la reserva falla, ya no queda una
-     solicitud de plan huérfana en el panel ni llega un correo por cada reintento. */
-  if (esPlanPendiente) {
-    await autoRegisterSub(nombre, email, tel, nivel, selectedSubPlan);
-    notificarSolicitudCorreo({
-      Nombre: nombre,
-      Email: email,
-      Telefono: tel || '—',
-      Nivel: nivel || '—',
-      Plan: planPend.nombre,
-      Monto: fmtC(planPend.precio),
-      'Forma de pago': comoPend.txt,
-      'Clase reservada': `${info.nombre} · ${diaStr} · ${hora12(hora)}${booking.lugar ? ' · Lugar ' + booking.lugar : ''}`,
-      Solicitado: new Date().toLocaleString('es-NI')
-    });
-  }
 
-  /* ── Verificar umbral y mostrar alerta admin ── */
+
+
   const ocupNuevo  = getOcupados(clase, dateStr, hora);
   const libresNuevo = cuposDe(clase, dateStr, hora) - ocupNuevo;
   const capContainer = document.getElementById('capAlertContainer');
@@ -7650,20 +7591,13 @@ async function proceedToConfirm() {
     }
   }
 
-  /* Las semanas que sí quedaron, para que la alumna las vea y las anote */
+
   const repTxtLista = repHechas
     .map(r => `${fmtDiaLargo(r.ds)}${r.lugar ? ` · Lugar ${r.lugar}` : ''}`).join('<br/>');
 
-  /* La pantalla completa (título + WhatsApp + comprobante) sirve para
-     coordinar un pago que falta. Con paquete activo o clase gratis no hay
-     nada que coordinar: el título dice directo que ya quedó reservada, y
-     los botones se reducen a uno solo — cerrar. Nada de esto toca la
-     lógica de arriba (cobro, guardado, cupos): solo lo que se le muestra. */
-  document.getElementById('confirmTitulo').textContent = confirmacionDirecta
-    ? '¡Reservada! ✓' : '¡Solicitud enviada!';
-  document.getElementById('confirmSub').innerHTML = confirmacionDirecta
-    ? `Ya quedó tu lugar. Te esperamos el <strong>${diaStr}</strong> a las <strong>${hora12(hora)}</strong> ✧`
-    : 'Te abrimos WhatsApp para que completes tu pago con nosotras.<br/>Tu cupo queda asegurado en cuanto confirmemos tu reserva.';
+
+  document.getElementById('confirmTitulo').textContent = '¡Reservada! ✓';
+  document.getElementById('confirmSub').innerHTML = `Ya quedó tu lugar. Te esperamos el <strong>${diaStr}</strong> a las <strong>${hora12(hora)}</strong> ✧`;
   document.getElementById('btnListoDirecta').style.display = confirmacionDirecta ? '' : 'none';
   document.getElementById('btnCompartir').style.display    = confirmacionDirecta ? 'none' : '';
   document.getElementById('btnDownload').style.display     = confirmacionDirecta ? 'none' : '';
@@ -7682,78 +7616,9 @@ async function proceedToConfirm() {
     <div class="cr-row"><span class="cr-icon">💳</span><span class="cr-text">${metodoDtxt}</span></div>
     ${notas ? `<div class="cr-row"><span class="cr-icon">📝</span><span class="cr-text">${escHtml(notas)}</span></div>` : ''}`;
 
-  /* Si el paquete que acaba de pedir tiene link de pago, se le ofrece
-     pagarlo aquí mismo. Sin link la caja no aparece y todo sigue por
-     WhatsApp igual que hasta ahora. */
-  const pagoBox = document.getElementById('pagoLinkBox');
-  if (pagoBox) {
-    const pidePlan = !!(esPlanPendiente && planPend);
-    const conLink  = pidePlan && subPagoComo === METODO_LINK_BAC && linkDePago(selectedSubPlan);
-    pagoBox.style.display = pidePlan ? 'block' : 'none';
-    pagoBox.innerHTML = !pidePlan ? '' : conLink ? `
-      <button class="btn-pagar-link rb-press" id="btnPagarLink"
-        onclick="irAPagar('${escArg(selectedSubPlan)}','${escArg(email)}','${escArg(tel)}')">
-        💳 Pagar ${escHtml(planPend.nombre)} · ${fmtC(planPend.precio)}
-      </button>
-      <p class="pl-nota">Se abre la página segura del banco en otra pestaña.
-        Esta se queda acá con tu comprobante.</p>
-      <button class="btn-ya-pague" id="btnYaPague" style="display:none"
-        onclick="avisarQuePague('${escArg(email)}','${escArg(tel)}')">
-        ✓ Ya pagué
-      </button>`
-    : subPagoComo === METODO_EFECTIVO ? `
-      <div class="pl-efectivo">
-        <span class="ple-ico">💵</span>
-        <strong>${escHtml(planPend.nombre)} · ${fmtC(planPend.precio)}</strong>
-        <span>Llevá el monto a tu clase. Tu paquete queda activado apenas lo recibimos.</span>
-      </div>`
-    : `
-      <button class="btn-pagar-link rb-press"
-        onclick="transferWA('${escArg(selectedSubPlan)}')">
-        🏦 Pedir los datos de la cuenta
-      </button>
-      <p class="pl-nota">Te pasamos la cuenta por WhatsApp. Mandanos el
-        comprobante y activamos tu ${escHtml(planPend.nombre)}.</p>`;
-  }
+  document.getElementById('pagoLinkBox').style.display = 'none';
 
-  const notaWA = notas ? `📝 Notas: ${notas}\n` : '';
-  const msg = encodeURIComponent(
-    `✧ COMPROBANTE DE RESERVA ✧\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `Presenza Studio · Managua\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `${info.emoji} Clase: ${info.nombre}\n` +
-    `📅 Fecha: ${diaStr}\n` +
-    `⏰ Hora: ${hora12(hora)}\n` +
-    (booking.lugar ? `📍 Lugar: ${booking.lugar}\n` : ``) +
-    (repHechas.length
-      ? `🔁 También apartadas:\n` +
-        repHechas.map(r => `   • ${fmtDiaLargo(r.ds)}${r.lugar ? ` · Lugar ${r.lugar}` : ''}\n`).join('')
-      : ``) +
-    `🎽 Instructora: ${instructor}\n` +
-    `💰 Monto: ${montoTxt}\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `👤 Cliente: ${nombre}\n` +
-    `   Nivel: ${nivel}\n` +
-    `📱 Tel: ${tel}\n` +
-    `📧 Email: ${email}\n` +
-    `💳 Pago: ${metodoDtxt}\n` +
-    /* El estudio necesita saber por dónde le entra la plata del paquete:
-       es lo que decide si la espera en la cuenta o en caja. */
-    (esPlanPendiente ? `   Va a pagar: ${comoPend.txt}\n` : ``) +
-    notaWA +
-    `━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `¡Gracias por elegir Presenza! ✧`
-  );
-  const waHref = `https://wa.me/${WA}?text=${msg}`;
-  document.getElementById('waLink').href = waHref;
 
-  /* La confirmación real la hace el estudio por WhatsApp, no esta pantalla —
-     salvo con paquete activo o clase gratis, donde no hay nada que el
-     estudio tenga que confirmar y abrir WhatsApp sería puro estorbo. */
-  if (!confirmacionDirecta) window.open(waHref, '_blank');
-
-  /* ── Llenar voucher ── */
   const confirmNum = 'PS-' + Date.now().toString(36).toUpperCase().slice(-6);
   document.getElementById('vouEmoji').textContent      = info.emoji;
   document.getElementById('vouClase').textContent      = info.nombre;
@@ -7774,7 +7639,7 @@ async function proceedToConfirm() {
   } else {
     notasRow.style.display = 'none';
   }
-  /* Guardar datos en booking para el comprobante */
+
   booking.nombre     = nombre;
   booking.email      = email;
   booking.tel        = tel;
@@ -7794,9 +7659,7 @@ async function proceedToConfirm() {
   renderCards();
 }
 
-/* ════════════════════════════════════════
-   ALERTA DE CAPACIDAD
-════════════════════════════════════════ */
+
 function buildCapacityAlert(clase, dateStr, hora, libres) {
   const info    = INFO[clase];
   const clientes = getClientes(clase, dateStr, hora);
@@ -9096,10 +8959,11 @@ function buildPendientesHtml() {
         <strong>${escHtml(s.nombre)}</strong>
         <span>${escHtml(s.email)} · ${escHtml(s.tel)||'—'}</span>
         <span class="sa-pend-plan">${pd.nombre} · <strong>${fmtC(pd.precio)}</strong> · solicitado ${s.pendiente.fecha}</span>
+        <span>${escHtml(etiquetaMetodoCompra({ metodo: s.pendiente.metodo }))}</span>
         <span class="pend-estado ${est.cls}">${est.txt}${s.pendiente.ref ? ' · ref. ' + escHtml(s.pendiente.ref) : ''}</span>
       </div>
       <div class="sa-pend-btns">
-        <button class="btn-pend-ok" onclick="confirmarPagoSub('${escArg(s.email)}')">${esUnica ? '✓ Aceptar pago' : '✓ Confirmar pago'}</button>
+        <button class="btn-pend-ok" onclick="confirmarPagoSub('${escArg(s.email)}')">${s.pendiente.metodo === METODO_TRANSFER ? '✓ Verificar transferencia' : '✓ Confirmar pago'}</button>
         <button class="btn-pend-no" onclick="rechazarPagoSub('${escArg(s.email)}')">✕ Rechazar</button>
       </div>
     </div>`;
@@ -9431,10 +9295,10 @@ async function guardarNuevaSub() {
   const notas  = document.getElementById('nsNotas').value.trim();
   if (!nombre || !email) { alert('Nombre y email son obligatorios.'); return; }
   if (!IDS_METODO_COMPRA.includes(metodo)) {
-    alert('Selecciona cómo llegó el pago: link BAC, transferencia o efectivo.'); return;
+    alert('Selecciona cómo llegó el pago: link BAC o transferencia.'); return;
   }
   if (metodo === METODO_LINK_BAC && !linkDePago(plan)) {
-    alert('Este plan no tiene un link BAC configurado. Selecciona transferencia o efectivo.'); return;
+    alert('Este plan no tiene un link BAC configurado. Selecciona transferencia.'); return;
   }
 
   const arr  = getSuscriptoras();
@@ -9609,7 +9473,7 @@ function actualizarRenovacionMetodo() {
   const metodo = sel?.value || '';
   if (rnvPlan && metodo === METODO_LINK_BAC && !linkDePago(rnvPlan)) {
     sel.value = '';
-    alert('Este plan no tiene un link BAC configurado. Selecciona transferencia o efectivo.');
+    alert('Este plan no tiene un link BAC configurado. Selecciona transferencia.');
   }
   document.getElementById('rnvOk').disabled =
     !rnvPlan || !IDS_METODO_COMPRA.includes(sel?.value);
@@ -9626,7 +9490,7 @@ async function confirmarRenovar() {
   if (!rnvEmail || !rnvPlan || !PLANES_SUB[rnvPlan]) return;
   const metodo = document.getElementById('rnvMetodo').value;
   if (!IDS_METODO_COMPRA.includes(metodo)) {
-    alert('Selecciona cómo llegó el pago: link BAC, transferencia o efectivo.'); return;
+    alert('Selecciona cómo llegó el pago: link BAC o transferencia.'); return;
   }
 
   const ok = document.getElementById('rnvOk');
@@ -10011,13 +9875,13 @@ async function agendarSubAClase(email, clase, dateStr, hora, instructor, lugarPe
 
   const planN = PLANES_SUB[sub.plan]?.nombre || 'Membresía';
   /* Agendarla desde el panel cobra igual que si reservara ella misma */
-  const cobro = esIlimitada(sub) ? false : await cobrarClase(sub.id);
-  if (!cobro && !esIlimitada(sub)) { alert(`${sub.nombre} ya no tiene clases disponibles.`); return false; }
+  const cobro = !SB_ON && !esIlimitada(sub) ? await cobrarClase(sub.id) : false;
+  if (!SB_ON && !cobro && !esIlimitada(sub)) { alert(`${sub.nombre} ya no tiene clases disponibles.`); return false; }
   try {
     await saveSlot(clase, dateStr, hora, {
       nombre: sub.nombre, email: sub.email, tel: sub.tel||'',
       nivel: '', notas: 'Agendada por admin', lugar: lugarLibre,
-      metodo: `💎 Suscripción · ${planN}`, instructor, claseDescontada: cobro
+      metodo: `💎 Suscripción · ${planN}`, instructor, claseDescontada: !esIlimitada(sub)
     });
   } catch (e) {
     if (cobro) { try { await devolverClase(sub.id); } catch(e2) {} }
@@ -12684,7 +12548,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <option value="">Selecciona el método…</option>
         <option value="link_bac">🔗 Link de pago BAC</option>
         <option value="transferencia">🏦 Transferencia bancaria</option>
-        <option value="efectivo">💵 Efectivo en el estudio</option>
       </select>
       <div class="rnv-resumen vacio" id="rnvResumen">Toca un plan para ver cómo le queda.</div>
     </div>
@@ -12745,5 +12608,30 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 
+<style>
+  #compraDialog { margin:auto; border:0; border-radius:24px; padding:28px; width:calc(100% - 32px); max-width:480px; max-height:90dvh; overflow:auto; color:var(--text); background:var(--white); box-shadow:var(--sh); }
+  #compraDialog::backdrop { background:rgba(74,15,26,.58); backdrop-filter:blur(6px); }
+  #compraDialog h2 { color:var(--wine); margin-bottom:12px; }
+  #compraDialog p { margin:12px 0; font-size:.85rem; line-height:1.6; }
+  #compraDialog label { display:block; margin:14px 0; font-size:.8rem; }
+  #compraDialog input { display:block; width:100%; padding:12px; margin-top:5px; border:1px solid var(--cream-dd); border-radius:10px; font:inherit; }
+  #compraDialog .btn-confirmar { display:block; text-align:center; text-decoration:none; margin:14px 0; }
+  #compraDialog [hidden] { display:none !important; }
+</style>
+<dialog id="compraDialog" aria-labelledby="compraTitulo" oncancel="if(document.getElementById('compraEnviar').disabled)event.preventDefault()">
+  <button type="button" class="modal-close" style="float:right" aria-label="Cerrar compra" onclick="if(!document.getElementById('compraEnviar').disabled)document.getElementById('compraDialog').close()">✕</button>
+  <h2 id="compraTitulo">Tu paquete</h2>
+  <p id="compraResumen"></p>
+  <p>Método de pago: <strong id="compraMetodo"></strong></p>
+  <form id="compraForm" onsubmit="enviarCompra(event)">
+    <label>Nombre completo<input id="compraNombre" name="nombre" autocomplete="name" required maxlength="120" /></label>
+    <label>Correo electrónico<input id="compraEmail" name="email" type="email" autocomplete="email" required maxlength="254" /></label>
+    <label>Teléfono<input id="compraTel" name="tel" type="tel" autocomplete="tel" required maxlength="24" /></label>
+    <p>La solicitud no aparta cupo. Podrás reservar cuando tu plan esté activo.</p>
+    <p id="compraError" role="alert" style="color:#a12030"></p>
+    <button class="btn-confirmar" id="compraEnviar" type="submit">Confirmar compra →</button>
+  </form>
+  <div id="compraResultado" aria-live="polite" hidden></div>
+</dialog>
 </body>
 </html>
