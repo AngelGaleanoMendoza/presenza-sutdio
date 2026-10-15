@@ -39,6 +39,18 @@ Editor de Supabase, después de `supabase-login-alumnas.sql`. El permiso se
 valida en el servidor y se limita a esas tres cuentas; las coaches no pueden
 utilizar esta función.
 
+Las alumnas pueden cancelar desde **Mis clases**. Con 6 horas o más se
+devuelve la clase que se descontó del paquete. Con menos de 6 horas se pide
+confirmación: los paquetes conservan la clase descontada y las membresías
+ilimitadas generan un fee pendiente de **US$5**. No se realiza un cargo
+automático a la tarjeta.
+
+Jimena, Carlos y Laura ven los fees pendientes en **Hoy → Cancelaciones
+tardías**. El botón **Registrar fee recibido** se utiliza después de recibir
+el pago. Para habilitar esta política, ejecutar
+`supabase-cancelaciones-tardias.sql` después de
+`supabase-cancelar-y-reserva-doble.sql` y publicar la web actualizada.
+
 ### Acceso de coach — solo sus propias clases
 
 | Usuario     | Persona                    |

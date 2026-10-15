@@ -5373,7 +5373,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-10-15.2';
+const BUILD = '2026-10-15.3';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5629,17 +5629,9 @@ function alFila(c, estado) {
   const info   = INFO[c.clase] || { nombre:c.clase, emoji:'✧' };
   const cuando = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]} · ${hora12(c.hora)}`;
 
-  /* Quién puede cancelar sola: lo decide puede_cancelar, que viene del
-     servidor. A propósito no se calcula acá: la hora del celular la mueve
-     cualquiera, y con eso se cancelaría una clase que empieza en media hora. */
   let acciones = '';
   if (estado === 'proxima' && c.puede_cancelar !== undefined) {
-    /* El !== undefined importa: si todavía no se corrió el SQL nuevo, la
-       función vieja no manda este campo, y sin esa guarda TODA clase saldría
-       con el aviso de "faltan menos de 6h" aunque falten tres semanas. */
-    acciones = c.puede_cancelar
-      ? `<button class="btn-al-cancel" onclick="alCancelar(${Number(c.ts)},'${escArg(info.nombre)}','${escArg(cuando)}')">Cancelar</button>`
-      : `<span class="al-nocancel">Faltan menos de ${HORAS_CANCELAR}h · escríbenos para cancelar</span>`;
+    acciones = `<button class="btn-al-cancel" onclick="alCancelar(${Number(c.ts)},'${escArg(info.nombre)}','${escArg(cuando)}')">Cancelar</button>`;
   }
 
   return `<div class="al-clase${estado==='pasada' ? ' pasada' : ''}${estado==='cancelada' ? ' cancelada' : ''}">
@@ -5661,25 +5653,32 @@ function alFila(c, estado) {
   </div>`;
 }
 
-/* La ventana para cancelar sola. Vive en los dos lados: acá solo para el
-   texto, y en cancelar_mi_reserva() —del servidor— para la decisión real. */
-const HORAS_CANCELAR = 6;
-
+let alCancelando = false;
 async function alCancelar(ts, nombreClase, cuando) {
-  if (!confirm(
-    `¿Cancelar tu lugar en ${nombreClase}?\n${cuando}\n\n` +
-    `Si te habíamos descontado la clase de tu paquete, te la devolvemos.\n` +
-    `Después de cancelar, para volver tenés que reservar de nuevo.`)) return;
-
+  if (alCancelando) return;
+  alCancelando = true;
   const tok = localStorage.getItem(AL_TOKEN_KEY);
   try {
-    const r = (await sbRpc('cancelar_mi_reserva', { p_token: tok, p_ts: ts }) || [])[0];
+    const condiciones = (await sbRpc('cancelar_reserva_alumna', { p_token: tok, p_ts: ts }) || [])[0];
+    if (!condiciones?.ok) { alert(condiciones?.mensaje || 'No se pudo consultar tu reserva.'); return; }
+    const titulo = `${nombreClase}\n${cuando}\n\n`;
+    if (!confirm(titulo + condiciones.mensaje)) return;
+    let r = (await sbRpc('cancelar_reserva_alumna', {
+      p_token: tok, p_ts: ts, p_confirmar: true,
+      p_acepta_penalizacion: condiciones.requiere_penalizacion
+    }) || [])[0];
+    if (r?.requiere_penalizacion) {
+      if (!confirm(titulo + r.mensaje)) return;
+      r = (await sbRpc('cancelar_reserva_alumna', {
+        p_token: tok, p_ts: ts, p_confirmar: true, p_acepta_penalizacion: true
+      }) || [])[0];
+    }
     if (!r || !r.ok) { alert((r && r.mensaje) || 'No se pudo cancelar tu reserva.'); return; }
     alert(r.mensaje + (r.devuelta ? '\n\nTe devolvimos la clase a tu paquete ✧' : ''));
     alCargarPanel();
   } catch (e) {
     alert(e.message);
-  }
+  } finally { alCancelando = false; }
 }
 
 const RE_SLOT = /^presenza_(\w+)_(\d{4}-\d{2}-\d{2})_(\d{4})$/;
@@ -8342,7 +8341,7 @@ function sadminTab(tab) {
     t.classList.toggle('active', t.dataset.tab === tab));
   const body = document.getElementById('sadminBody');
   body.innerHTML = '';
-  if (tab === 'hoy')        buildSAdminHoy();
+  if (tab === 'hoy') { buildSAdminHoy(); cargarFeesCancelacion(); }
   if (tab === 'calendario') buildSAdminCalendario();
   if (tab === 'reportes')   buildSAdminReportes();
   if (tab === 'horarios')   buildSAdminHorarios();
@@ -8361,6 +8360,47 @@ function updateSubsBadge() {
 }
 
 /* ── Tab: Hoy ── */
+function pintarFeesCancelacion(contenedor, fees) {
+  if (document.getElementById('feesCancelacion') !== contenedor) return;
+  contenedor.innerHTML = !fees.length ? '' : `<div class="sa-pend-blk">
+    <div class="sa-pend-title">Cancelaciones tardías · fees pendientes (${fees.length})</div>
+    <div class="sa-pend-hint">Fees de US$5 de membresías ilimitadas. Registra el pago cuando lo hayas recibido.</div>
+    ${fees.map(f => `<div class="sa-pend-card">
+      <div class="sa-pend-info"><strong>${escHtml(f.nombre)}</strong>
+        <span>${escHtml(f.tel || f.email || '')}</span>
+        <span>${escHtml(INFO[f.clase]?.nombre || f.clase)} · ${fmtDiaLargo(f.fecha_clase)} · ${hora12(f.hora)}</span>
+        <span>Fee pendiente: US$${Number(f.monto_usd).toFixed(2)}</span>
+      </div>
+      <div class="sa-pend-btns"><button class="btn-pend-ok" onclick="registrarFeeCancelacion(${Number(f.id)},this)">✓ Registrar fee recibido</button></div>
+    </div>`).join('')}
+  </div>`;
+}
+
+async function cargarFeesCancelacion() {
+  if (!staffActual || !SB_ON) return;
+  const contenedor = document.getElementById('feesCancelacion');
+  if (!contenedor) return;
+  try {
+    pintarFeesCancelacion(contenedor, await sbRpc('gestionar_fees_cancelacion', {}) || []);
+  } catch (_) {
+    if (document.getElementById('feesCancelacion') === contenedor) {
+      contenedor.innerHTML = '<p class="sa-pend-hint">No se pudieron consultar los fees de cancelación. <button onclick="cargarFeesCancelacion()">Reintentar</button></p>';
+    }
+  }
+}
+
+async function registrarFeeCancelacion(id, boton) {
+  if (boton.disabled || !exigirStaff('registrar el pago de un fee')) return;
+  if (!confirm('¿Ya recibiste los US$5 de este fee de cancelación?')) return;
+  boton.disabled = true;
+  try {
+    const fees = await sbRpc('gestionar_fees_cancelacion', { p_pagado: id });
+    const contenedor = document.getElementById('feesCancelacion');
+    if (contenedor) pintarFeesCancelacion(contenedor, fees || []);
+  } catch (e) { alert(e.message); }
+  finally { boton.disabled = false; }
+}
+
 function buildSAdminHoy() {
   const body    = document.getElementById('sadminBody');
   const hoy     = new Date();
@@ -8376,6 +8416,7 @@ function buildSAdminHoy() {
     body.innerHTML = `<div class="sa-fecha">${diaStr}</div>
       ${buildMadrugadaHtml()}
       ${esCoach ? '' : buildPagosLinkHtml() + buildPendientesHtml() + buildPendPagoHtml()}
+      ${esCoach ? '' : '<div id="feesCancelacion"></div>'}
       <div class="sa-empty">
         <span class="sa-empty-ico">🌙</span>
         <strong>${esCoach ? 'Sin clases tuyas hoy' : 'Día de descanso'}</strong>
@@ -8484,6 +8525,7 @@ function buildSAdminHoy() {
     ${buildPagosLinkHtml()}
     ${buildPendientesHtml()}
     ${buildPendPagoHtml()}
+    <div id="feesCancelacion"></div>
     <div class="sa-kpi-grid">
       <div class="sa-kpi">
         <span class="sa-kpi-ico">📅</span>
