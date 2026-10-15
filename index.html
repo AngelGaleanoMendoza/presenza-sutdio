@@ -5373,7 +5373,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-10-15.3';
+const BUILD = '2026-10-15.4';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5561,14 +5561,17 @@ async function alCargarPanel() {
   let clases, perfil;
   try {
     [clases, perfil] = await Promise.all([
-      sbRpc('mis_clases', { p_token: tok }),
+      sbRpc('mis_clases_alumna', { p_token: tok }),
       sbRpc('mi_perfil',  { p_token: tok })
     ]);
   } catch (e) {
-    /* Sesión vencida o token inválido: de vuelta al login. */
-    localStorage.removeItem(AL_TOKEN_KEY);
-    alVista('login');
-    alError('alLoginErr', e.message);
+    if (/sesión expiró|sesion expiro/i.test(e.message || '')) {
+      localStorage.removeItem(AL_TOKEN_KEY);
+      alVista('login');
+      alError('alLoginErr', e.message);
+    } else {
+      cont.innerHTML = '<div class="al-vacio">No pudimos cargar tus clases. <button onclick="alCargarPanel()">Volver a intentar</button></div>';
+    }
     return;
   }
 
@@ -5600,6 +5603,7 @@ async function alCargarPanel() {
   const proximas = arr.filter(c => c.estado === 'proxima')
                       .sort((a,b) => (a.fecha+a.hora).localeCompare(b.fecha+b.hora));
   const pasadas  = arr.filter(c => c.estado === 'pasada').slice(0, 10);
+  const propiasCanceladas = arr.filter(c => c.estado === 'cancelada_alumna').slice(0, 10);
   /* Solo las canceladas que todavía no pasaron: enterarse de que se cayó una
      clase de hace tres meses no le sirve de nada y le llena el panel. */
   const canceladas = arr.filter(c => c.estado === 'cancelada' && c.fecha >= hoyISO())
@@ -5614,6 +5618,9 @@ async function alCargarPanel() {
     (proximas.length
       ? proximas.map(c => alFila(c,'proxima')).join('')
       : `<div class="al-vacio">Aún no tienes clases agendadas.<br>¡Reserva la próxima! ✧</div>`) +
+    (propiasCanceladas.length
+      ? '<div class="al-sec-tit">Canceladas por ti</div>' + propiasCanceladas.map(c => alFila(c,'cancelada_alumna')).join('')
+      : '') +
     (pasadas.length
       ? `<div class="al-sec-tit">Ya tomadas</div>` + pasadas.map(c => alFila(c,'pasada')).join('')
       : '');
@@ -5628,13 +5635,14 @@ function alFila(c, estado) {
   const d      = new Date(c.fecha + 'T12:00:00');
   const info   = INFO[c.clase] || { nombre:c.clase, emoji:'✧' };
   const cuando = `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]} · ${hora12(c.hora)}`;
+  const cancelada = estado === 'cancelada' || estado === 'cancelada_alumna';
 
   let acciones = '';
-  if (estado === 'proxima' && c.puede_cancelar !== undefined) {
+  if (estado === 'proxima' && c.ts != null && Number.isFinite(Number(c.ts))) {
     acciones = `<button class="btn-al-cancel" onclick="alCancelar(${Number(c.ts)},'${escArg(info.nombre)}','${escArg(cuando)}')">Cancelar</button>`;
   }
 
-  return `<div class="al-clase${estado==='pasada' ? ' pasada' : ''}${estado==='cancelada' ? ' cancelada' : ''}">
+  return `<div class="al-clase${estado==='pasada' ? ' pasada' : ''}${cancelada ? ' cancelada' : ''}">
     <div class="al-clase-fecha">
       <div class="al-clase-dia">${d.getDate()}</div>
       <div class="al-clase-mes">${MESES_ES[d.getMonth()]}</div>
@@ -5642,10 +5650,10 @@ function alFila(c, estado) {
     <div class="al-clase-info">
       <div class="al-clase-nom">${info.emoji} ${info.nombre}</div>
       <div class="al-clase-meta">${DIAS_ES[d.getDay()]} · ${hora12(c.hora)}${c.instructor ? ' · '+c.instructor : ''}</div>
-      ${estado==='cancelada' && c.motivo ? `<div class="al-motivo">${escHtml(c.motivo)}</div>` : ''}
+      ${cancelada && c.motivo ? `<div class="al-motivo">${escHtml(c.motivo)}</div>` : ''}
     </div>
     <div class="al-clase-chips">
-      ${estado==='cancelada' ? '<span class="al-chip-cancel">🚫 Cancelada</span>' : ''}
+      ${cancelada ? `<span class="al-chip-cancel">${estado === 'cancelada_alumna' ? 'Cancelada por ti' : '🚫 Cancelada'}</span>` : ''}
       ${c.lugar ? `<span class="al-chip-mat">Mat ${c.lugar}</span>` : ''}
       ${c.pago_ok === false ? `<span class="al-chip-pend">Por confirmar</span>` : ''}
       ${acciones}
@@ -5654,30 +5662,54 @@ function alFila(c, estado) {
 }
 
 let alCancelando = false;
+let alCancelDecision = null;
+function alMostrarModalCancelacion(titulo, detalle, mensaje, pedirConfirmacion = false) {
+  document.getElementById('alCancelTitulo').textContent = titulo;
+  document.getElementById('alCancelDetalle').textContent = detalle;
+  document.getElementById('alCancelAviso').textContent = mensaje;
+  document.getElementById('alCancelNo').hidden = !pedirConfirmacion;
+  document.getElementById('alCancelSi').textContent = pedirConfirmacion ? 'Sí, cancelar clase' : 'Listo';
+  const dialog = document.getElementById('alCancelDialog');
+  if (!dialog.open) dialog.showModal();
+  document.getElementById(pedirConfirmacion ? 'alCancelNo' : 'alCancelSi').focus();
+  if (pedirConfirmacion) return new Promise(resolve => { alCancelDecision = resolve; });
+}
+function alResolverModalCancelacion(aceptar) {
+  const resolver = alCancelDecision;
+  alCancelDecision = null;
+  document.getElementById('alCancelDialog').close();
+  if (resolver) resolver(aceptar);
+}
 async function alCancelar(ts, nombreClase, cuando) {
   if (alCancelando) return;
   alCancelando = true;
   const tok = localStorage.getItem(AL_TOKEN_KEY);
   try {
     const condiciones = (await sbRpc('cancelar_reserva_alumna', { p_token: tok, p_ts: ts }) || [])[0];
-    if (!condiciones?.ok) { alert(condiciones?.mensaje || 'No se pudo consultar tu reserva.'); return; }
-    const titulo = `${nombreClase}\n${cuando}\n\n`;
-    if (!confirm(titulo + condiciones.mensaje)) return;
+    const detalle = `${nombreClase} · ${cuando}`;
+    if (!condiciones?.ok) {
+      alMostrarModalCancelacion('No se pudo cancelar', detalle, condiciones?.mensaje || 'No se pudo consultar tu reserva.');
+      return;
+    }
+    if (!await alMostrarModalCancelacion('Cancelar clase', detalle, condiciones.mensaje, true)) return;
     let r = (await sbRpc('cancelar_reserva_alumna', {
       p_token: tok, p_ts: ts, p_confirmar: true,
       p_acepta_penalizacion: condiciones.requiere_penalizacion
     }) || [])[0];
     if (r?.requiere_penalizacion) {
-      if (!confirm(titulo + r.mensaje)) return;
+      if (!await alMostrarModalCancelacion('Confirmar cancelación tardía', detalle, r.mensaje, true)) return;
       r = (await sbRpc('cancelar_reserva_alumna', {
         p_token: tok, p_ts: ts, p_confirmar: true, p_acepta_penalizacion: true
       }) || [])[0];
     }
-    if (!r || !r.ok) { alert((r && r.mensaje) || 'No se pudo cancelar tu reserva.'); return; }
-    alert(r.mensaje + (r.devuelta ? '\n\nTe devolvimos la clase a tu paquete ✧' : ''));
+    if (!r || !r.ok) {
+      alMostrarModalCancelacion('No se pudo cancelar', detalle, r?.mensaje || 'No se pudo cancelar tu reserva.');
+      return;
+    }
+    alMostrarModalCancelacion('Clase cancelada', detalle, r.mensaje + '\n\nJimena recibió el aviso en su panel.');
     alCargarPanel();
   } catch (e) {
-    alert(e.message);
+    alMostrarModalCancelacion('No se pudo cancelar', nombreClase, e.message);
   } finally { alCancelando = false; }
 }
 
@@ -8297,6 +8329,7 @@ async function checkSuperPin() {
                 : `👑 ${staffActual.nombre.split(' ')[0]} · ${staffActual.rol}`;
   document.getElementById('superPinBackdrop').classList.remove('open');
   document.getElementById('sadminBackdrop').classList.add('open');
+  iniciarAvisosCancelacionJimena();
   document.body.style.overflow = 'hidden';
   const h = new Date();
   /* La versión va en el encabezado a propósito: sale en cualquier captura
@@ -8326,6 +8359,10 @@ async function checkSuperPin() {
   }
 }
 function closeSuperAdmin() {
+  clearInterval(avisosCancelacionTimer);
+  avisosCancelacionTimer = null;
+  avisosCancelacionJimena = [];
+  document.getElementById('jimenaAvisosButton').hidden = true;
   document.getElementById('sadminBackdrop').classList.remove('open');
   document.body.style.overflow = '';
   history.replaceState(null, '', window.location.pathname + window.location.search);
@@ -8360,6 +8397,52 @@ function updateSubsBadge() {
 }
 
 /* ── Tab: Hoy ── */
+let avisosCancelacionJimena = [];
+let avisosCancelacionTimer = null;
+let avisosCancelacionError = false;
+function iniciarAvisosCancelacionJimena() {
+  clearInterval(avisosCancelacionTimer);
+  avisosCancelacionTimer = null;
+  avisosCancelacionJimena = [];
+  avisosCancelacionError = false;
+  document.getElementById('jimenaAvisosButton').hidden = staffActual?.usuario !== 'jimena';
+  if (staffActual?.usuario !== 'jimena') return;
+  cargarAvisosCancelacionJimena();
+  avisosCancelacionTimer = setInterval(() => {
+    if (document.getElementById('sadminBackdrop').classList.contains('open')) cargarAvisosCancelacionJimena();
+  }, 30000);
+}
+async function cargarAvisosCancelacionJimena(vista = null) {
+  if (staffActual?.usuario !== 'jimena') return;
+  try {
+    const avisos = await sbRpc('avisos_cancelacion_jimena', vista == null ? {} : { p_vista: vista });
+    if (staffActual?.usuario !== 'jimena') return;
+    avisosCancelacionJimena = avisos || [];
+    avisosCancelacionError = false;
+  } catch (_) { avisosCancelacionError = true; }
+  if (staffActual?.usuario === 'jimena') pintarAvisosCancelacionJimena();
+}
+function pintarAvisosCancelacionJimena() {
+  const pendientes = avisosCancelacionJimena.filter(c => !c.vista_en).length;
+  document.getElementById('jimenaAvisosButton').textContent = avisosCancelacionError ? '🔔 Cancelaciones · reintentar'
+    : `🔔 Cancelaciones${pendientes ? ' (' + (pendientes >= 100 ? '99+' : pendientes) + ')' : ''}`;
+  const listado = document.getElementById('jimenaAvisosListado');
+  listado.innerHTML = (avisosCancelacionError ? '<p role="alert">No pudimos actualizar los avisos. Presiona Actualizar para reintentar.</p>' : '') +
+    (avisosCancelacionJimena.length ? avisosCancelacionJimena.map(c => `<div class="sa-pend-card">
+      <div class="sa-pend-info"><strong>${escHtml(c.nombre)}${c.vista_en ? '' : ' · Nuevo'}</strong>
+        <span>${escHtml(INFO[c.clase]?.nombre || c.clase)} · ${fmtDiaLargo(c.fecha)} · ${hora12(c.hora)}</span>
+        <span>${escHtml(c.tel || c.email || '')}</span>
+        <span>${escHtml(c.mensaje)}</span>
+        ${c.vista_en ? '<span>✓ Visto</span>' : `<button class="btn-pend-ok" onclick="cargarAvisosCancelacionJimena(${Number(c.id)})">Marcar como visto</button>`}
+      </div></div>`).join('') : avisosCancelacionError ? '' : '<p>No hay cancelaciones de alumnas registradas.</p>');
+}
+function abrirAvisosCancelacionJimena() {
+  if (staffActual?.usuario !== 'jimena') return;
+  pintarAvisosCancelacionJimena();
+  document.getElementById('jimenaAvisosDialog').showModal();
+  cargarAvisosCancelacionJimena();
+}
+
 function pintarFeesCancelacion(contenedor, fees) {
   if (document.getElementById('feesCancelacion') !== contenedor) return;
   contenedor.innerHTML = !fees.length ? '' : `<div class="sa-pend-blk">
@@ -12611,7 +12694,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <h2 id="sadminHdTitle">👑 Super Admin</h2>
           <p class="sadmin-hd-fecha" id="sadminHdFecha"></p>
         </div>
-        <div class="sadmin-close" onclick="closeSuperAdmin()">✕</div>
+        <div class="sadmin-hd-actions">
+          <button type="button" id="jimenaAvisosButton" onclick="abrirAvisosCancelacionJimena()" hidden>🔔 Cancelaciones</button>
+          <div class="sadmin-close" onclick="closeSuperAdmin()">✕</div>
+        </div>
       </div>
       <div class="sadmin-gold-line"></div>
     </div>
@@ -12729,6 +12815,38 @@ document.addEventListener('DOMContentLoaded', () => {
     <button class="btn-confirmar" id="compraEnviar" type="submit">Confirmar compra →</button>
   </form>
   <div id="compraResultado" aria-live="polite" hidden></div>
+</dialog>
+<style>
+  .sadmin-hd-actions { display:flex; align-items:center; gap:10px; }
+  #jimenaAvisosButton { padding:9px 12px; border:1px solid rgba(245,237,227,.4); border-radius:12px; color:var(--cream); font-size:.75rem; }
+  #jimenaAvisosButton[hidden] { display:none; }
+  .cancel-dialog { margin:auto; border:0; border-radius:22px; padding:26px; width:calc(100% - 32px); max-width:520px; max-height:85dvh; overflow:auto; background:var(--white); color:var(--text); box-shadow:var(--sh); }
+  .cancel-dialog::backdrop { background:rgba(74,15,26,.6); backdrop-filter:blur(5px); }
+  .cancel-dialog h2 { color:var(--wine); margin:0 35px 14px 0; font-size:1.3rem; }
+  .cancel-dialog p { font-size:.87rem; line-height:1.7; margin:12px 0; white-space:pre-line; }
+  .cancel-dialog .modal-close { float:right; }
+  .cancel-dialog-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; }
+  .cancel-dialog-actions button { flex:1; padding:13px 16px; border-radius:12px; font-weight:600; background:var(--cream); color:var(--wine); }
+  .cancel-dialog-actions .cancel-confirm { background:var(--wine); color:white; }
+  .cancel-dialog [hidden] { display:none !important; }
+  @media(max-width:620px) { .sadmin-hd-actions { flex-direction:column-reverse; align-items:flex-end; gap:6px; } #jimenaAvisosButton { font-size:.66rem; padding:7px; } }
+</style>
+<dialog class="cancel-dialog" id="alCancelDialog" aria-labelledby="alCancelTitulo" aria-describedby="alCancelAviso" oncancel="event.preventDefault();alResolverModalCancelacion(false)">
+  <button type="button" class="modal-close" aria-label="Cerrar" onclick="alResolverModalCancelacion(false)">✕</button>
+  <h2 id="alCancelTitulo">Cancelar clase</h2>
+  <p id="alCancelDetalle"></p>
+  <p id="alCancelAviso"></p>
+  <div class="cancel-dialog-actions">
+    <button type="button" id="alCancelNo" onclick="alResolverModalCancelacion(false)">Conservar mi reserva</button>
+    <button type="button" class="cancel-confirm" id="alCancelSi" onclick="alResolverModalCancelacion(true)">Sí, cancelar clase</button>
+  </div>
+</dialog>
+<dialog class="cancel-dialog" id="jimenaAvisosDialog" aria-labelledby="jimenaAvisosTitulo">
+  <button type="button" class="modal-close" aria-label="Cerrar avisos" onclick="document.getElementById('jimenaAvisosDialog').close()">✕</button>
+  <h2 id="jimenaAvisosTitulo">Cancelaciones de alumnas</h2>
+  <div id="jimenaAvisosListado" aria-live="polite"></div>
+  <div class="cancel-dialog-actions"><button type="button" onclick="cargarAvisosCancelacionJimena()">Actualizar</button>
+    <button type="button" onclick="document.getElementById('jimenaAvisosDialog').close()">Cerrar</button></div>
 </dialog>
 </body>
 </html>

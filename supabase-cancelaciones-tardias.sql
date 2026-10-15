@@ -1,5 +1,32 @@
 begin;
 
+alter table public.reservas add column if not exists cancelada timestamptz;
+alter table public.reservas add column if not exists cancelada_motivo text;
+alter table public.reservas add column if not exists clase_descontada boolean not null default false;
+
+create table if not exists public.cancelaciones_alumna (
+  id bigint generated always as identity primary key,
+  reserva_id bigint not null unique,
+  alumna_id uuid not null references public.alumnas(id) on delete cascade,
+  ts bigint not null,
+  nombre text not null,
+  email text,
+  tel text,
+  clase text not null,
+  fecha date not null,
+  hora text not null,
+  instructor text,
+  metodo text,
+  tardia boolean not null,
+  devuelta boolean not null,
+  fee_usd numeric(10,2) not null default 0,
+  mensaje text not null,
+  creada timestamptz not null default now(),
+  vista_en timestamptz
+);
+alter table public.cancelaciones_alumna enable row level security;
+revoke all on public.cancelaciones_alumna from anon,authenticated;
+
 create table if not exists public.penalizaciones_cancelacion (
   id bigint generated always as identity primary key,
   reserva_id bigint not null unique,
@@ -33,8 +60,9 @@ declare
   v_sub_id text;
   v_devuelta boolean := false;
   v_aviso text;
+  v_alumna_id uuid;
 begin
-  select norm_tel(a.tel), lower(coalesce(a.email, '')) into v_tel, v_email
+  select norm_tel(a.tel), lower(coalesce(a.email, '')), a.id into v_tel, v_email, v_alumna_id
     from public.alumnas a join public.sesiones_alumna s on s.alumna_id = a.id
     where s.token = p_token and s.expira > now();
   if v_tel is null then
@@ -89,11 +117,60 @@ begin
     values (v_res.id,v_res.nombre,v_res.email,v_res.tel,v_res.clase,v_res.fecha,v_res.hora,
       case when v_ilimitada then 'fee' else 'clase' end, case when v_ilimitada then 5 else 0 end);
   end if;
-  delete from public.reservas where id = v_res.id;
-  return query select true,
-    case when v_tardia and v_ilimitada then 'Reserva cancelada. Quedó pendiente el fee de US$5 por cancelación con menos de 6 horas de anticipación.'
+  v_aviso := case when v_tardia and v_ilimitada then 'Reserva cancelada. Quedó pendiente el fee de US$5 por cancelación con menos de 6 horas de anticipación.'
       when v_tardia and coalesce(v_res.clase_descontada,false) then 'Reserva cancelada. La clase se mantiene descontada de tu paquete por cancelar con menos de 6 horas de anticipación.'
-      else 'Tu reserva quedó cancelada.' end, v_devuelta, false;
+      when v_devuelta then 'Tu reserva quedó cancelada. Te devolvimos la clase a tu paquete.'
+      else 'Tu reserva quedó cancelada.' end;
+  insert into public.cancelaciones_alumna
+    (reserva_id,alumna_id,ts,nombre,email,tel,clase,fecha,hora,instructor,metodo,tardia,devuelta,fee_usd,mensaje)
+  values (v_res.id,v_alumna_id,v_res.ts,v_res.nombre,v_res.email,v_res.tel,v_res.clase,v_res.fecha,
+    v_res.hora,v_res.instructor,v_res.metodo,v_tardia,v_devuelta,
+    case when v_tardia and v_ilimitada then 5 else 0 end,v_aviso);
+  delete from public.reservas where id = v_res.id;
+  return query select true, v_aviso, v_devuelta, false;
+end $$;
+
+create or replace function public.mis_clases_alumna(p_token uuid)
+returns table(fecha date,hora text,clase text,instructor text,lugar int,metodo text,
+  pago_ok boolean,ts bigint,motivo text,puede_cancelar boolean,estado text)
+language plpgsql security definer set search_path = public as $$
+declare
+  v_id uuid;
+  v_tel text;
+  v_email text;
+begin
+  select a.id,norm_tel(a.tel),lower(coalesce(a.email,'')) into v_id,v_tel,v_email
+    from public.alumnas a join public.sesiones_alumna s on s.alumna_id=a.id
+    where s.token=p_token and s.expira>now();
+  if v_id is null then raise exception 'Tu sesión expiró. Vuelve a entrar.'; end if;
+  return query
+    select r.fecha,r.hora,r.clase,r.instructor,r.lugar,r.metodo,r.pago_ok,r.ts,
+      r.cancelada_motivo,
+      r.cancelada is null and ((r.fecha+r.hora::time) at time zone 'America/Managua')>now(),
+      case when r.cancelada is not null then 'cancelada'
+        when ((r.fecha+r.hora::time) at time zone 'America/Managua')>now() then 'proxima'
+        else 'pasada' end
+    from public.reservas r where norm_tel(r.tel)=v_tel
+      or (v_email<>'' and lower(coalesce(r.email,''))=v_email)
+    union all
+    select c.fecha,c.hora,c.clase,c.instructor,null::int,c.metodo,true,c.ts,c.mensaje,false,'cancelada_alumna'::text
+    from public.cancelaciones_alumna c where c.alumna_id=v_id
+    order by 1 desc,2 desc;
+end $$;
+
+create or replace function public.avisos_cancelacion_jimena(p_vista bigint default null)
+returns setof public.cancelaciones_alumna
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.role() is distinct from 'authenticated' or not exists (
+    select 1 from auth.users u where u.id=auth.uid() and u.email_confirmed_at is not null
+      and lower(u.email)='jimena@presenza.auth'
+  ) then raise exception 'Solo Jimena puede consultar estos avisos de cancelación.'; end if;
+  if p_vista is not null then
+    update public.cancelaciones_alumna set vista_en=coalesce(vista_en,now()) where id=p_vista;
+  end if;
+  return query select * from public.cancelaciones_alumna
+    order by (vista_en is null) desc,creada desc limit 100;
 end $$;
 
 create or replace function public.cancelar_mi_reserva(p_token uuid,p_ts bigint)
@@ -125,5 +202,9 @@ revoke all on function public.cancelar_mi_reserva(uuid,bigint) from public;
 grant execute on function public.cancelar_mi_reserva(uuid,bigint) to anon,authenticated;
 revoke all on function public.gestionar_fees_cancelacion(bigint) from public,anon;
 grant execute on function public.gestionar_fees_cancelacion(bigint) to authenticated;
+revoke all on function public.mis_clases_alumna(uuid) from public;
+grant execute on function public.mis_clases_alumna(uuid) to anon,authenticated;
+revoke all on function public.avisos_cancelacion_jimena(bigint) from public,anon;
+grant execute on function public.avisos_cancelacion_jimena(bigint) to authenticated;
 
 commit;

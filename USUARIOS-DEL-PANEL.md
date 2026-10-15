@@ -51,6 +51,21 @@ el pago. Para habilitar esta política, ejecutar
 `supabase-cancelaciones-tardias.sql` después de
 `supabase-cancelar-y-reserva-doble.sql` y publicar la web actualizada.
 
+En **Mis clases**, cada reserva próxima tiene **Cancelar**, que abre un modal
+con la política de cancelación y los botones **Conservar mi reserva** y
+**Sí, cancelar clase**. Las cancelaciones confirmadas se conservan en
+**Canceladas por ti**, con la devolución o penalización correspondiente.
+
+Jimena recibe cada cancelación en **🔔 Cancelaciones**, en el encabezado de
+su panel. El contador indica avisos sin leer; puede abrirlos y marcarlos
+como vistos. Se actualizan cada 30 segundos con el panel abierto y al abrir
+los avisos. Son avisos internos, sin envío de correo ni WhatsApp.
+
+Esta actualización requiere volver a ejecutar la versión actual de
+`supabase-cancelaciones-tardias.sql`, que agrega el historial y la consulta
+`mis_clases_alumna`. Solo se registran las cancelaciones hechas después de
+aplicar esta actualización.
+
 ### Acceso de coach — solo sus propias clases
 
 | Usuario     | Persona                    |

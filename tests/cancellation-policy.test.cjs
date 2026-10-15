@@ -74,6 +74,14 @@ const token = '10000000-0000-0000-0000-000000000001';
     const earlyUnlimited = await seed('7 hours','Suscripcion Mensual ilimitado',false);
     assert.equal((await cancel(earlyUnlimited,true)).ok,true);
     assert.equal(await fees(),1);
+    const history = (await db.query('select * from mis_clases_alumna($1)',[token])).rows;
+    assert.equal(history.filter(c => c.estado==='cancelada_alumna').length,4);
+    assert(history.some(c => c.ts===unlimited && /US\$5/.test(c.motivo)));
+    const futureId = await seed('1 hour');
+    const upcoming = (await db.query('select * from mis_clases_alumna($1)',[token])).rows.find(c=>c.ts===futureId);
+    assert.equal(upcoming.puede_cancelar,true);
+    assert.equal(upcoming.estado,'proxima');
+    await assert.rejects(() => db.query('select * from mis_clases_alumna($1)',['99999999-0000-0000-0000-000000000001']),/sesión expiró/);
     assert.equal((await cancel(await seed('-1 hour'),true,true)).ok,false);
     assert.equal((await cancel(await seed('1 hour','Suscripcion plan5',true,'otra@example.com'),true,true)).ok,false);
     const legacy = await seed('2 hours');
@@ -81,6 +89,7 @@ const token = '10000000-0000-0000-0000-000000000001';
     await db.query("select set_config('test.role','authenticated',false),set_config('test.uid',$1,false)",['00000000-0000-0000-0000-000000000002']);
     await db.exec('set role authenticated');
     await assert.rejects(() => db.query('select * from gestionar_fees_cancelacion()'),/Solo Jimena/);
+    await assert.rejects(() => db.query('select * from avisos_cancelacion_jimena()'),/Solo Jimena/);
     await db.exec('reset role');
     await db.query("select set_config('test.uid',$1,false)",['00000000-0000-0000-0000-000000000001']);
     await db.exec('set role authenticated');
@@ -88,11 +97,16 @@ const token = '10000000-0000-0000-0000-000000000001';
     assert.equal(pending.length,1);
     assert.equal(Number(pending[0].monto_usd),5);
     assert.equal((await db.query('select * from gestionar_fees_cancelacion($1)',[pending[0].id])).rows.length,0);
+    const notices = (await db.query('select * from avisos_cancelacion_jimena()')).rows;
+    assert.equal(notices.length,4);
+    assert.equal(notices.filter(c=>!c.vista_en).length,4);
+    assert.equal((await db.query('select * from avisos_cancelacion_jimena($1)',[notices[0].id])).rows.filter(c=>!c.vista_en).length,3);
     await db.exec('reset role');
     const messages = [], calls = [];
     const context = vm.createContext({
       alCancelando:false, AL_TOKEN_KEY:'token', localStorage:{getItem:()=>token},
-      confirm: m => { messages.push(m); return true; }, alert() {}, alCargarPanel() {},
+      alMostrarModalCancelacion: async (titulo,detalle,mensaje,pedir) => { messages.push({mensaje,pedir}); return true; },
+      alert() {}, alCargarPanel() {},
       sbRpc: async (fn,args) => {
         calls.push(args);
         return calls.length===1 ? [{ok:true,mensaje:'Confirmar sin penalizacion',requiere_penalizacion:false}]
@@ -102,9 +116,35 @@ const token = '10000000-0000-0000-0000-000000000001';
     });
     vm.runInContext(html.match(/async function alCancelar\([\s\S]*?\n}/)[0],context);
     await context.alCancelar(1,'Pilates','Hoy');
-    assert.equal(messages.length,2);
+    assert.equal(messages.filter(m=>m.pedir).length,2);
     assert.equal(calls[1].p_acepta_penalizacion,false);
     assert.equal(calls[2].p_acepta_penalizacion,true);
-    console.log('OK: límite exacto de 6 horas, aviso previo, rechazo sin consentimiento, clase sin doble descuento, ilimitada con fee único de US$5, devolución temprana, identidad, pasado, endpoint antiguo, permisos de cobro y nuevo aviso al cruzar el límite.');
+    assert.match(messages.at(-1).mensaje,/Jimena recibió/);
+    calls.length=0;
+    context.alMostrarModalCancelacion=async()=>false;
+    await context.alCancelar(1,'Pilates','Hoy');
+    assert.equal(calls.length,1);
+    const elements = new Map();
+    const element = id => {
+      if (!elements.has(id)) elements.set(id,{textContent:'',hidden:false,open:false,focus(){},showModal(){this.open=true;},close(){this.open=false;}});
+      return elements.get(id);
+    };
+    const modalContext = vm.createContext({document:{getElementById:element},alCancelDecision:null});
+    for(const name of ['alMostrarModalCancelacion','alResolverModalCancelacion']) vm.runInContext(html.match(new RegExp('function '+name+'\\([\\s\\S]*?\\n}'))[0],modalContext);
+    const decision=modalContext.alMostrarModalCancelacion('Cancelar clase','Pilates','Fee US$5',true);
+    assert(element('alCancelDialog').open);
+    assert.equal(element('alCancelSi').textContent,'Sí, cancelar clase');
+    modalContext.alResolverModalCancelacion(false);
+    assert.equal(await decision,false);
+    assert.equal(element('alCancelDialog').open,false);
+    modalContext.alMostrarModalCancelacion('Clase cancelada','Pilates','Jimena recibió el aviso.');
+    assert.equal(element('alCancelNo').hidden,true);
+    assert.equal(element('alCancelSi').textContent,'Listo');
+    const rowContext=vm.createContext({Date,Number,INFO:{},DIAS_ES:[],MESES_ES:[],hora12:v=>v,escArg:v=>v,escHtml:v=>String(v).replace(/</g,'&lt;')});
+    vm.runInContext(html.match(/function alFila\([\s\S]*?\n}/)[0],rowContext);
+    assert.match(rowContext.alFila({fecha:'2026-10-20',hora:'10:00',clase:'Pilates',ts:123},'proxima'),/btn-al-cancel/);
+    assert(!rowContext.alFila({fecha:'2026-10-20',hora:'10:00',clase:'Pilates'},'proxima').includes('btn-al-cancel'));
+    assert.match(rowContext.alFila({fecha:'2026-10-20',hora:'10:00',clase:'Pilates',motivo:'Devuelta'},'cancelada_alumna'),/Cancelada por ti/);
+    console.log('OK: política de 6 horas, penalizaciones, devolución, modal propio, rechazo sin cancelar, botón independiente de puede_cancelar, historial de cancelaciones, avisos persistentes exclusivos de Jimena y marcar como visto.');
   } finally { await db.close(); }
 })().catch(e => { console.error(e); process.exitCode=1; });
