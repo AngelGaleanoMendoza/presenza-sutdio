@@ -27,6 +27,18 @@ Eventos**. Pueden confirmar y rechazar pagos, eliminar reservas, agendar
 alumnas, pasar lista, cambiar el horario semanal, cancelar clases sueltas,
 activar planes y ver el dinero del día, la semana y el mes.
 
+En **Suscriptoras**, el botón **🔑 Cambiar PIN** permite a Jimena, Carlos y
+Laura restablecer el PIN de acceso de una alumna a **Mis clases**. Se escribe
+el nuevo PIN de 4 dígitos y su confirmación. No necesita el PIN anterior.
+Al guardarlo se cierran todas las sesiones de esa alumna y se registra quién
+hizo el cambio, sin guardar el PIN en el historial. El estudio debe comunicar
+el nuevo PIN a la alumna. Si todavía no tiene acceso, debe registrarse primero.
+
+Para habilitarlo, ejecutar `supabase-restablecer-pin-alumnas.sql` en el SQL
+Editor de Supabase, después de `supabase-login-alumnas.sql`. El permiso se
+valida en el servidor y se limita a esas tres cuentas; las coaches no pueden
+utilizar esta función.
+
 ### Acceso de coach — solo sus propias clases
 
 | Usuario     | Persona                    |

@@ -5373,7 +5373,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-10-15.1';
+const BUILD = '2026-10-15.2';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -6424,6 +6424,55 @@ async function guardarAjusteClases(email) {
    usuario con el que la alumna entra. Las fichas que el estudio carga a mano
    suelen quedar sin número, y hasta ahora completarlo obligaba a entrar a la
    base de datos. */
+function restablecerPinAlumna(email) {
+  if (!exigirStaff('restablecer el PIN de una alumna')) return;
+  const sub = getSuscriptoraByEmail(email);
+  if (!sub) return;
+  const body = `
+    <p>Restablecer el acceso de <strong>${escHtml(sub.nombre)}</strong> a «Mis clases».</p>
+    <p class="sam-lbl">Nuevo PIN de 4 dígitos</p>
+    <input class="sam-inp" id="samPinNuevo" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" aria-label="Nuevo PIN de 4 dígitos" />
+    <p class="sam-lbl">Confirmar nuevo PIN</p>
+    <input class="sam-inp" id="samPinConfirmar" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" aria-label="Confirmar nuevo PIN" />
+    <p class="rnv-resumen">Se cerrarán las sesiones abiertas de esta alumna. Comunícale el nuevo PIN para que vuelva a entrar con su celular.</p>
+    <p id="samPinError" role="alert" style="color:#a12030;margin-top:12px"></p>`;
+  abrirSam(email, '🔑 Cambiar PIN de alumna', body, 'Guardar nuevo PIN', () => guardarPinAlumna(sub.id));
+  document.getElementById('samPinNuevo').focus();
+}
+
+let guardandoPinAlumna = false;
+async function guardarPinAlumna(subId) {
+  if (!exigirStaff('restablecer el PIN de una alumna') || guardandoPinAlumna) return false;
+  const nuevo = document.getElementById('samPinNuevo');
+  const confirmar = document.getElementById('samPinConfirmar');
+  const error = document.getElementById('samPinError');
+  error.textContent = '';
+  if (!/^\d{4}$/.test(nuevo.value)) {
+    error.textContent = 'El PIN debe tener exactamente 4 dígitos.';
+    return false;
+  }
+  if (nuevo.value !== confirmar.value) {
+    error.textContent = 'Los PIN no coinciden. Revisa la confirmación.';
+    return false;
+  }
+  guardandoPinAlumna = true;
+  nuevo.disabled = confirmar.disabled = true;
+  try {
+    await sbRpc('restablecer_pin_alumna_staff', { p_sub_id: subId, p_pin_nuevo: nuevo.value });
+    nuevo.value = confirmar.value = '';
+    guardandoPinAlumna = false;
+    cerrarSam();
+    alert('PIN actualizado. La alumna puede entrar a «Mis clases» con su celular y el nuevo PIN. Sus sesiones anteriores quedaron cerradas.');
+    return true;
+  } catch (e) {
+    error.textContent = e.message;
+    return false;
+  } finally {
+    guardandoPinAlumna = false;
+    nuevo.disabled = confirmar.disabled = false;
+  }
+}
+
 function editarDatosSub(email) {
   const sub = getSuscriptoraByEmail(email);
   if (!sub) return;
@@ -9130,6 +9179,7 @@ function buildSAdminSubs() {
         <button class="btn-sa-agendar" onclick="toggleAgendarSub(this)">📅 Agendar ▾</button>
         <button class="btn-sa-renovar" onclick="renovarSub('${escArg(sub.email)}')">⟳ Renovar plan</button>
         <button class="btn-sa-historial" onclick="editarDatosSub('${escArg(sub.email)}')">✏️ Editar datos</button>
+        ${staffActual ? `<button class="btn-sa-historial" onclick="restablecerPinAlumna('${escArg(sub.email)}')">🔑 Cambiar PIN</button>` : ''}
         ${ilim ? '' : `<button class="btn-sa-historial" onclick="ajustarClases('${escArg(sub.email)}')">✏️ Corregir clases</button>`}
         ${(vencida || sub.graciaOriginalVence) ? `<button class="btn-sa-historial" onclick="abrirGracia('${escArg(sub.email)}')">${sub.graciaOriginalVence ? '🔒 Quitar reactivación' : '🔓 Reactivar'}</button>` : ''}
         <button class="btn-sa-historial" onclick="abrirVencimiento('${escArg(sub.email)}')">🗓 Vencimiento</button>
@@ -9550,6 +9600,11 @@ function abrirSam(email, titulo, bodyHtml, okTexto, onOk, danger) {
   document.getElementById('samBackdrop').classList.add('open');
 }
 function cerrarSam() {
+  if (guardandoPinAlumna) return;
+  const pinNuevo = document.getElementById('samPinNuevo');
+  const pinConfirmar = document.getElementById('samPinConfirmar');
+  if (pinNuevo) pinNuevo.value = '';
+  if (pinConfirmar) pinConfirmar.value = '';
   document.getElementById('samBackdrop').classList.remove('open');
   samOnOk = null;
 }
