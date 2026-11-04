@@ -4478,9 +4478,9 @@ const EMAIL_NOTIF   = EMAIL_ESTUDIO;   // ← correo donde llegan las solicitude
    Después de pegar cualquiera, abrirlo una vez y confirmar que el monto
    coincide con el comentario de su línea. */
 const LINKS_PAGO = {
-  singular: 'https://checkout.baccredomatic.com/NTM4NTU1ODgyMDNmYThjOTZjNGY0MS4xNzg3NjI1MzA0',   // C$440   · Clase singular
-  plan5:    'https://checkout.baccredomatic.com/MTcxMmNhZmY1ODM3Njg0Yy43MGVmMjYxNzg3NjI1NDU4',   // C$1,650 · Paquete 5 clases
-  plan10:   'https://checkout.baccredomatic.com/YTJkOS4wODUwODY5YTYyYjY5NjA0MmExNzg3NjI1NjI2',   // C$2,930 · Paquete 10 clases
+  singular: 'https://checkout.baccredomatic.com/MS4xNGNjODllMTk4MGEzN2FhMDYxNmYxNzkzNjU4Nzg3',   // C$440   · Clase singular
+  plan5:    'https://checkout.baccredomatic.com/LjBmNWFmNmYxMmY0MDk4ZWUwMDgyNjAxNzkzNjU4ODQ5',   // C$1,650 · Paquete 5 clases
+  plan10:   'https://checkout.baccredomatic.com/MTkxMGFiNDZkMGUzLmYwMjY5ODc2ODAxNzkzNjU4OTUw',   // C$2,930 · Paquete 10 clases
   ilimit1:  'https://checkout.baccredomatic.com/MmE4OTQwMTM1ODM1NjQ2ZDc5ODA4LjgxNzg3NjI1NzY1',   // C$4,760 · Mensual ilimitado
   /* El estudio confirma que este link entrega los 3 meses completos con
      Cantidad 1. La pantalla de BAC dice "vigencia de 30 días calendario,
@@ -5373,7 +5373,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-10-15.4';
+const BUILD = '2026-11-04.1';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
