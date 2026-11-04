@@ -2390,10 +2390,50 @@ footer { background:var(--wine-d); padding:60px 52px 28px; }
   border-radius:6px; padding:4px 8px; margin-bottom:8px; line-height:1.35;
 }
 
+/* ── Links de pago (pestaña Pagos) ── */
+.pg-aviso {
+  background:rgba(107,23,40,.05); border:1px solid rgba(107,23,40,.14);
+  border-radius:10px; padding:12px 14px; margin:14px 0 16px;
+  font-size:.78rem; color:var(--wine-d); line-height:1.6;
+}
+.pg-lista { display:flex; flex-direction:column; gap:10px; }
+.pg-row {
+  display:grid; grid-template-columns:minmax(150px,210px) 1fr auto;
+  gap:10px; align-items:center;
+  background:var(--white); border:1px solid rgba(107,23,40,.1);
+  border-radius:10px; padding:10px 12px;
+}
+.pg-plan { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.pg-plan strong { font-size:.82rem; color:var(--wine-d); }
+.pg-precio { font-size:.68rem; color:var(--gray); letter-spacing:.3px; }
+.pg-inp {
+  width:100%; min-width:0; padding:9px 11px;
+  border:1.5px solid rgba(107,23,40,.18); border-radius:8px;
+  font-family:'Poppins',sans-serif; font-size:.76rem; color:var(--text);
+  background:#fff; outline:none; transition:border-color .2s;
+}
+.pg-inp:focus { border-color:var(--wine); }
+.btn-pg-abrir {
+  padding:9px 14px; border:1.5px solid var(--wine); background:transparent;
+  color:var(--wine); border-radius:8px; white-space:nowrap;
+  font-family:'Poppins',sans-serif; font-size:.73rem; font-weight:600; cursor:pointer;
+  transition:background .18s, color .18s;
+}
+.btn-pg-abrir:hover { background:var(--wine); color:#fff; }
+.pg-estado { font-size:.78rem; line-height:1.55; margin-top:14px; }
+.pg-estado.pg-mal  { color:#c0392b; }
+.pg-estado.pg-bien { color:#1e8449; }
+.pg-pie { font-size:.72rem; color:var(--gray); line-height:1.6; margin-top:14px; }
+@media(max-width:620px){
+  .pg-row { grid-template-columns:1fr; }
+  .btn-pg-abrir { justify-self:start; }
+}
+
 /* ── Perfil COACH: solo vista de Calendario y Horarios ── */
 .coach-mode .sadmin-tab[data-tab="hoy"],
 .coach-mode .sadmin-tab[data-tab="reportes"],
 .coach-mode .sadmin-tab[data-tab="subs"],
+.coach-mode .sadmin-tab[data-tab="pagos"],
 .coach-mode .sadmin-tab[data-tab="eventos"] { display:none; }
 /* Con clave propia, la coach sí ve Hoy: es donde marca la asistencia */
 .coach-mode.coach-hoy .sadmin-tab[data-tab="hoy"] { display:block; }
@@ -4496,6 +4536,26 @@ function linkDePago(planKey) {
   return (LINKS_PAGO[planKey] || '').trim();
 }
 
+/* Los de arriba son el respaldo, no la última palabra: los de verdad viven
+   en la tabla `links_pago` y se editan desde el panel → Pagos, sin tocar
+   código. Al cargar la página se bajan de ahí y pisan a estos; si la base
+   no contesta, quedan los escritos acá y la alumna igual puede pagar.
+
+   La copia local es para que el que vuelve a abrir el sitio arranque con el
+   último link conocido en vez de uno viejo del código, aunque la base tarde
+   en contestar. Solo se aceptan las llaves que ya existen arriba: así una
+   copia local manipulada no puede inventar planes nuevos. */
+(function() {
+  const g = localStorage.getItem('presenza_links_pago');
+  if (!g) return;
+  try {
+    const guardados = JSON.parse(g);
+    Object.keys(LINKS_PAGO).forEach(k => {
+      if (typeof guardados[k] === 'string') LINKS_PAGO[k] = guardados[k];
+    });
+  } catch (e) {}
+})();
+
 /* Cada alta o renovación es también una compra. Desde esta versión el
    historial conserva el canal y, si fue BAC, una copia del URL exacto que
    estaba configurado al confirmarla. Guardar la copia importa: si BAC cambia
@@ -5373,7 +5433,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-11-04.2';
+const BUILD = '2026-11-04.3';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -8341,7 +8401,7 @@ async function checkSuperPin() {
   sadminTab((sadminRol === 'coach' && !coachActual) ? 'calendario' : 'hoy');
   /* Traer lo hecho desde otros celulares antes de mostrar el panel */
   if (SB_ON) {
-    Promise.all([sincronizarReservas(), sincronizarSubs(), sincronizarAsistencias(), sincronizarHorarios(), sincronizarEspeciales(), sincronizarCanceladas(), verificarColumnaDescuento(), verificarColumnaAjustes()])
+    Promise.all([sincronizarReservas(), sincronizarSubs(), sincronizarAsistencias(), sincronizarHorarios(), sincronizarLinksPago().catch(e => console.warn('Links de pago:', e.message)), sincronizarEspeciales(), sincronizarCanceladas(), verificarColumnaDescuento(), verificarColumnaAjustes()])
       .then(() => { sadminTab(sadminTabActual); updateSubsBadge(); })
       .catch(err => {
         /* "permission denied" con sesión iniciada = a la base le falta correr
@@ -8384,6 +8444,7 @@ function sadminTab(tab) {
   if (tab === 'horarios')   buildSAdminHorarios();
   if (tab === 'subs')       buildSAdminSubs();
   if (tab === 'eventos')    buildSAdminEventos();
+  if (tab === 'pagos')      buildSAdminPagos();
   updateSubsBadge();
 }
 
@@ -11717,6 +11778,112 @@ function printReportePeriodo() {
 }
 
 /* ── Tab: Horarios ── */
+/* ── Tab: Pagos ──
+   Los links de BAC, editables sin tocar código ni volver a publicar el
+   sitio. Lo que esta pantalla NO puede hacer es verificar el monto: ese lo
+   fija el banco del lado de BAC y la página no lo puede leer. Por eso al
+   lado de cada campo va el precio que el sitio le cobra a la alumna, que es
+   contra lo que hay que comparar al abrir el link. */
+function nombrePlanLink(k) { return (PLANES_SUB[k] || {}).nombre || k; }
+
+function pgEstado(msg, esError = true) {
+  const el = document.getElementById('pgEstado');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.className = 'pg-estado' + (msg ? (esError ? ' pg-mal' : ' pg-bien') : '');
+}
+
+function buildSAdminPagos() {
+  const body = document.getElementById('sadminBody');
+  const filas = Object.keys(LINKS_PAGO).map(k => {
+    const p = PLANES_SUB[k] || {};
+    return `
+      <div class="pg-row">
+        <div class="pg-plan">
+          <strong>${escHtml(nombrePlanLink(k))}</strong>
+          <span class="pg-precio">cobra ${fmtC(p.precio || 0)}</span>
+        </div>
+        <input class="pg-inp" id="pgLink_${k}" type="url" spellcheck="false"
+               placeholder="https://checkout.baccredomatic.com/…"
+               value="${escHtml(LINKS_PAGO[k] || '')}"/>
+        <button class="btn-pg-abrir" onclick="probarLinkPago('${k}')" title="Abrir este link para ver qué monto cobra">Abrir</button>
+      </div>`;
+  }).join('');
+
+  body.innerHTML = `
+    <div class="hor-toolbar">
+      <span class="hor-note">Links de pago de BAC. Pegá el que te dé el banco para cada plan y guardá.</span>
+      <div><button class="btn-hor-save" onclick="saveLinksPago()">💾 Guardar</button></div>
+    </div>
+    <div class="pg-aviso">
+      ⚠️ El monto lo fija BAC, no esta página. Antes de guardar abrí cada link
+      con el botón “Abrir” y confirmá que el banco cobra lo que dice al lado.
+      Un link en el plan equivocado hace que la alumna vea un precio acá y
+      pague otro en el banco.
+    </div>
+    <div class="pg-lista">${filas}</div>
+    <div class="pg-estado" id="pgEstado"></div>
+    <p class="pg-pie">Los cambios se aplican en todos los dispositivos la próxima vez
+      que abran la página. Las compras ya hechas guardan una copia del link con el que
+      se pagaron, así que no se tocan.</p>`;
+}
+
+function probarLinkPago(k) {
+  const url = (document.getElementById('pgLink_' + k).value || '').trim();
+  if (!url) { pgEstado(`“${nombrePlanLink(k)}” todavía no tiene link.`); return; }
+  window.open(url, '_blank', 'noopener');
+}
+
+async function saveLinksPago() {
+  const nuevos = {};
+  Object.keys(LINKS_PAGO).forEach(k => {
+    nuevos[k] = ((document.getElementById('pgLink_' + k) || {}).value || '').trim();
+  });
+
+  /* Un link que no sea de BAC casi siempre es un pegado a medias */
+  for (const [k, url] of Object.entries(nuevos)) {
+    if (url && !/^https:\/\/checkout\.baccredomatic\.com\/\S+$/.test(url)) {
+      pgEstado(`El link de “${nombrePlanLink(k)}” no parece de BAC. ` +
+               `Tiene que empezar con https://checkout.baccredomatic.com/`);
+      return;
+    }
+  }
+
+  /* El error caro: dos planes con el mismo link cobran el mismo monto, y el
+     estudio se entera cuando ya cobró de menos. */
+  const vistos = new Map();
+  for (const [k, url] of Object.entries(nuevos)) {
+    if (!url) continue;
+    if (vistos.has(url)) {
+      pgEstado(`“${nombrePlanLink(k)}” y “${nombrePlanLink(vistos.get(url))}” tienen el MISMO link: ` +
+               `las dos cobrarían lo mismo. Revisá cuál va en cada una.`);
+      return;
+    }
+    vistos.set(url, k);
+  }
+
+  const sinLink = Object.keys(nuevos).filter(k => !nuevos[k]).map(nombrePlanLink);
+  if (sinLink.length && !confirm(
+      `Estos planes van a quedar SIN link de pago:\n\n· ${sinLink.join('\n· ')}\n\n` +
+      `Quien los elija no va a poder pagar por link. ¿Guardar igual?`)) return;
+
+  const btn = document.querySelector('.btn-hor-save');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Guardando…'; }
+  try {
+    await guardarLinksPagoDB(nuevos);
+    Object.assign(LINKS_PAGO, nuevos);
+    localStorage.setItem('presenza_links_pago', JSON.stringify(LINKS_PAGO));
+    pgEstado('Listo, los links quedaron guardados.', false);
+    if (btn) { btn.textContent = '✅ Guardado'; setTimeout(() => { btn.textContent = '💾 Guardar'; }, 1800); }
+  } catch (e) {
+    pgEstado('No se pudo guardar: ' + e.message +
+             (/42P01|does not exist/.test(e.message) ? ' — falta correr supabase-links-pago.sql.' : ''));
+    if (btn) btn.textContent = '💾 Guardar';
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 function buildSAdminHorarios() {
   const body  = document.getElementById('sadminBody');
   const DNOM  = { 1:'Lunes', 2:'Martes', 3:'Miércoles', 4:'Jueves', 5:'Viernes', 6:'Sábado' };
@@ -12155,6 +12322,36 @@ async function guardarHorariosDB() {
   }
 }
 
+/* ── Links de pago ──
+   Se bajan en cada carga de la página: si BAC le cambia un link al estudio,
+   se pega una vez en el panel y todos los dispositivos lo toman solos. Las
+   llaves que no estén en LINKS_PAGO se ignoran, para que una fila de más en
+   la tabla no invente un plan que el sitio no sabe cobrar. */
+async function sincronizarLinksPago() {
+  if (!SB_ON) return false;
+  const filas = await sbFetch('links_pago?select=plan,url');
+  if (!filas || !filas.length) return false;
+  filas.forEach(f => {
+    if (f.plan in LINKS_PAGO && typeof f.url === 'string') LINKS_PAGO[f.plan] = f.url.trim();
+  });
+  localStorage.setItem('presenza_links_pago', JSON.stringify(LINKS_PAGO));
+  return true;
+}
+
+/* Un solo POST con Prefer: merge-duplicates = upsert por `plan`, que es la
+   llave primaria. Así no hay que borrar antes de insertar y la tabla nunca
+   queda un instante sin links. */
+async function guardarLinksPagoDB(links) {
+  if (!SB_ON) throw new Error('No hay conexión con la base de datos.');
+  const ahora = new Date().toISOString();
+  const filas = Object.entries(links).map(([plan, url]) => ({ plan, url, actualizado: ahora }));
+  await sbFetch('links_pago', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates' },
+    body: JSON.stringify(filas)
+  });
+}
+
 async function sincronizarHorarios() {
   if (!SB_ON) return false;
   const filas = await sbFetch('horarios?select=*&order=dia,orden');
@@ -12525,6 +12722,7 @@ document.addEventListener('DOMContentLoaded', () => {
        alguien abre su link (abrirEspecialPorHash). */
     Promise.all([
       sincronizarHorarios().catch(e => console.warn('Horarios:', e.message)),
+      sincronizarLinksPago().catch(e => console.warn('Links de pago:', e.message)),
       sincronizarEventos().catch(e => console.warn('Eventos:', e.message)),
       sincronizarCanceladas().catch(e => console.warn('Clases canceladas:', e.message))
     ]).then(() => { renderSched(); renderEventosPublic(); });
@@ -12708,6 +12906,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="sadmin-tab"        data-tab="horarios"   onclick="sadminTab('horarios')">🗓 Horarios</div>
       <div class="sadmin-tab"        data-tab="subs"       onclick="sadminTab('subs')">💎 Suscriptoras<span class="sadmin-badge" id="subsBadge" style="display:none">0</span></div>
       <div class="sadmin-tab"        data-tab="eventos"    onclick="sadminTab('eventos')">🎉 Eventos</div>
+      <div class="sadmin-tab"        data-tab="pagos"      onclick="sadminTab('pagos')">💳 Pagos</div>
     </div>
     <div class="sadmin-body" id="sadminBody"></div>
   </div>
