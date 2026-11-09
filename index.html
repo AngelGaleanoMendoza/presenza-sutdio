@@ -5433,7 +5433,7 @@ const DIAS_EDITABLES = [1,2,3,4,5,6];
    realidad la que falla es la copia. verificarVersion() compara este número
    contra version.json (que se pide SIN caché) y recarga una sola vez.
    OJO al editar: subir el número aquí Y en version.json, siempre juntos. */
-const BUILD = '2026-11-04.3';
+const BUILD = '2026-11-09.1';
 async function verificarVersion() {
   try {
     const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
@@ -5504,6 +5504,19 @@ async function sbFetch(path, opts = {}) {
      en Safari), y la reserva se veía como fallida aunque sí quedó guardada. */
   if (!txt) return null;
   try { return JSON.parse(txt); } catch(e) { return null; }
+}
+
+/* PostgREST limita cada respuesta a 1000 filas. El orden estable evita
+   repetir o saltar filas al avanzar por las páginas. */
+async function sbFetchTodo(path) {
+  const PAG = 1000;
+  const filas = [];
+  for (let desde = 0; ; desde += PAG) {
+    const pag = await sbFetch(`${path}&limit=${PAG}&offset=${desde}`);
+    filas.push(...pag);
+    if (pag.length < PAG) break;
+  }
+  return filas;
 }
 
 /* ════════════════════════════════════════
@@ -5812,12 +5825,12 @@ async function sincronizarReservas() {
      se cae por esperar a que alguien lo corra. */
   let filas;
   try {
-    filas = await sbFetch('reservas?select=*&cancelada=is.null&order=ts.asc');
+    filas = await sbFetchTodo('reservas?select=*&cancelada=is.null&order=ts.asc,id.asc');
     COL_CANCELADA = true;
   } catch (e) {
     if (!/cancelada/.test(e.body || '')) throw e;
     COL_CANCELADA = false;
-    filas = await sbFetch('reservas?select=*&order=ts.asc');
+    filas = await sbFetchTodo('reservas?select=*&order=ts.asc,id.asc');
   }
   const nuevo = {};
   filas.forEach(f => {
@@ -6161,7 +6174,7 @@ function rowToSub(f) {
 /* Trae las suscriptoras de la nube y reemplaza la copia en memoria */
 async function sincronizarSubs() {
   if (!SB_ON) return false;
-  const filas = await sbFetch('suscriptoras?select=*');
+  const filas = await sbFetchTodo('suscriptoras?select=*&order=id.asc');
   SUBS = filas.map(rowToSub);
   SUBS_IDS  = SUBS.map(s => s.id).filter(Boolean);   /* lo que hay en la nube */
   SUBS_SNAP = snapSubs(SUBS);
@@ -6196,14 +6209,14 @@ async function sincronizarAsistencias() {
   if (!SB_ON) return false;
   let filas;
   try {
-    filas = await sbFetch('asistencias?select=clase,fecha,hora,email,asistio');
+    filas = await sbFetchTodo('asistencias?select=clase,fecha,hora,email,asistio&order=id.asc');
     COL_ASISTIO = true;
   } catch (e) {
     /* Falta correr supabase-inasistencias.sql: se sigue trabajando como antes,
        donde toda fila guardada era una asistencia. */
     if (!esColumnaFaltante(e)) throw e;
     COL_ASISTIO = false;
-    filas = await sbFetch('asistencias?select=clase,fecha,hora,email');
+    filas = await sbFetchTodo('asistencias?select=clase,fecha,hora,email&order=id.asc');
   }
   ASIST = new Map(filas.map(f =>
     [asistKeyDe(f.clase, f.fecha, f.hora, f.email), f.asistio !== false]));
